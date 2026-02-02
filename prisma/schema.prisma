@@ -1,0 +1,127 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "darwin-arm64"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  loginId   String   @unique
+  password  String
+  name      String
+  role      String   // 'admin' or 'student'
+  createdAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+
+  // Student specific relations
+  profile       StudentProfile?
+  units         Unit[]
+  learningRecords LearningRecord[]
+  schedules     Schedule[]
+  homeworks     Homework[]
+  exams         Exam[]
+  incorrectNotes IncorrectNote[]
+}
+
+model StudentProfile {
+  id        Int    @id @default(autoincrement())
+  userId    Int    @unique
+  user      User   @relation(fields: [userId], references: [id])
+  grade     String
+  class     String?
+  email     String?
+  phone     String?
+  parentPhone String?
+  parentRelation String? // '부', '모' etc.
+  statusSummary String? // '양호', '보통' etc.
+}
+
+model Unit {
+  id                 Int      @id @default(autoincrement())
+  userId             Int
+  user               User     @relation(fields: [userId], references: [id])
+  name               String
+  grade              String   @default("고1")
+  subject            String   @default("공통수학1") // e.g. 공통수학1, 미적분, 등
+  status             String // 'HIGH', 'MID', 'LOW' (System/Admin Status)
+  selectedDifficulty String // '상', '중', '하' (Student Selection)
+  completionStatus   String // 'incomplete', 'in-progress', 'completed'
+  
+  // Errors count stored as individual integer fields for simplicity
+  errorC Int @default(0)
+  errorM Int @default(0)
+  errorR Int @default(0)
+  errorS Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  incorrectNotes IncorrectNote[]
+}
+
+model LearningRecord {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  date      String   // YYYY-MM-DD
+  progress  String
+  comment   String
+  createdBy String   // 'admin' or 'student'
+}
+
+model Schedule {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  date          String?  // Optional for regular weekly schedule templates
+  dayOfWeek     String?  // '월요일', etc.
+  startTime     String
+  endTime       String
+  status        String   // 'scheduled', 'completed', 'cancelled'
+  notes         String?
+  isRegular     Boolean  @default(false)
+  sessionNumber Int?     // 몇 회차 수업인지 (1회차, 2회차 등)
+}
+
+model Homework {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  title        String
+  description  String?
+  assignedDate String
+  dueDate      String
+  status       String   // 'pending', 'submitted'
+  feedback     String?
+}
+
+model Exam {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  examType  String   // '중간고사', etc.
+  subject   String
+  date      String
+  score     Int
+  maxScore  Int      @default(100)
+  notes     String?
+}
+
+model IncorrectNote {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  unitId      Int?
+  unit        Unit?    @relation(fields: [unitId], references: [id])
+  
+  problemName String?  // e.g. "쎈수학 124번"
+  questionImg String?  // URL placeholder
+  memo        String?
+  errorType   String   // C, M, R, S
+  isResolved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
