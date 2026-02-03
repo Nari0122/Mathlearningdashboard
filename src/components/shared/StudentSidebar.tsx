@@ -17,11 +17,32 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useParams, usePathname } from "next/navigation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useEffect, useState } from "react";
 
 export function StudentSidebar() {
   const pathname = usePathname();
   const params = useParams();
-  const studentId = params?.id;
+  const studentId = params?.id as string;
+  const [studentName, setStudentName] = useState<string>("불러오는 중...");
+
+  useEffect(() => {
+    if (studentId) {
+      console.log('Fetching student name for ID:', studentId);
+      fetch(`/api/students/${studentId}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Fetch failed');
+          return res.json();
+        })
+        .then(data => {
+          console.log('Fetched student data:', data);
+          if (data && data.name) setStudentName(data.name);
+        })
+        .catch(err => {
+          console.error('Error fetching student name:', err);
+        });
+    }
+  }, [studentId]);
 
   if (!studentId) return null;
 
@@ -71,16 +92,54 @@ export function StudentSidebar() {
       </div>
 
       <div className="mt-auto p-4 border-t border-gray-200 space-y-2">
-        <Button variant="ghost" className="w-full justify-start gap-3 text-gray-500 hover:text-gray-900">
-          <HelpCircle className="w-5 h-5" />
-          Support
-        </Button>
         <Link href="/login" className="block">
           <Button variant="ghost" className="w-full justify-start gap-3 text-red-500 hover:bg-red-50 hover:text-red-600">
             <LogOut className="w-5 h-5" />
             로그아웃
           </Button>
         </Link>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button variant="ghost" className="w-full justify-start gap-3 text-gray-500 hover:text-gray-900">
+              <HelpCircle className="w-5 h-5" />
+              Support
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>학생 지원 및 계정 정보</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                <h3 className="font-bold text-sm mb-2 text-blue-900">내 정보</h3>
+                <div className="space-y-1 text-sm text-blue-800">
+                  <p>이름: {studentName}</p>
+                  <p>권한: 학생</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-bold text-sm text-gray-900">문의하기</h3>
+                <p className="text-sm text-gray-600">
+                  시스템 이용 중 궁금한 점이 있거나 도움이 필요하면 선생님께 직접 문의하거나 아래의 고객센터로 연락해 주세요.
+                </p>
+                <div className="mt-2 text-sm">
+                  <p className="flex items-center gap-2 text-gray-700">
+                    <span className="font-semibold">Email:</span> nari0024@kaist.ac.kr
+                  </p>
+                  <p className="flex items-center gap-2 text-gray-700">
+                    <span className="font-semibold">Tel:</span> 010-5755-7957
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg text-xs text-gray-500">
+                <p>앱 버전: v2.2.0 (Latest)</p>
+                <p className="mt-1">화면이 이상하게 보일 경우 '로그아웃' 후 다시 로그인해 보세요.</p>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

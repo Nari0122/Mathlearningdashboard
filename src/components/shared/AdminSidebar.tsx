@@ -69,6 +69,14 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
 
             {/* Bottom Actions */}
             <div className="p-4 border-t border-gray-200 space-y-2">
+                <Link
+                    href="/login"
+                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-red-600 rounded-lg transition-colors"
+                >
+                    <LogOut size={20} />
+                    <span>로그아웃</span>
+                </Link>
+
                 <Dialog>
                     <DialogTrigger asChild>
                         <button
@@ -112,14 +120,6 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
                         </div>
                     </DialogContent>
                 </Dialog>
-
-                <Link
-                    href="/login"
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-red-600 rounded-lg transition-colors"
-                >
-                    <LogOut size={20} />
-                    <span>로그아웃</span>
-                </Link>
             </div>
         </aside>
     );
