@@ -39,6 +39,10 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         phone: "",
         parentPhone: "",
         parentRelation: "부",
+        schoolName: "",
+        schoolType: "일반고",
+        enrollmentDate: new Date().toISOString().split('T')[0], // Default to today
+        memo: "",
     });
 
     // Edit Student State
@@ -53,6 +57,10 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         email: "",
         parentPhone: "",
         parentRelation: "부",
+        schoolName: "",
+        schoolType: "일반고",
+        enrollmentDate: "",
+        memo: "",
     });
 
     const filteredStudents = initialStudents.filter(s =>
@@ -89,6 +97,10 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                 phone: "",
                 parentPhone: "",
                 parentRelation: "부",
+                schoolName: "",
+                schoolType: "일반고",
+                enrollmentDate: new Date().toISOString().split('T')[0],
+                memo: "",
             });
             router.refresh();
         } else {
@@ -107,6 +119,10 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
             email: student.email || "",
             parentPhone: student.parentPhone || "",
             parentRelation: student.parentRelation || "부",
+            schoolName: student.schoolName || "",
+            schoolType: student.schoolType || "일반고",
+            enrollmentDate: student.enrollmentDate || "",
+            memo: student.memo || "",
         });
         setIsEditOpen(true);
     };
@@ -187,43 +203,79 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                             학생 등록
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[500px] border-none shadow-2xl">
+                    <DialogContent className="sm:max-w-[700px] border-none shadow-2xl overflow-y-auto max-h-[85vh]">
                         <DialogHeader>
                             <DialogTitle className="text-2xl font-bold">학생 신규 등록</DialogTitle>
                         </DialogHeader>
-                        <div className="grid gap-6 py-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">이름</Label>
-                                <Input id="name" placeholder="홍길동" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="h-10" />
+                        <div className="grid gap-6 py-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">이름</Label>
+                                    <Input id="name" placeholder="홍길동" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="h-10" />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="id">아이디</Label>
+                                    <Input id="id" placeholder="student123" value={formData.loginId} onChange={(e) => setFormData({ ...formData, loginId: e.target.value })} className="h-10" />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="id">아이디</Label>
-                                <Input id="id" placeholder="student123" value={formData.loginId} onChange={(e) => setFormData({ ...formData, loginId: e.target.value })} className="h-10" />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="password">비밀번호</Label>
+                                    <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="h-10" />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="enrollmentDate">등록일</Label>
+                                    <Input id="enrollmentDate" type="date" value={formData.enrollmentDate} onChange={(e) => setFormData({ ...formData, enrollmentDate: e.target.value })} className="h-10" />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">비밀번호</Label>
-                                <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="h-10" />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label>학년</Label>
+                                    <Select value={formData.grade} onValueChange={(val) => setFormData({ ...formData, grade: val })}>
+                                        <SelectTrigger className="h-10">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="중1">중1</SelectItem>
+                                            <SelectItem value="중2">중2</SelectItem>
+                                            <SelectItem value="중3">중3</SelectItem>
+                                            <SelectItem value="고1">고1</SelectItem>
+                                            <SelectItem value="고2">고2</SelectItem>
+                                            <SelectItem value="고3">고3</SelectItem>
+                                            <SelectItem value="N수">N수</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="phone">연락처</Label>
+                                    <Input id="phone" placeholder="010-0000-0000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="h-10" />
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label>학년</Label>
-                                <Select value={formData.grade} onValueChange={(val) => setFormData({ ...formData, grade: val })}>
-                                    <SelectTrigger className="h-10">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="중1">중1</SelectItem>
-                                        <SelectItem value="중2">중2</SelectItem>
-                                        <SelectItem value="중3">중3</SelectItem>
-                                        <SelectItem value="고1">고1</SelectItem>
-                                        <SelectItem value="고2">고2</SelectItem>
-                                        <SelectItem value="고3">고3</SelectItem>
-                                    </SelectContent>
-                                </Select>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="schoolName">학교명</Label>
+                                    <Input id="schoolName" placeholder="OO고등학교" value={formData.schoolName} onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })} className="h-10" />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>학교 유형</Label>
+                                    <Select value={formData.schoolType} onValueChange={(val) => setFormData({ ...formData, schoolType: val })}>
+                                        <SelectTrigger className="h-10">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="일반고">일반고</SelectItem>
+                                            <SelectItem value="자사고">자사고</SelectItem>
+                                            <SelectItem value="특목고">특목고</SelectItem>
+                                            <SelectItem value="특성화고">특성화고</SelectItem>
+                                            <SelectItem value="기타">기타</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="phone">연락처</Label>
-                                <Input id="phone" placeholder="010-0000-0000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="h-10" />
-                            </div>
+
                             <div className="grid gap-2">
                                 <Label>학부모 연락처</Label>
                                 <div className="flex gap-2">
@@ -249,6 +301,17 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                         onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="memo">특이사항 (Memo)</Label>
+                                <Input
+                                    id="memo"
+                                    placeholder="학생에 대한 특이사항을 기록하세요."
+                                    value={formData.memo}
+                                    onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                                    className="h-20"
+                                />
                             </div>
                         </div>
                         <DialogFooter>
@@ -325,43 +388,79 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
             </div>
 
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="sm:max-w-[500px] border-none shadow-2xl">
+                <DialogContent className="sm:max-w-[700px] border-none shadow-2xl overflow-y-auto max-h-[85vh]">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-bold">학생 정보 수정</DialogTitle>
                     </DialogHeader>
-                    <div className="grid gap-6 py-6">
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-name">이름</Label>
-                            <Input id="edit-name" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="h-10" />
+                    <div className="grid gap-6 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-name">이름</Label>
+                                <Input id="edit-name" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="h-10" />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-id">아이디</Label>
+                                <Input id="edit-id" value={editFormData.loginId} onChange={(e) => setEditFormData({ ...editFormData, loginId: e.target.value })} className="h-10" />
+                            </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-id">아이디</Label>
-                            <Input id="edit-id" value={editFormData.loginId} onChange={(e) => setEditFormData({ ...editFormData, loginId: e.target.value })} className="h-10" />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-password">비밀번호 (변경 시 입력)</Label>
+                                <Input id="edit-password" type="password" placeholder="변경하려면 입력하세요" value={editFormData.password} onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })} className="h-10" />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-enrollmentDate">등록일</Label>
+                                <Input id="edit-enrollmentDate" type="date" value={editFormData.enrollmentDate} onChange={(e) => setEditFormData({ ...editFormData, enrollmentDate: e.target.value })} className="h-10" />
+                            </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-password">비밀번호 (변경 시 입력)</Label>
-                            <Input id="edit-password" type="password" placeholder="변경하려면 입력하세요" value={editFormData.password} onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })} className="h-10" />
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label>학년</Label>
+                                <Select value={editFormData.grade} onValueChange={(val) => setEditFormData({ ...editFormData, grade: val })}>
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="중1">중1</SelectItem>
+                                        <SelectItem value="중2">중2</SelectItem>
+                                        <SelectItem value="중3">중3</SelectItem>
+                                        <SelectItem value="고1">고1</SelectItem>
+                                        <SelectItem value="고2">고2</SelectItem>
+                                        <SelectItem value="고3">고3</SelectItem>
+                                        <SelectItem value="N수">N수</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-phone">연락처</Label>
+                                <Input id="edit-phone" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })} className="h-10" />
+                            </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label>학년</Label>
-                            <Select value={editFormData.grade} onValueChange={(val) => setEditFormData({ ...editFormData, grade: val })}>
-                                <SelectTrigger className="h-10">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="중1">중1</SelectItem>
-                                    <SelectItem value="중2">중2</SelectItem>
-                                    <SelectItem value="중3">중3</SelectItem>
-                                    <SelectItem value="고1">고1</SelectItem>
-                                    <SelectItem value="고2">고2</SelectItem>
-                                    <SelectItem value="고3">고3</SelectItem>
-                                </SelectContent>
-                            </Select>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-schoolName">학교명</Label>
+                                <Input id="edit-schoolName" value={editFormData.schoolName} onChange={(e) => setEditFormData({ ...editFormData, schoolName: e.target.value })} className="h-10" />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>학교 유형</Label>
+                                <Select value={editFormData.schoolType} onValueChange={(val) => setEditFormData({ ...editFormData, schoolType: val })}>
+                                    <SelectTrigger className="h-10">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="일반고">일반고</SelectItem>
+                                        <SelectItem value="자사고">자사고</SelectItem>
+                                        <SelectItem value="특목고">특목고</SelectItem>
+                                        <SelectItem value="특성화고">특성화고</SelectItem>
+                                        <SelectItem value="기타">기타</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-phone">연락처</Label>
-                            <Input id="edit-phone" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })} className="h-10" />
-                        </div>
+
                         <div className="grid gap-2">
                             <Label>학부모 연락처</Label>
                             <div className="flex gap-2">
@@ -387,6 +486,16 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                     onChange={(e) => setEditFormData({ ...editFormData, parentPhone: e.target.value })}
                                 />
                             </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-memo">특이사항 (Memo)</Label>
+                            <Input
+                                id="edit-memo"
+                                value={editFormData.memo}
+                                onChange={(e) => setEditFormData({ ...editFormData, memo: e.target.value })}
+                                className="h-20"
+                            />
                         </div>
                     </div>
                     <DialogFooter>

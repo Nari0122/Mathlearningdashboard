@@ -19,7 +19,9 @@ export default async function AdminHomeworkPage({
         notFound();
     }
 
-    const homeworks = student.homeworks || [];
+    // Use services
+    const { learningService } = await import("@/services/learningService");
+    const homeworks = await learningService.getAssignments(studentId);
 
     return (
         <AdminHomeworkClient homeworks={homeworks} studentId={studentId} />

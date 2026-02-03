@@ -19,7 +19,10 @@ interface AdminLearningClientProps {
 }
 
 const GRADES = ["중1", "중2", "중3", "고1", "고2", "고3"];
-const SUBJECTS = ["중등수학 1-1", "중등수학 1-2", "중등수학 2-1", "중등수학 2-2", "중등수학 3-1", "중등수학 3-2", "공통수학1", "공통수학2", "대수", "미적분1", "미적분2", "확률과 통계", "기하"];
+const SUBJECTS = [
+    "중등수학 1-1", "중등수학 1-2", "중등수학 2-1", "중등수학 2-2", "중등수학 3-1", "중등수학 3-2",
+    "공통수학1", "공통수학2", "대수", "미적분1", "미적분2", "확률과 통계", "기하"
+];
 
 export default function AdminLearningClient({ initialUnits, studentId }: AdminLearningClientProps) {
     const router = useRouter();
@@ -63,8 +66,8 @@ export default function AdminLearningClient({ initialUnits, studentId }: AdminLe
                 setNewUnitSubject("공통수학1");
                 router.refresh(); // Refresh server component to get new list
             } else {
-                alert(`단원 추가 실패: ${result.error || '알 수 없는 오류'}`);
-                console.error('Unit creation failed:', result.error);
+                alert(`단원 추가 실패: ${result.message || '알 수 없는 오류'}`);
+                console.error('Unit creation failed:', result.message);
             }
         });
     };

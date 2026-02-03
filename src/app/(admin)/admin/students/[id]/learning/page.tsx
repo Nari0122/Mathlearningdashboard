@@ -14,14 +14,12 @@ export default async function AdminLearningPage({
         notFound();
     }
 
-    const student = await getStudentDetail(studentId);
+    // Direct fetch for better real-time updates
+    const { learningService } = await import("@/services/learningService");
+    const unitsData = await learningService.getUnits(studentId);
 
-    if (!student) {
-        notFound();
-    }
-
-    // Map Prisma Units to Dashboard Units
-    const mappedUnits: Unit[] = (student.units || []).map((u: any) => ({
+    // Map to Dashboard Units
+    const mappedUnits: Unit[] = (unitsData || []).map((u: any) => ({
         id: u.id,
         name: u.name,
         grade: u.grade || "고1",

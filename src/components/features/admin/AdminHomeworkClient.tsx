@@ -19,30 +19,31 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
     const router = useRouter();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [currentEditId, setCurrentEditId] = useState<number | null>(null);
+    const [currentEditId, setCurrentEditId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const [title, setTitle] = useState("");
     const [dueDate, setDueDate] = useState("");
+    const [assignedDate, setAssignedDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
 
     const [editTitle, setEditTitle] = useState("");
     const [editDueDate, setEditDueDate] = useState("");
 
     const handleAdd = async () => {
-        if (!title || !dueDate) return;
+        if (!title || !dueDate || !assignedDate) return;
 
         startTransition(async () => {
-            const today = new Date().toISOString().split('T')[0];
             const result = await createHomework(studentId, {
                 title,
                 dueDate,
-                assignedDate: today
+                assignedDate // Use user input
             });
 
             if (result.success) {
                 setIsAddOpen(false);
                 setTitle("");
                 setDueDate("");
+                setAssignedDate(new Date().toISOString().split('T')[0]); // Reset to today
                 router.refresh();
             } else {
                 alert("숙제 부여 실패");
@@ -75,7 +76,7 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
         });
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
             const result = await deleteHomework(id, studentId);
@@ -103,6 +104,10 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
                                 <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" placeholder="예: 수학의 정석 p.50~55" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="assignedDate" className="text-right">부여일</Label>
+                                <Input id="assignedDate" type="date" value={assignedDate} onChange={(e) => setAssignedDate(e.target.value)} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="duedate" className="text-right">마감일</Label>
                                 <Input id="duedate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="col-span-3" />
                             </div>
@@ -122,11 +127,11 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-title" className="text-right">숙제명</Label>
-                                <Input id="edit-title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="col-span-3" />
+                                <Input id="edit-title" value={editTitle || ""} onChange={(e) => setEditTitle(e.target.value)} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-duedate" className="text-right">마감일</Label>
-                                <Input id="edit-duedate" type="date" value={editDueDate} onChange={(e) => setEditDueDate(e.target.value)} className="col-span-3" />
+                                <Input id="edit-duedate" type="date" value={editDueDate || ""} onChange={(e) => setEditDueDate(e.target.value)} className="col-span-3" />
                             </div>
                         </div>
                         <DialogFooter>
@@ -138,34 +143,57 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
                 </Dialog>
             </div>
 
-            <div className="grid grid-cols-1 gap-4">
-                {homeworks.length === 0 ? (
-                    <div className="text-center py-20 bg-gray-50 rounded-lg border border-dashed">
-                        <p className="text-gray-500">등록된 숙제가 없습니다.</p>
-                    </div>
-                ) : (
-                    homeworks.map((hw: any) => (
-                        <div key={hw.id} className="bg-white p-6 rounded-xl border border-gray-200 flex justify-between items-center">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="font-bold text-lg">{hw.title}</h3>
-                                    <Badge variant={hw.status === 'submitted' ? 'secondary' : 'outline'}>
-                                        {hw.status === 'submitted' ? '제출됨' : '진행중'}
-                                    </Badge>
-                                </div>
-                                <p className="text-sm text-gray-500">마감일: {hw.dueDate}</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => handleEditClick(hw)}>
-                                    수정
-                                </Button>
-                                <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(hw.id)}>
-                                    삭제
-                                </Button>
-                            </div>
-                        </div>
-                    ))
-                )}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-gray-50 border-b">
+                        <tr>
+                            <th className="p-4 font-medium text-gray-500">숙제명</th>
+                            <th className="p-4 font-medium text-gray-500">상태</th>
+                            <th className="p-4 font-medium text-gray-500">부여일</th>
+                            <th className="p-4 font-medium text-gray-500">마감일</th>
+                            <th className="p-4 font-medium text-gray-500">제출일</th>
+                            <th className="p-4 font-medium text-gray-500 text-right">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {homeworks.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="p-8 text-center text-gray-400">
+                                    등록된 숙제가 없습니다.
+                                </td>
+                            </tr>
+                        ) : (
+                            homeworks.map((hw: any) => (
+                                <tr key={hw.id} className="border-b last:border-0 hover:bg-gray-50">
+                                    <td className="p-4 font-medium">{hw.title}</td>
+                                    <td className="p-4">
+                                        <Badge variant={
+                                            hw.status === 'submitted' ? 'default' :
+                                                hw.status === 'late-submitted' ? 'destructive' : 'outline'
+                                        } className={
+                                            hw.status === 'submitted' ? 'bg-green-600 hover:bg-green-700' :
+                                                hw.status === 'late-submitted' ? 'bg-yellow-500 hover:bg-yellow-600' : ''
+                                        }>
+                                            {hw.status === 'submitted' ? '제출 완료' :
+                                                hw.status === 'late-submitted' ? '지각 제출' : '미제출'}
+                                        </Badge>
+                                    </td>
+                                    <td className="p-4 text-gray-500">{hw.assignedDate || "-"}</td>
+                                    <td className="p-4 text-gray-500">{hw.dueDate}</td>
+                                    <td className="p-4 text-gray-500">{hw.submittedDate || "-"}</td>
+                                    <td className="p-4 text-right flex justify-end gap-2">
+                                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(hw)}>
+                                            수정
+                                        </Button>
+                                        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(hw.id)}>
+                                            삭제
+                                        </Button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

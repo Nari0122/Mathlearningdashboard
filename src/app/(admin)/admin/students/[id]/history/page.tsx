@@ -13,13 +13,9 @@ export default async function AdminLearningHistoryPage({
         notFound();
     }
 
-    const student = await getStudentDetail(studentId);
-
-    if (!student) {
-        notFound();
-    }
-
-    const records = student.learningRecords || [];
+    // Direct fetch for better real-time updates and decoupling from "student" object
+    const { learningService } = await import("@/services/learningService");
+    const records = await learningService.getLearningRecords(studentId);
 
     return (
         <AdminHistoryClient records={records} studentId={studentId} />

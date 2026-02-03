@@ -45,6 +45,7 @@ interface UnitCardProps {
     onCompletionStatusChange?: (unitId: number, status: 'incomplete' | 'in-progress' | 'completed') => void;
     isAdmin?: boolean;
     showDifficultySelector?: boolean;
+    showStatus?: boolean;
 }
 
 export function UnitCard({
@@ -58,7 +59,8 @@ export function UnitCard({
     onStatusChange,
     onCompletionStatusChange,
     isAdmin = false,
-    showDifficultySelector = true
+    showDifficultySelector = true,
+    showStatus = true
 }: UnitCardProps) {
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState(unit.name);
@@ -158,15 +160,20 @@ export function UnitCard({
                             onClick={() => setIsEditingName(true)}
                             title="클릭하여 수정"
                         >
-                            {unit.name} <span className="text-gray-400 text-sm ml-2 font-normal">({unit.grade})</span>
+                            {unit.name}
+                            <span className="text-gray-500 text-sm ml-2 font-normal">
+                                {unit.grade} {unit.subject ? `| ${unit.subject}` : ''}
+                            </span>
                         </h4>
                     )}
-                    <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs text-gray-400">STATUS:</span>
-                        <Badge className={config.badgeColor} variant="secondary">
-                            {config.status}
-                        </Badge>
-                    </div>
+                    {showStatus && (
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-gray-400">STATUS:</span>
+                            <Badge className={config.badgeColor} variant="secondary">
+                                {config.status}
+                            </Badge>
+                        </div>
+                    )}
                 </div>
             </div>
 

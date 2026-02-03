@@ -92,7 +92,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
         });
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
             await deleteSchedule(id, studentId);

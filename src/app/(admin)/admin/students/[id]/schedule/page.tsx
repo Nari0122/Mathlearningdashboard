@@ -19,7 +19,9 @@ export default async function AdminSchedulePage({
         notFound();
     }
 
-    const schedules = student.schedules || [];
+    // Use services
+    const { learningService } = await import("@/services/learningService");
+    const schedules = await learningService.getSchedules(studentId);
 
     return (
         <AdminScheduleClient schedules={schedules} studentId={studentId} />

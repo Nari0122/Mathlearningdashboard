@@ -19,7 +19,9 @@ export default async function AdminExamsPage({
         notFound();
     }
 
-    const exams = student.exams || [];
+    // Use services
+    const { learningService } = await import("@/services/learningService");
+    const exams = await learningService.getExams(studentId);
 
     return (
         <AdminExamsClient exams={exams} studentId={studentId} />

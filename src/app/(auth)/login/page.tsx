@@ -20,23 +20,24 @@ export default function LoginPage() {
         setError("");
         setIsLoading(true);
 
-        // TODO: Implement actual Auth logic
-        // Mock login for now
-        setTimeout(() => {
-            setIsLoading(false);
-            if (loginId === "admin" && password === "admin") {
-                router.push("/admin/students");
-            } else if (loginId.startsWith("student")) {
-                router.push("/dashboard");
+        // Call server action for real auth
+        try {
+            // Import dynamically or use standard import if "use server" action
+            // Since it's a client component, we import the server action
+            const { loginAction } = await import("@/actions/auth-actions");
+            const result = await loginAction(loginId, password);
+
+            if (result.success && result.redirectUrl) {
+                router.push(result.redirectUrl);
             } else {
-                // Fallback for demo
-                if (loginId === "demo") {
-                    router.push("/dashboard");
-                } else {
-                    setError("아이디 또는 비밀번호가 올바르지 않습니다.");
-                }
+                setIsLoading(false);
+                setError(result.message || "로그인에 실패했습니다.");
             }
-        }, 1000);
+        } catch (err) {
+            console.error(err);
+            setIsLoading(false);
+            setError("서버 연결 중 오류가 발생했습니다.");
+        }
     };
 
     return (

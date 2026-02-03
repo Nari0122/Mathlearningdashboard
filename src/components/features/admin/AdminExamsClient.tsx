@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { createExam, updateExam, deleteExam } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Optional if we want select
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface AdminExamsClientProps {
     exams: any[];
@@ -22,7 +23,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
     const router = useRouter();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [currentEditId, setCurrentEditId] = useState<number | null>(null);
+    const [currentEditId, setCurrentEditId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
 
     const [examType, setExamType] = useState("");
@@ -86,7 +87,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
         });
     };
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
             const result = await deleteExam(id, studentId);
@@ -154,7 +155,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                                 <Label htmlFor="edit-type" className="text-right">시험 구분</Label>
                                 <Input
                                     id="edit-type"
-                                    value={editExamType}
+                                    value={editExamType || ""}
                                     onChange={(e) => setEditExamType(e.target.value)}
                                     className="col-span-3"
                                     placeholder="예: 1학기 중간고사, 3월 모의고사, 단원평가"
@@ -162,7 +163,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-subject" className="text-right">과목</Label>
-                                <Select value={editSubject} onValueChange={setEditSubject}>
+                                <Select value={editSubject || "수학"} onValueChange={setEditSubject}>
                                     <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         {SUBJECTS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
@@ -171,11 +172,11 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-score" className="text-right">점수</Label>
-                                <Input id="edit-score" type="number" value={editScore} onChange={(e) => setEditScore(e.target.value)} className="col-span-3" placeholder="점수 입력" />
+                                <Input id="edit-score" type="number" value={editScore || ""} onChange={(e) => setEditScore(e.target.value)} className="col-span-3" placeholder="점수 입력" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-date" className="text-right">날짜</Label>
-                                <Input id="edit-date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="col-span-3" />
+                                <Input id="edit-date" type="date" value={editDate || ""} onChange={(e) => setEditDate(e.target.value)} className="col-span-3" />
                             </div>
                         </div>
                         <DialogFooter>
@@ -186,6 +187,47 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                     </DialogContent>
                 </Dialog>
             </div>
+
+            {/* Score Trend Graph */}
+            {exams.length > 0 && (
+                <div className="bg-white p-6 rounded-xl border border-gray-200">
+                    <h3 className="text-lg font-bold mb-4">성적 변화 추이</h3>
+                    <div className="h-64 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={[...exams].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis
+                                    dataKey="date"
+                                    tick={{ fontSize: 12 }}
+                                    tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                                />
+                                <YAxis domain={[0, 100]} />
+                                <Tooltip
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white p-2 border border-gray-200 shadow-md rounded-md text-sm">
+                                                    <p className="font-bold">{label}</p>
+                                                    <p>{payload[0].payload.examType}: {payload[0].value}점</p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="score"
+                                    stroke="#4f46e5"
+                                    strokeWidth={2}
+                                    dot={{ r: 4, fill: "#4f46e5" }}
+                                    activeDot={{ r: 6 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            )}
 
             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <table className="w-full text-left text-sm">

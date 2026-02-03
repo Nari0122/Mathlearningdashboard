@@ -1,18 +1,15 @@
 "use server";
 
-import { db } from "@/lib/db";
+import { learningService } from "@/services/learningService";
 import { revalidatePath } from "next/cache";
 
 // --- Units ---
 
 export async function getUnits(userId: number) {
     try {
-        const units = await db.unit.findMany({
-            where: { userId },
-            orderBy: { id: 'desc' }
-        });
+        const units = await learningService.getUnits(userId);
 
-        return units.map(u => ({
+        return units.map((u: any) => ({
             id: u.id,
             name: u.name,
             grade: u.grade,
@@ -35,23 +32,20 @@ export async function getUnits(userId: number) {
 
 export async function addUnit(userId: number, name: string, grade: string) {
     try {
-        await db.unit.create({
-            data: {
-                userId,
-                name,
-                grade,
-                status: "MID",
-                selectedDifficulty: "중",
-                completionStatus: "incomplete",
-                errorC: 0,
-                errorM: 0,
-                errorR: 0,
-                errorS: 0
-            }
+        const result = await learningService.createUnit(userId, {
+            name,
+            grade,
+            status: "MID",
+            selectedDifficulty: "중",
+            subject: "수학" // Default subject
         });
-        revalidatePath("/study/my-learning");
-        revalidatePath("/dashboard");
-        return { success: true };
+
+        if (result.success) {
+            revalidatePath("/study/my-learning");
+            revalidatePath("/dashboard");
+            return { success: true };
+        }
+        return { success: false, error: result.message };
     } catch (error) {
         console.error("Failed to add unit:", error);
         return { success: false, error: "Failed to add unit" };
@@ -60,10 +54,10 @@ export async function addUnit(userId: number, name: string, grade: string) {
 
 export async function updateUnitName(unitId: number, name: string) {
     try {
-        await db.unit.update({
-            where: { id: unitId },
-            data: { name }
-        });
+        const found = await learningService.findUnitRefGlobally(unitId);
+        if (!found) return { success: false };
+
+        await found.unitRef.update({ name });
         revalidatePath("/study/my-learning");
         return { success: true };
     } catch (error) {
@@ -73,10 +67,10 @@ export async function updateUnitName(unitId: number, name: string) {
 
 export async function updateUnitDetails(unitId: number, name: string, grade: string) {
     try {
-        await db.unit.update({
-            where: { id: unitId },
-            data: { name, grade }
-        });
+        const found = await learningService.findUnitRefGlobally(unitId);
+        if (!found) return { success: false };
+
+        await found.unitRef.update({ name, grade });
         revalidatePath("/study/my-learning");
         return { success: true };
     } catch (error) {
@@ -84,13 +78,12 @@ export async function updateUnitDetails(unitId: number, name: string, grade: str
     }
 }
 
-
 export async function updateUnitDifficulty(unitId: number, difficulty: string) {
     try {
-        await db.unit.update({
-            where: { id: unitId },
-            data: { selectedDifficulty: difficulty }
-        });
+        const found = await learningService.findUnitRefGlobally(unitId);
+        if (!found) return { success: false };
+
+        await found.unitRef.update({ selectedDifficulty: difficulty });
         revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };
@@ -99,12 +92,12 @@ export async function updateUnitDifficulty(unitId: number, difficulty: string) {
     }
 }
 
-export async function updateUnitStatus(unitId: number, status: string) { // Admin System Status
+export async function updateUnitStatus(unitId: number, status: string) {
     try {
-        await db.unit.update({
-            where: { id: unitId },
-            data: { status }
-        });
+        const found = await learningService.findUnitRefGlobally(unitId);
+        if (!found) return { success: false };
+
+        await found.unitRef.update({ status });
         revalidatePath("/study/my-learning");
         return { success: true };
     } catch (error) {
@@ -114,10 +107,10 @@ export async function updateUnitStatus(unitId: number, status: string) { // Admi
 
 export async function updateCompletionStatus(unitId: number, status: string) {
     try {
-        await db.unit.update({
-            where: { id: unitId },
-            data: { completionStatus: status }
-        });
+        const found = await learningService.findUnitRefGlobally(unitId);
+        if (!found) return { success: false };
+
+        await found.unitRef.update({ completionStatus: status });
         revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };
@@ -128,7 +121,10 @@ export async function updateCompletionStatus(unitId: number, status: string) {
 
 export async function deleteUnit(unitId: number) {
     try {
-        await db.unit.delete({ where: { id: unitId } });
+        const found = await learningService.findUnitRefGlobally(unitId);
+        if (!found) return { success: false };
+
+        await found.unitRef.delete();
         revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };
@@ -139,18 +135,16 @@ export async function deleteUnit(unitId: number) {
 
 export async function updateUnitError(unitId: number, type: 'C' | 'M' | 'R' | 'S', delta: number) {
     try {
-        const unit = await db.unit.findUnique({ where: { id: unitId } });
-        if (!unit) throw new Error("Unit not found");
+        const found = await learningService.findUnitRefGlobally(unitId);
+        if (!found) return { success: false };
 
+        const doc = await found.unitRef.get();
+        const data = doc.data() || {};
         const field = `error${type}`;
-        // @ts-ignore
-        const currentVal = unit[field];
+        const currentVal = data[field] || 0;
         const newVal = Math.min(99, Math.max(0, currentVal + delta));
 
-        await db.unit.update({
-            where: { id: unitId },
-            data: { [field]: newVal }
-        });
+        await found.unitRef.update({ [field]: newVal });
         revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };

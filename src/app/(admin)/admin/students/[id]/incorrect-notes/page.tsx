@@ -1,4 +1,3 @@
-import { getStudentIncorrectNotes } from "@/actions/student-actions";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,9 @@ export default async function AdminIncorrectNotesPage({
         notFound();
     }
 
-    const notes = await getStudentIncorrectNotes(studentId);
+    // Use services
+    const { learningService } = await import("@/services/learningService");
+    const notes = await learningService.getIncorrectNotes(studentId);
 
     const errorTypeMap: Record<string, string> = {
         'C': '개념(C)',

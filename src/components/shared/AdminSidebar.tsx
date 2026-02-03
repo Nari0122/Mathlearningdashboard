@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Users, HelpCircle, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface AdminSidebarProps {
     userName?: string;
@@ -68,12 +69,50 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
 
             {/* Bottom Actions */}
             <div className="p-4 border-t border-gray-200 space-y-2">
-                <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
-                >
-                    <HelpCircle size={20} />
-                    <span>Support</span>
-                </button>
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <button
+                            className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
+                        >
+                            <HelpCircle size={20} />
+                            <span>Support</span>
+                        </button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>고객 지원 및 계정 설정</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-6 py-4">
+                            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <h3 className="font-bold text-sm mb-2 text-gray-900">내 계정 정보</h3>
+                                <div className="space-y-1 text-sm text-gray-600">
+                                    <p>이름: {userName}</p>
+                                    <p>권한: 관리자</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <h3 className="font-bold text-sm text-gray-900">문의하기</h3>
+                                <p className="text-sm text-gray-600">
+                                    시스템 이용 중 문제가 발생하거나 궁금한 점이 있으시면 아래 연락처로 문의해 주세요.
+                                </p>
+                                <div className="mt-2 text-sm">
+                                    <p className="flex items-center gap-2 text-gray-700">
+                                        <span className="font-semibold">Email:</span> support@mathclinic.com
+                                    </p>
+                                    <p className="flex items-center gap-2 text-gray-700">
+                                        <span className="font-semibold">Tel:</span> 02-1234-5678
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-lg text-xs text-blue-700">
+                                <p>현재 버전: v2.2.0 (Latest)</p>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
                 <Link
                     href="/login"
                     className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-red-600 rounded-lg transition-colors"
