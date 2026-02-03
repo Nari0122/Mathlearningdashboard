@@ -20,6 +20,16 @@ export default async function AdminStudentDashboardPage({
         notFound();
     }
 
+    // Fetch dashboard stats (Last Login, Next Class, etc.)
+    const { studentService } = await import("@/services/studentService");
+    const { learningService } = await import("@/services/learningService");
+
+    const [stats, assignments, records] = await Promise.all([
+        studentService.getDashboardStats(studentId),
+        learningService.getAssignments(studentId),
+        learningService.getLearningRecords(studentId)
+    ]);
+
     // Map Prisma Units to Dashboard Units
     const mappedUnits: Unit[] = (student.units || []).map((u: any) => ({
         id: u.id,
@@ -29,6 +39,9 @@ export default async function AdminStudentDashboardPage({
         status: u.status as 'HIGH' | 'MID' | 'LOW',
         selectedDifficulty: u.selectedDifficulty,
         completionStatus: u.completionStatus as 'incomplete' | 'in-progress' | 'completed',
+        schoolLevel: u.schoolLevel || "고등",
+        unitName: u.unitName || u.name,
+        unitDetails: u.unitDetails || [],
         errors: {
             C: u.errorC,
             M: u.errorM,
@@ -38,6 +51,12 @@ export default async function AdminStudentDashboardPage({
     }));
 
     return (
-        <AdminStudentDashboardClient initialUnits={mappedUnits} />
+        <AdminStudentDashboardClient
+            initialUnits={mappedUnits}
+            stats={stats}
+            recentAssignments={assignments.slice(0, 5)}
+            recentRecords={records.slice(0, 5)}
+            studentId={studentId}
+        />
     );
 }

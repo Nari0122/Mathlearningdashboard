@@ -27,7 +27,17 @@ export const learningService = {
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("units").orderBy("createdAt", "desc").get();
-            return snapshot.docs.map(doc => ({ ...doc.data() }));
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    ...data,
+                    // Default values for new strictly typed fields if they don't exist yet
+                    schoolLevel: data.schoolLevel || (['중1', '중2', '중3'].includes(data.grade) ? '중등' : '고등'),
+                    unitName: data.unitName || data.name,
+                    unitDetails: data.unitDetails || [],
+                    name: data.name // Ensure name is preserved
+                };
+            }) as unknown as any[];
         } catch (error) {
             console.error("Firestore getUnits error:", error);
             return [];
@@ -371,6 +381,19 @@ export const learningService = {
         } catch (error) {
             console.error("Firestore updateIncorrectNote error:", error);
             return { success: false, message: "Failed to update incorrect note" };
+        }
+    },
+
+    async deleteIncorrectNote(studentId: number, noteId: string) {
+        try {
+            const studentDocRef = await getStudentDocRef(studentId);
+            if (!studentDocRef) return { success: false, message: "Student not found" };
+
+            await studentDocRef.collection("incorrectNotes").doc(noteId).delete();
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore deleteIncorrectNote error:", error);
+            return { success: false, message: "Failed to delete incorrect note" };
         }
     }
 };

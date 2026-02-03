@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createLearningRecord, updateLearningRecord, deleteLearningRecord } from "@/actions/admin-actions";
+import { createLearningRecord, updateLearningRecord, deleteLearningRecord } from "@/actions/learning-actions";
 import { useRouter } from "next/navigation";
 
 interface AdminHistoryClientProps {
@@ -64,7 +64,7 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
         if (!currentEditId || !editDate || !editProgress) return;
 
         startTransition(async () => {
-            const result = await updateLearningRecord(currentEditId, studentId, {
+            const result = await updateLearningRecord(String(currentEditId), studentId, {
                 date: editDate,
                 progress: editProgress,
                 comment: editComment
@@ -82,7 +82,7 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
     const handleDelete = async (id: number) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
-            const result = await deleteLearningRecord(id, studentId);
+            const result = await deleteLearningRecord(String(id), studentId);
             if (result.success) {
                 router.refresh();
             } else {

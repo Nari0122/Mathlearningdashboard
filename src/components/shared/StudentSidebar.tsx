@@ -9,7 +9,10 @@ import {
   PenTool,
   LogOut,
   HelpCircle,
-  User
+  User,
+  ClipboardList,
+  BarChart3,
+  BookMarked
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,7 +28,9 @@ export function StudentSidebar() {
   const sidebarItems = [
     { icon: LayoutDashboard, label: "대시보드", href: `/student/${studentId}` },
     { icon: BookOpen, label: "나의 학습", href: `/student/${studentId}/learning` },
-    { icon: GraduationCap, label: "오답 노트", href: `/student/${studentId}/incorrect-notes` },
+    { icon: BookMarked, label: "오답 노트", href: `/student/${studentId}/incorrect-notes` },
+    { icon: BarChart3, label: "시험 성적", href: `/student/${studentId}/exams` },
+    { icon: ClipboardList, label: "학습 기록", href: `/student/${studentId}/history` },
     { icon: Calendar, label: "수업 일정", href: `/student/${studentId}/schedule` },
     { icon: PenTool, label: "숙제 관리", href: `/student/${studentId}/homework` },
   ];

@@ -163,34 +163,51 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
                                 </td>
                             </tr>
                         ) : (
-                            homeworks.map((hw: any) => (
-                                <tr key={hw.id} className="border-b last:border-0 hover:bg-gray-50">
-                                    <td className="p-4 font-medium">{hw.title}</td>
-                                    <td className="p-4">
-                                        <Badge variant={
-                                            hw.status === 'submitted' ? 'default' :
-                                                hw.status === 'late-submitted' ? 'destructive' : 'outline'
-                                        } className={
-                                            hw.status === 'submitted' ? 'bg-green-600 hover:bg-green-700' :
-                                                hw.status === 'late-submitted' ? 'bg-yellow-500 hover:bg-yellow-600' : ''
-                                        }>
-                                            {hw.status === 'submitted' ? '제출 완료' :
-                                                hw.status === 'late-submitted' ? '지각 제출' : '미제출'}
-                                        </Badge>
-                                    </td>
-                                    <td className="p-4 text-gray-500">{hw.assignedDate || "-"}</td>
-                                    <td className="p-4 text-gray-500">{hw.dueDate}</td>
-                                    <td className="p-4 text-gray-500">{hw.submittedDate || "-"}</td>
-                                    <td className="p-4 text-right flex justify-end gap-2">
-                                        <Button variant="ghost" size="sm" onClick={() => handleEditClick(hw)}>
-                                            수정
-                                        </Button>
-                                        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(hw.id)}>
-                                            삭제
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))
+                            homeworks.map((hw: any) => {
+                                const today = new Date();
+                                today.setHours(0, 0, 0, 0);
+                                const dueDate = new Date(hw.dueDate);
+                                dueDate.setHours(0, 0, 0, 0);
+                                const isOverdue = today > dueDate && hw.status !== 'submitted' && hw.status !== 'late-submitted';
+
+                                return (
+                                    <tr key={hw.id} className="border-b last:border-0 hover:bg-gray-50">
+                                        <td className="p-4 font-medium">{hw.title}</td>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant={
+                                                    hw.status === 'submitted' ? 'default' :
+                                                        hw.status === 'late-submitted' ? 'destructive' : 'outline'
+                                                } className={
+                                                    hw.status === 'submitted' ? 'bg-green-600 hover:bg-green-700' :
+                                                        hw.status === 'late-submitted' ? 'bg-yellow-500 hover:bg-yellow-600' : ''
+                                                }>
+                                                    {hw.status === 'submitted' ? '제출 완료' :
+                                                        hw.status === 'late-submitted' ? '지각 제출' : '미제출'}
+                                                </Badge>
+                                                {isOverdue && (
+                                                    <Badge variant="destructive" className="bg-red-600 hover:bg-red-700">
+                                                        마감됨
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-gray-500">{hw.assignedDate || "-"}</td>
+                                        <td className={`p-4 ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                            {hw.dueDate}
+                                        </td>
+                                        <td className="p-4 text-gray-500">{hw.submittedDate || "-"}</td>
+                                        <td className="p-4 text-right flex justify-end gap-2">
+                                            <Button variant="ghost" size="sm" onClick={() => handleEditClick(hw)}>
+                                                수정
+                                            </Button>
+                                            <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(hw.id)}>
+                                                삭제
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>

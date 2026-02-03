@@ -118,6 +118,13 @@ model IncorrectNote {
   unitId      Int?
   unit        Unit?    @relation(fields: [unitId], references: [id])
   
+  // Custom curriculum info (saved snapshot or for custom units)
+  schoolLevel String?
+  grade       String?
+  subject     String?
+  unitName    String?
+  unitDetail  String? // 세부내용
+
   problemName String?  // e.g. "쎈수학 124번"
   questionImg String?  // URL placeholder
   memo        String?

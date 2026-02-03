@@ -84,59 +84,60 @@ export const studentService = {
         }
     },
 
-    async getDashboardStats(id: number) {
+    async getDashboardStats(studentId: number) {
         try {
-            // 1. Get Student Data (Login History)
-            const studentSnapshot = await adminDb.collection("students").where("id", "==", id).limit(1).get();
-            if (studentSnapshot.empty) return null;
-            const studentData = studentSnapshot.docs[0].data();
+            const snapshot = await adminDb.collection("students").where("id", "==", studentId).limit(1).get();
+            if (snapshot.empty) return null;
 
-            // 2. Get Schedules
-            const { learningService } = await import("./learningService");
-            const schedules = await learningService.getSchedules(id);
+            const studentDoc = snapshot.docs[0];
+            const studentData = studentDoc.data();
 
-            // 3. Calculate Stats
-            // Monthly Login Count
+            // Calculate monthly login count from loginHistory
+            const loginHistory = studentData.loginHistory || [];
             const now = new Date();
             const currentMonth = now.getMonth();
             const currentYear = now.getFullYear();
-            const loginHistory = (studentData.loginHistory || []) as string[];
-            const monthlyLoginCount = loginHistory.filter(dateStr => {
-                const date = new Date(dateStr);
+
+            const monthlyLogins = loginHistory.filter((isoString: string) => {
+                const date = new Date(isoString);
                 return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-            }).length;
+            });
 
-            // Next Class
-            // Filter assuming date format YYYY-MM-DD and startTime HH:mm
-            // Robust parsing needed if formats vary, assuming ISO or comparable string for now
-            const upcomingSchedules = schedules
-                .filter((s: any) => {
-                    const scheduleDateTime = new Date(`${s.date}T${s.startTime}`);
-                    return scheduleDateTime > now;
-                })
-                .sort((a: any, b: any) => {
-                    const dateA = new Date(`${a.date}T${a.startTime}`);
-                    const dateB = new Date(`${b.date}T${b.startTime}`);
-                    return dateA.getTime() - dateB.getTime();
+            // Fetch next class from schedules sub-collection
+            const todayStr = now.toISOString().split('T')[0];
+            const schedulesSnapshot = await studentDoc.ref.collection("schedules")
+                .where("date", ">=", todayStr)
+                .orderBy("date", "asc")
+                .limit(5)
+                .get();
+
+            let nextClass = null;
+            if (!schedulesSnapshot.empty) {
+                const schedules = schedulesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Sort by startTime in memory if dates are same
+                schedules.sort((a: any, b: any) => {
+                    if (a.date === b.date) {
+                        return (a.startTime || "").localeCompare(b.startTime || "");
+                    }
+                    return 0; // Already sorted by date
                 });
-            const nextClass = upcomingSchedules.length > 0 ? upcomingSchedules[0] : null;
-
-            // Persistence Rate (Example: (Completed Units / Total Units) * 100)
-            const units = await learningService.getUnits(id);
-            const totalUnits = units.length;
-            const completedUnits = units.filter((u: any) => u.completionStatus === 'completed').length;
-            const persistenceRate = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+                nextClass = schedules[0];
+            }
 
             return {
                 recentLogin: studentData.lastLogin || null,
-                monthlyLoginCount,
-                nextClass,
-                persistenceRate
+                nextClass: nextClass,
+                monthlyLoginCount: monthlyLogins.length,
+                persistenceRate: studentData.persistenceRate || 100,
             };
-
         } catch (error) {
-            console.error("getDashboardStats error:", error);
-            return null;
+            console.error("Firestore getDashboardStats error:", error);
+            return {
+                recentLogin: null,
+                nextClass: null,
+                monthlyLoginCount: 0,
+                persistenceRate: 100,
+            };
         }
     }
 };

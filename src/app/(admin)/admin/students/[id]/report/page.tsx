@@ -24,6 +24,9 @@ export default async function ReportPage({ params }: { params: Promise<{ id: str
         status: u.status as 'HIGH' | 'MID' | 'LOW',
         selectedDifficulty: u.selectedDifficulty,
         completionStatus: u.completionStatus as 'incomplete' | 'in-progress' | 'completed',
+        schoolLevel: u.schoolLevel || "고등",
+        unitName: u.unitName || u.name,
+        unitDetails: u.unitDetails || [],
         errors: {
             C: u.errorC || 0,
             M: u.errorM || 0,

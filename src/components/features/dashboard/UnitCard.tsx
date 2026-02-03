@@ -62,10 +62,6 @@ export function UnitCard({
     showDifficultySelector = true,
     showStatus = true
 }: UnitCardProps) {
-    const [isEditingName, setIsEditingName] = useState(false);
-    const [editedName, setEditedName] = useState(unit.name);
-    const [editedGrade, setEditedGrade] = useState(unit.grade || "고1");
-
     const config = getDifficultyStatusConfig(unit.selectedDifficulty);
 
     const errorLabels = {
@@ -84,88 +80,38 @@ export function UnitCard({
 
     const difficulties = ['상', '중', '하'];
 
-    const handleNameSave = () => {
-        if (editedName.trim()) {
-            if (onUpdateDetails) {
-                onUpdateDetails(unit.id, editedName.trim(), editedGrade);
-            } else if (onNameChange) {
-                onNameChange(unit.id, editedName.trim());
-            }
-        }
-        setIsEditingName(false);
-    };
-
-    const handleNameCancel = () => {
-        setEditedName(unit.name);
-        setIsEditingName(false);
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') {
-            handleNameSave();
-        } else if (e.key === 'Escape') {
-            handleNameCancel();
-        }
-    };
 
     return (
         <div className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow relative">
-            {/* Delete Button */}
-            {showDeleteButton && (
-                <button
-                    onClick={() => onDelete(unit.id)}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors p-1"
-                    title="단원 삭제"
-                >
-                    <Trash2 size={16} />
-                </button>
-            )}
+            {/* Action Buttons (Top Right) */}
+            <div className="absolute top-4 right-4 flex items-center gap-1 z-10">
+                {showDeleteButton && (
+                    <button
+                        onClick={() => onDelete(unit.id)}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                        title="단원 삭제"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                )}
+            </div>
 
             {/* Header */}
             <div className="flex items-start justify-between mb-4 pr-10">
                 <div className="flex-1">
-                    {isEditingName ? (
-                        <div className="flex items-center gap-2">
-                            <Select value={editedGrade} onValueChange={setEditedGrade}>
-                                <SelectTrigger className="w-[80px] h-9">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="중1">중1</SelectItem>
-                                    <SelectItem value="중2">중2</SelectItem>
-                                    <SelectItem value="중3">중3</SelectItem>
-                                    <SelectItem value="고1">고1</SelectItem>
-                                    <SelectItem value="고2">고2</SelectItem>
-                                    <SelectItem value="고3">고3</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <input
-                                type="text"
-                                value={editedName}
-                                onChange={(e) => setEditedName(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                className="flex-1 text-lg font-semibold text-gray-900 border border-blue-400 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                autoFocus
-                            />
-                            <button onClick={handleNameSave} className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                                <Check size={16} />
-                            </button>
-                            <button onClick={handleNameCancel} className="p-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400">
-                                <X size={16} />
-                            </button>
-                        </div>
-                    ) : (
-                        <h4
-                            className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
-                            onClick={() => setIsEditingName(true)}
-                            title="클릭하여 수정"
-                        >
-                            {unit.name}
-                            <span className="text-gray-500 text-sm ml-2 font-normal">
-                                {unit.grade} {unit.subject ? `| ${unit.subject}` : ''}
-                            </span>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-gray-500 text-xs font-medium leading-relaxed">
+                            {/* 중등: 세부내용 없음, 고등: 세부내용 포함 */}
+                            {unit.schoolLevel === '중등' ? (
+                                `[${unit.schoolLevel} / ${unit.grade} / ${unit.subject} / ${unit.unitName || unit.name}]`
+                            ) : (
+                                `[${unit.schoolLevel || '고등'} / ${unit.grade} / ${unit.subject} / ${unit.unitName || unit.name}${unit.unitDetails && unit.unitDetails.length > 0 ? ` / ${unit.unitDetails.join(', ')}` : ''}]`
+                            )}
+                        </span>
+                        <h4 className="text-lg font-semibold text-gray-900">
+                            {unit.unitName || unit.name}
                         </h4>
-                    )}
+                    </div>
                     {showStatus && (
                         <div className="flex items-center gap-2 mt-2">
                             <span className="text-xs text-gray-400">STATUS:</span>

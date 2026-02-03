@@ -11,9 +11,12 @@ export interface User {
 
 export interface Unit {
     id: number;
-    name: string;
+    schoolLevel: '중등' | '고등';
     grade: string;
     subject: string;
+    unitName: string; // "name" in old structure, mapped to unitName
+    unitDetails: string[]; // List of selected detailed contents
+    name: string; // Keep for backward compatibility/display (can be same as unitName)
     status: 'HIGH' | 'MID' | 'LOW';
     errors: {
         C: number;

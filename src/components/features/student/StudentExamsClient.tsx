@@ -8,18 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createExam, updateExam, deleteExam } from "@/actions/learning-actions";
 import { useRouter } from "next/navigation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Optional if we want select
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface AdminExamsClientProps {
+interface StudentExamsClientProps {
     exams: any[];
     studentId: number;
 }
 
-const EXAM_TYPES = ["중간고사", "기말고사", "모의고사", "단원평가", "기타"];
-const SUBJECTS = ["수학", "영어", "국어", "과학", "사회", "공통수학1", "공통수학2", "미적분", "확률과통계", "기하"];
-
-export default function AdminExamsClient({ exams, studentId }: AdminExamsClientProps) {
+export default function StudentExamsClient({ exams, studentId }: StudentExamsClientProps) {
     const router = useRouter();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -51,6 +47,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                 setIsAddOpen(false);
                 setScore("");
                 setDate("");
+                setExamType("");
                 router.refresh();
             } else {
                 alert("성적 추가 실패");
@@ -105,7 +102,9 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                 <h2 className="text-xl font-bold">시험 성적 관리</h2>
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                     <DialogTrigger asChild>
-                        <Button><Plus className="mr-2 h-4 w-4" /> 성적 추가</Button>
+                        <Button className="bg-blue-600 hover:bg-blue-700">
+                            <Plus className="mr-2 h-4 w-4" /> 성적 추가
+                        </Button>
                     </DialogTrigger>
                     <DialogContent>
                         <DialogHeader><DialogTitle>새 성적 추가</DialogTitle></DialogHeader>
@@ -131,7 +130,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleAdd} disabled={isPending}>
+                            <Button onClick={handleAdd} disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
                                 {isPending ? "추가 중..." : "추가하기"}
                             </Button>
                         </DialogFooter>
@@ -164,7 +163,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleUpdate} disabled={isPending}>
+                            <Button onClick={handleUpdate} disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
                                 {isPending ? "수정 중..." : "수정하기"}
                             </Button>
                         </DialogFooter>
@@ -202,9 +201,9 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                                 <Line
                                     type="monotone"
                                     dataKey="score"
-                                    stroke="#4f46e5"
+                                    stroke="#2563eb"
                                     strokeWidth={2}
-                                    dot={{ r: 4, fill: "#4f46e5" }}
+                                    dot={{ r: 4, fill: "#2563eb" }}
                                     activeDot={{ r: 6 }}
                                 />
                             </LineChart>
@@ -213,7 +212,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                 </div>
             )}
 
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                 <table className="w-full text-left text-sm">
                     <thead className="bg-gray-50 border-b">
                         <tr>
@@ -232,16 +231,16 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
                             </tr>
                         ) : (
                             exams.map((exam: any) => (
-                                <tr key={exam.id} className="border-b last:border-0 hover:bg-gray-50">
-                                    <td className="p-4 font-medium">{exam.examType}</td>
+                                <tr key={exam.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                                    <td className="p-4 font-medium text-gray-900">{exam.examType}</td>
                                     <td className="p-4 font-bold text-blue-600">{exam.score}점</td>
                                     <td className="p-4 text-gray-500">{exam.date}</td>
                                     <td className="p-4 text-right flex justify-end gap-2">
                                         <Button variant="ghost" size="sm" onClick={() => handleEditClick(exam)}>
-                                            수정
+                                            <Pencil className="w-4 h-4 mr-1 text-gray-400" /> 수정
                                         </Button>
-                                        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(exam.id)}>
-                                            삭제
+                                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(exam.id)}>
+                                            <Trash className="w-4 h-4 mr-1" /> 삭제
                                         </Button>
                                     </td>
                                 </tr>

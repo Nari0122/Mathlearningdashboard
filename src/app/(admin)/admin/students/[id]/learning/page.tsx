@@ -27,6 +27,9 @@ export default async function AdminLearningPage({
         status: u.status as 'HIGH' | 'MID' | 'LOW',
         selectedDifficulty: u.selectedDifficulty,
         completionStatus: u.completionStatus as 'incomplete' | 'in-progress' | 'completed',
+        schoolLevel: u.schoolLevel || "고등",
+        unitName: u.unitName || u.name,
+        unitDetails: u.unitDetails || [],
         errors: {
             C: u.errorC,
             M: u.errorM,

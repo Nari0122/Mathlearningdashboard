@@ -18,7 +18,13 @@ export default async function StudentDashboardPage({
 
     // Fetch dashboard stats
     const { studentService } = await import("@/services/studentService");
-    const stats = await studentService.getDashboardStats(studentId);
+    const { learningService } = await import("@/services/learningService");
+
+    const [stats, assignments, records] = await Promise.all([
+        studentService.getDashboardStats(studentId),
+        learningService.getAssignments(studentId),
+        learningService.getLearningRecords(studentId)
+    ]);
 
     if (!student) {
         notFound();
@@ -47,7 +53,12 @@ export default async function StudentDashboardPage({
                 <h1 className="text-2xl font-bold tracking-tight">반갑습니다, {student.name} 학생!</h1>
                 <p className="text-sm text-muted-foreground">오늘도 열심히 공부해봅시다.</p>
             </div>
-            <StudentDashboardClient initialUnits={mappedUnits} stats={stats} />
+            <StudentDashboardClient
+                initialUnits={mappedUnits}
+                stats={stats}
+                recentAssignments={assignments.slice(0, 5)}
+                recentRecords={records.slice(0, 5)}
+            />
         </div>
     );
 }

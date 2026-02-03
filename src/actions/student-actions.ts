@@ -78,3 +78,41 @@ export async function getStudentIncorrectNotes(userId: number) {
     // To be implemented in learningService/studentService
     return [];
 }
+
+// Submit homework
+export async function submitHomework(homeworkId: string, studentId: number) {
+    try {
+        // Import admin service since homework is managed there
+        const { learningService } = await import("@/services/learningService");
+
+        // Get homework to check due date
+        const homeworks = await learningService.getAssignments(studentId);
+        const homework = homeworks.find((h: any) => h.id === homeworkId);
+
+        if (!homework) {
+            return { success: false, error: "숙제를 찾을 수 없습니다." };
+        }
+
+        const now = new Date();
+        const dueDate = new Date(homework.dueDate);
+        const isLate = now > dueDate;
+
+        // Use updateHomework from admin-actions
+        const { updateHomework } = await import("@/actions/admin-actions");
+        const result = await updateHomework(homeworkId, studentId, {
+            title: homework.title,
+            dueDate: homework.dueDate,
+            status: isLate ? 'late-submitted' : 'submitted',
+            submittedDate: now.toISOString().split('T')[0]
+        });
+
+        if (result.success) {
+            revalidatePath(`/student/${studentId}/homework`);
+        }
+
+        return result;
+    } catch (error) {
+        console.error("submitHomework error:", error);
+        return { success: false, error: "숙제 제출 실패" };
+    }
+}

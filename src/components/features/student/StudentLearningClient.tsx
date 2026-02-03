@@ -12,34 +12,76 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { isMiddleSchool } from "@/lib/curriculum-data";
 
 interface StudentLearningClientProps {
     units: any[];
 }
 
 export default function StudentLearningClient({ units }: StudentLearningClientProps) {
+    const [selectedLevel, setSelectedLevel] = useState<string>("all");
     const [selectedGrade, setSelectedGrade] = useState<string>("all");
     const [selectedSubject, setSelectedSubject] = useState<string>("all");
+    const [selectedUnitName, setSelectedUnitName] = useState<string>("all");
+    const [selectedDetail, setSelectedDetail] = useState<string>("all");
 
-    // Extract unique grades and subjects
-    const grades = useMemo(() => {
-        const unique = new Set(units.map(u => u.grade).filter(Boolean));
+    // Extract unique levels, grades and subjects
+    const levels = useMemo(() => {
+        const unique = new Set(units.map(u => u.schoolLevel).filter(Boolean));
         return Array.from(unique).sort();
     }, [units]);
+
+    const grades = useMemo(() => {
+        let filtered = units;
+        if (selectedLevel !== "all") {
+            filtered = filtered.filter(u => u.schoolLevel === selectedLevel);
+        }
+        const unique = new Set(filtered.map(u => u.grade).filter(Boolean));
+        return Array.from(unique).sort();
+    }, [units, selectedLevel]);
 
     const subjects = useMemo(() => {
-        const unique = new Set(units.map(u => u.subject).filter(Boolean));
+        let filtered = units;
+        if (selectedLevel !== "all") {
+            filtered = filtered.filter(u => u.schoolLevel === selectedLevel);
+        }
+        if (selectedGrade !== "all") {
+            filtered = filtered.filter(u => u.grade === selectedGrade);
+        }
+        const unique = new Set(filtered.map(u => u.subject).filter(Boolean));
         return Array.from(unique).sort();
-    }, [units]);
+    }, [units, selectedLevel, selectedGrade]);
+
+    const unitNames = useMemo(() => {
+        let filtered = units;
+        if (selectedLevel !== "all") filtered = filtered.filter(u => u.schoolLevel === selectedLevel);
+        if (selectedGrade !== "all") filtered = filtered.filter(u => u.grade === selectedGrade);
+        if (selectedSubject !== "all") filtered = filtered.filter(u => u.subject === selectedSubject);
+        const unique = new Set(filtered.map(u => u.unitName || u.name).filter(Boolean));
+        return Array.from(unique).sort();
+    }, [units, selectedLevel, selectedGrade, selectedSubject]);
+
+    const details = useMemo(() => {
+        let filtered = units;
+        if (selectedLevel !== "all") filtered = filtered.filter(u => u.schoolLevel === selectedLevel);
+        if (selectedGrade !== "all") filtered = filtered.filter(u => u.grade === selectedGrade);
+        if (selectedSubject !== "all") filtered = filtered.filter(u => u.subject === selectedSubject);
+        if (selectedUnitName !== "all") filtered = filtered.filter(u => (u.unitName || u.name) === selectedUnitName);
+        const allDetails = filtered.flatMap(u => u.unitDetails || []);
+        return Array.from(new Set(allDetails)).sort();
+    }, [units, selectedLevel, selectedGrade, selectedSubject, selectedUnitName]);
 
     // Filter units
     const filteredUnits = useMemo(() => {
         return units.filter(u => {
+            const matchesLevel = selectedLevel === "all" || u.schoolLevel === selectedLevel;
             const matchesGrade = selectedGrade === "all" || u.grade === selectedGrade;
             const matchesSubject = selectedSubject === "all" || u.subject === selectedSubject;
-            return matchesGrade && matchesSubject;
+            const matchesUnit = selectedUnitName === "all" || (u.unitName || u.name) === selectedUnitName;
+            const matchesDetail = selectedDetail === "all" || u.unitDetails?.includes(selectedDetail);
+            return matchesLevel && matchesGrade && matchesSubject && matchesUnit && matchesDetail;
         });
-    }, [units, selectedGrade, selectedSubject]);
+    }, [units, selectedLevel, selectedGrade, selectedSubject, selectedUnitName, selectedDetail]);
 
     // Group units by completion status
     const completedUnits = filteredUnits.filter((u: any) => u.completionStatus === 'completed');
@@ -47,8 +89,11 @@ export default function StudentLearningClient({ units }: StudentLearningClientPr
     const incompleteUnits = filteredUnits.filter((u: any) => !u.completionStatus || u.completionStatus === 'incomplete');
 
     const resetFilters = () => {
+        setSelectedLevel("all");
         setSelectedGrade("all");
         setSelectedSubject("all");
+        setSelectedUnitName("all");
+        setSelectedDetail("all");
     };
 
     const UnitGrid = ({ units, emptyMessage }: { units: any[], emptyMessage: string }) => (
@@ -83,13 +128,25 @@ export default function StudentLearningClient({ units }: StudentLearningClientPr
                 <h1 className="text-2xl font-bold">나의 학습 현황</h1>
 
                 <div className="flex flex-wrap items-center gap-2">
+                    <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                        <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="학제" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">전체 학제</SelectItem>
+                            {levels.map((l: any) => (
+                                <SelectItem key={l} value={l}>{l}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
                     <Select value={selectedGrade} onValueChange={setSelectedGrade}>
                         <SelectTrigger className="w-[120px]">
                             <SelectValue placeholder="학년" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">전체 학년</SelectItem>
-                            {grades.map(g => (
+                            {grades.map((g: any) => (
                                 <SelectItem key={g} value={g}>{g}</SelectItem>
                             ))}
                         </SelectContent>
@@ -101,13 +158,40 @@ export default function StudentLearningClient({ units }: StudentLearningClientPr
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">전체 과목</SelectItem>
-                            {subjects.map(s => (
+                            {subjects.map((s: any) => (
                                 <SelectItem key={s} value={s}>{s}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
 
-                    {(selectedGrade !== "all" || selectedSubject !== "all") && (
+                    <Select value={selectedUnitName} onValueChange={setSelectedUnitName}>
+                        <SelectTrigger className="w-[140px]">
+                            <SelectValue placeholder="단원" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">전체 단원</SelectItem>
+                            {unitNames.map((u: any) => (
+                                <SelectItem key={u} value={u}>{u}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* 세부내용 필터 - 고등만 표시 */}
+                    {selectedLevel !== "all" && !isMiddleSchool(selectedLevel) && (
+                        <Select value={selectedDetail} onValueChange={setSelectedDetail}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="세부내용" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">전체 세부내용</SelectItem>
+                                {details.map((d: any) => (
+                                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+
+                    {(selectedLevel !== "all" || selectedGrade !== "all" || selectedSubject !== "all" || selectedUnitName !== "all" || selectedDetail !== "all") && (
                         <Button variant="ghost" size="icon" onClick={resetFilters} title="필터 초기화">
                             <X className="h-4 w-4" />
                         </Button>
