@@ -4,8 +4,8 @@ import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, FileImage, X, Search } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { CheckCircle2, AlertCircle, FileImage, X, Search, FileText } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isMiddleSchool } from "@/lib/curriculum-data";
 import { getBookTags } from "@/actions/learning-actions";
@@ -220,8 +220,8 @@ export default function AdminIncorrectNotesClient({ notes, studentId }: AdminInc
                                     );
                                 }}
                                 className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterErrorTypes.includes(type)
-                                        ? errorColorMap[type] + " border-transparent"
-                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    ? errorColorMap[type] + " border-transparent"
+                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                                     }`}
                             >
                                 {type}
@@ -243,8 +243,8 @@ export default function AdminIncorrectNotesClient({ notes, studentId }: AdminInc
                                     );
                                 }}
                                 className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterRetryCounts.includes(count)
-                                        ? "bg-blue-100 text-blue-700 border-blue-200"
-                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    ? "bg-blue-100 text-blue-700 border-blue-200"
+                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                                     }`}
                             >
                                 {count}회
@@ -267,8 +267,8 @@ export default function AdminIncorrectNotesClient({ notes, studentId }: AdminInc
                                         );
                                     }}
                                     className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterBookTagIds.includes(tag.id)
-                                            ? "bg-green-100 text-green-700 border-green-200"
-                                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                        ? "bg-green-100 text-green-700 border-green-200"
+                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
                                         }`}
                                 >
                                     {tag.name}
@@ -341,8 +341,43 @@ export default function AdminIncorrectNotesClient({ notes, studentId }: AdminInc
                                     </div>
 
                                     <div className="space-y-2">
-                                        <h4 className="text-sm font-semibold text-gray-700">이미지 첨부</h4>
-                                        {note.questionImg ? (
+                                        <h4 className="text-sm font-semibold text-gray-700">첨부 파일</h4>
+                                        {note.attachments && note.attachments.length > 0 ? (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {note.attachments.map((att: any) => (
+                                                    att.type === 'image' ? (
+                                                        <div
+                                                            key={att.id}
+                                                            className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 group cursor-zoom-in"
+                                                            onClick={() => setSelectedZoomImg(att.downloadUrl)}
+                                                        >
+                                                            <img
+                                                                src={att.downloadUrl}
+                                                                alt={att.originalName}
+                                                                className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                                            />
+                                                            <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-[10px] p-1 truncate px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                {att.originalName}
+                                                            </div>
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <Search className="w-5 h-5 text-white" />
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <a
+                                                            key={att.id}
+                                                            href={att.downloadUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex flex-col items-center justify-center aspect-video bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors p-2 text-center"
+                                                        >
+                                                            <FileText className="h-8 w-8 text-blue-500 mb-1" />
+                                                            <span className="text-xs text-gray-600 truncate w-full px-2">{att.originalName}</span>
+                                                        </a>
+                                                    )
+                                                ))}
+                                            </div>
+                                        ) : note.questionImg ? (
                                             <div
                                                 className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 group cursor-zoom-in"
                                                 onClick={() => setSelectedZoomImg(note.questionImg)}
@@ -379,6 +414,8 @@ export default function AdminIncorrectNotesClient({ notes, studentId }: AdminInc
             {/* Image Zoom Modal */}
             <Dialog open={!!selectedZoomImg} onOpenChange={(open) => !open && setSelectedZoomImg(null)}>
                 <DialogContent className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
+                    <DialogTitle className="sr-only">이미지 확대</DialogTitle>
+                    <DialogDescription className="sr-only">선택한 오답노트 이미지를 크게 봅니다.</DialogDescription>
                     {selectedZoomImg && (
                         <div className="relative flex items-center justify-center min-h-[50vh]">
                             <img
