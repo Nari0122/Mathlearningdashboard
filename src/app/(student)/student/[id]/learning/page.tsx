@@ -26,5 +26,5 @@ export default async function StudentLearningPage({
         }
     }));
 
-    return <StudentLearningClient units={mappedUnits} />;
+    return <StudentLearningClient units={mappedUnits} studentId={studentId} />;
 }

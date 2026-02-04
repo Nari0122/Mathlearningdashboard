@@ -14,11 +14,18 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import { isMiddleSchool } from "@/lib/curriculum-data";
 
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { updateUnitError } from "@/actions/admin-actions";
+
 interface StudentLearningClientProps {
     units: any[];
+    studentId: number;
 }
 
-export default function StudentLearningClient({ units }: StudentLearningClientProps) {
+export default function StudentLearningClient({ units, studentId }: StudentLearningClientProps) {
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
     const [selectedLevel, setSelectedLevel] = useState<string>("all");
     const [selectedGrade, setSelectedGrade] = useState<string>("all");
     const [selectedSubject, setSelectedSubject] = useState<string>("all");
@@ -110,7 +117,12 @@ export default function StudentLearningClient({ units }: StudentLearningClientPr
                             showDeleteButton={false}
                             onDifficultyChange={() => { }}
                             onDelete={() => { }}
-                            onErrorChange={() => { }}
+                            onErrorChange={(unitId, errorType, delta) => {
+                                startTransition(async () => {
+                                    await updateUnitError(unitId, studentId, errorType, delta);
+                                    router.refresh();
+                                });
+                            }}
                         />
                     ))}
                 </div>

@@ -13,6 +13,15 @@ interface StudentHomeworkClientProps {
     studentId: number;
 }
 
+function formatDate(dateString: string | Date | null) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    return `${year}. ${month}. ${day}.`;
+}
+
 export default function StudentHomeworkClient({ assignments, studentId }: StudentHomeworkClientProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
@@ -135,15 +144,15 @@ export default function StudentHomeworkClient({ assignments, studentId }: Studen
                                     <div className="flex items-center gap-2">
                                         <Clock className="w-4 h-4" />
                                         <span className={isOverdue ? "text-red-600 font-semibold" : ""}>
-                                            마감: {new Date(assignment.dueDate).toLocaleDateString()}
+                                            마감: {formatDate(assignment.dueDate)}
                                         </span>
                                     </div>
                                     {assignment.assignedDate && (
-                                        <p>부여일: {new Date(assignment.assignedDate).toLocaleDateString()}</p>
+                                        <p>부여일: {formatDate(assignment.assignedDate)}</p>
                                     )}
                                     {assignment.submittedDate && (
                                         <p className="text-green-600">
-                                            제출일: {new Date(assignment.submittedDate).toLocaleDateString()}
+                                            제출일: {formatDate(assignment.submittedDate)}
                                         </p>
                                     )}
                                 </div>
