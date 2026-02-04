@@ -1,6 +1,6 @@
 import { ArrowLeft, User, Mail, Phone, Key, Save, ShieldAlert, Check, Copy, Trash2, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
-import { Student } from '../types';
+import { Student } from '../../types';
 
 interface StudentAccountManagementProps {
   student: Student;
@@ -43,7 +43,7 @@ export function StudentAccountManagement({ student, onBack, onSave, onDelete }: 
       ...formData,
       lastUpdated: new Date().toISOString().split('T')[0]
     };
-    
+
     onSave(updatedStudent, newPassword);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 3000);
@@ -276,7 +276,7 @@ export function StudentAccountManagement({ student, onBack, onSave, onDelete }: 
           {/* Account Status */}
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h3 className="font-semibold text-gray-900 mb-4">계정 상태</h3>
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">계정 활성화</span>
@@ -296,8 +296,8 @@ export function StudentAccountManagement({ student, onBack, onSave, onDelete }: 
                   {formData.isActive ? '✓ 활성화됨' : '✕ 비활성화됨'}
                 </p>
                 <p className={`text-xs mt-1 ${formData.isActive ? 'text-green-700' : 'text-red-700'}`}>
-                  {formData.isActive 
-                    ? '학생이 로그인하여 시스템을 사용할 수 있습니다.' 
+                  {formData.isActive
+                    ? '학생이 로그인하여 시스템을 사용할 수 있습니다.'
                     : '학생은 현재 로그인할 수 없습니다.'}
                 </p>
               </div>
@@ -307,7 +307,7 @@ export function StudentAccountManagement({ student, onBack, onSave, onDelete }: 
           {/* Progress Info */}
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h3 className="font-semibold text-gray-900 mb-4">학습 현황</h3>
-            
+
             <div className="space-y-3">
               <div>
                 <div className="flex items-center justify-between mb-2">
@@ -315,7 +315,7 @@ export function StudentAccountManagement({ student, onBack, onSave, onDelete }: 
                   <span className="text-sm font-semibold text-gray-900">{student.progress}%</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all"
                     style={{ width: `${student.progress}%` }}
                   />

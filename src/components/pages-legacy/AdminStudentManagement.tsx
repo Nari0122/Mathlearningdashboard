@@ -1,7 +1,7 @@
 import { Users, Plus, Search, MoreVertical, Trash2, Settings, Filter, TrendingUp, Clock, Mail, Phone } from 'lucide-react';
 import { useState } from 'react';
-import { Student } from '../types';
-import { AddStudentModal } from '../components/AddStudentModal';
+import { Student } from '../../types';
+import { AddStudentModal } from '../AddStudentModal';
 
 interface AdminStudentManagementProps {
   students: Student[];
@@ -21,11 +21,11 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
   // 필터링된 학생 목록
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         student.loginId.toLowerCase().includes(searchQuery.toLowerCase());
+      student.loginId.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesGrade = gradeFilter === 'all' || student.grade === gradeFilter;
-    const matchesStatus = statusFilter === 'all' || 
-                         (statusFilter === 'active' && student.isActive) ||
-                         (statusFilter === 'inactive' && !student.isActive);
+    const matchesStatus = statusFilter === 'all' ||
+      (statusFilter === 'active' && student.isActive) ||
+      (statusFilter === 'inactive' && !student.isActive);
     return matchesSearch && matchesGrade && matchesStatus;
   });
 
@@ -105,7 +105,7 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Filter size={18} className="text-gray-400" />
             <select
@@ -149,21 +149,19 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
         {filteredStudents.length > 0 ? (
           <div className="grid grid-cols-2 gap-6">
             {filteredStudents.map((student) => (
-              <div 
-                key={student.id} 
-                className={`bg-white border rounded-xl p-6 hover:shadow-md transition-shadow ${
-                  student.isActive ? 'border-gray-200' : 'border-gray-300 bg-gray-50'
-                }`}
+              <div
+                key={student.id}
+                className={`bg-white border rounded-xl p-6 hover:shadow-md transition-shadow ${student.isActive ? 'border-gray-200' : 'border-gray-300 bg-gray-50'
+                  }`}
               >
                 <div className="flex items-start gap-4">
-                  <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    student.isActive 
-                      ? 'bg-gradient-to-br from-purple-500 to-pink-500' 
-                      : 'bg-gradient-to-br from-gray-400 to-gray-500'
-                  }`}>
+                  <div className={`w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 ${student.isActive
+                    ? 'bg-gradient-to-br from-purple-500 to-pink-500'
+                    : 'bg-gradient-to-br from-gray-400 to-gray-500'
+                    }`}>
                     <span className="text-2xl font-bold text-white">{student.name[0]}</span>
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-3">
                       <div>
@@ -172,15 +170,14 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
                         </h3>
                         <p className="text-sm text-gray-500">{student.grade} {student.class && `· ${student.class}`}</p>
                       </div>
-                      <span className={`px-3 py-1 text-xs rounded-full font-medium ${
-                        student.isActive 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-gray-200 text-gray-600'
-                      }`}>
+                      <span className={`px-3 py-1 text-xs rounded-full font-medium ${student.isActive
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-200 text-gray-600'
+                        }`}>
                         {student.isActive ? '활동중' : '비활성화'}
                       </span>
                     </div>
-                    
+
                     <div className="space-y-2 mb-4">
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <span className="font-medium text-gray-700">ID:</span>
@@ -210,26 +207,25 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
                         <span className="text-sm font-semibold text-gray-900">{student.progress}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all ${
-                            student.isActive
-                              ? 'bg-gradient-to-r from-purple-500 to-pink-500'
-                              : 'bg-gray-400'
-                          }`}
+                        <div
+                          className={`h-2 rounded-full transition-all ${student.isActive
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                            : 'bg-gray-400'
+                            }`}
                           style={{ width: `${student.progress}%` }}
                         />
                       </div>
                     </div>
 
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => onStudentSelect && onStudentSelect(student.id)}
                         className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={!student.isActive}
                       >
                         관리
                       </button>
-                      <button 
+                      <button
                         onClick={() => onStudentManage && onStudentManage(student.id)}
                         className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                       >
@@ -238,11 +234,10 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
                       {onDeleteStudent && (
                         <button
                           onClick={() => setDeleteConfirmId(student.id)}
-                          className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
-                            student.isActive
-                              ? 'bg-red-600 text-white hover:bg-red-700'
-                              : 'bg-gray-400 text-white hover:bg-gray-500'
-                          }`}
+                          className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${student.isActive
+                            ? 'bg-red-600 text-white hover:bg-red-700'
+                            : 'bg-gray-400 text-white hover:bg-gray-500'
+                            }`}
                         >
                           {student.isActive ? '비활성화' : '활성화'}
                         </button>
@@ -259,7 +254,7 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
             {searchQuery || gradeFilter !== 'all' || statusFilter !== 'all' ? (
               <>
                 <p className="text-gray-500 mb-2">검색 결과가 없습니다.</p>
-                <button 
+                <button
                   onClick={() => {
                     setSearchQuery('');
                     setGradeFilter('all');
@@ -273,7 +268,7 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
             ) : (
               <>
                 <p className="text-gray-500 mb-4">등록된 학생이 없습니다.</p>
-                <button 
+                <button
                   onClick={() => setIsAddModalOpen(true)}
                   className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 >
@@ -285,7 +280,7 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
         )}
       </div>
 
-      <AddStudentModal 
+      <AddStudentModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddStudent}
@@ -295,14 +290,13 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
       {deleteConfirmId !== null && (() => {
         const targetStudent = students.find(s => s.id === deleteConfirmId);
         const isActive = targetStudent?.isActive ?? true;
-        
+
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
               <div className="text-center mb-6">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                  isActive ? 'bg-red-100' : 'bg-green-100'
-                }`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${isActive ? 'bg-red-100' : 'bg-green-100'
+                  }`}>
                   <Users size={24} className={isActive ? 'text-red-600' : 'text-green-600'} />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -312,8 +306,8 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
                   {targetStudent?.name}님을 {isActive ? '비활성화' : '활성화'}하시겠습니까?
                 </p>
                 <p className="text-sm text-gray-500 mt-2">
-                  {isActive 
-                    ? '비활성화된 학생은 로그인할 수 없으며, 관리 기능이 제한됩니다.' 
+                  {isActive
+                    ? '비활성화된 학생은 로그인할 수 없으며, 관리 기능이 제한됩니다.'
                     : '활성화하면 학생이 다시 로그인하고 학습할 수 있습니다.'}
                 </p>
               </div>
@@ -332,11 +326,10 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
                     }
                     setDeleteConfirmId(null);
                   }}
-                  className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? 'bg-red-600 text-white hover:bg-red-700'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
+                  className={`flex-1 px-4 py-2 rounded-lg transition-colors ${isActive
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
                 >
                   {isActive ? '비활성화' : '활성화'}
                 </button>

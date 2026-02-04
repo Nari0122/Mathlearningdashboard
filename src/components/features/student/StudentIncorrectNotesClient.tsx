@@ -1065,6 +1065,7 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
             {/* Image Zoom Modal */}
             <Dialog open={!!selectedZoomImg} onOpenChange={(open) => !open && setSelectedZoomImg(null)}>
                 <DialogContent className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
+                    <DialogTitle className="sr-only">이미지 확대</DialogTitle>
                     {selectedZoomImg && (
                         <div className="relative flex items-center justify-center min-h-[50vh]">
                             <img
