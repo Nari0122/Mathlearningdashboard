@@ -1,12 +1,9 @@
 "use client";
 
-import { useState } from 'react';
-import { Plus, Minus, Trash2, Check, X } from 'lucide-react';
+
+import { Plus, Minus, Trash2 } from 'lucide-react';
 import { Unit } from '@/types';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // 난이도와 STATUS 색상 통합 매핑 (단일 소스)
 const getDifficultyStatusConfig = (difficulty: string) => {
@@ -111,7 +108,7 @@ export function UnitCard({
                         <h4 className="text-lg font-semibold text-gray-900">
                             {/* [Updated] 고등 학제인 경우 세부내용을 제목으로 표시 */}
                             {unit.schoolLevel !== '중등' && unit.unitDetails && unit.unitDetails.length > 0
-                                ? unit.unitDetails[0]
+                                ? (unit.unitDetails[0] as string)
                                 : (unit.unitName || unit.name)}
                         </h4>
                     </div>
@@ -147,7 +144,7 @@ export function UnitCard({
                                 >
                                     <Minus size={14} className="text-gray-600" />
                                 </button>
-                                <span className="text-xl font-bold text-gray-900 w-8 text-center">{count}</span>
+                                <span className="text-xl font-bold text-gray-900 w-8 text-center">{(count as number)}</span>
                                 <button
                                     className="w-7 h-7 bg-white rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm border border-gray-100"
                                     onClick={() => onErrorChange(unit.id, type as 'C' | 'M' | 'R' | 'S', 1)}
