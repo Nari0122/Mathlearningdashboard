@@ -5,11 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { updateHomeworkStatus } from "@/actions/homework-actions";
 import { useState } from "react";
-import { Prisma } from "@prisma/client";
 
-// Define based on Prisma model, or import if available
+// Define based on Firestore document structure
 type Homework = {
-    id: number;
+    id: string;
     title: string;
     description: string | null;
     assignedDate: string;
@@ -25,9 +24,9 @@ interface HomeworkClientProps {
 
 export default function HomeworkClient({ initialHomeworks, studentId }: HomeworkClientProps) {
     const [homeworks, setHomeworks] = useState<Homework[]>(initialHomeworks);
-    const [isUpdating, setIsUpdating] = useState<number | null>(null);
+    const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-    const handleStatusToggle = async (id: number, currentStatus: string) => {
+    const handleStatusToggle = async (id: string, currentStatus: string) => {
         if (isUpdating === id) return;
 
         const newStatus = currentStatus === 'submitted' ? 'pending' : 'submitted';
@@ -39,7 +38,7 @@ export default function HomeworkClient({ initialHomeworks, studentId }: Homework
                 hw.id === id ? { ...hw, status: newStatus } : hw
             ));
 
-            await updateHomeworkStatus(id, newStatus);
+            await updateHomeworkStatus(studentId, id, newStatus);
         } catch (error) {
             console.error("Failed to update status", error);
             // Revert on error
