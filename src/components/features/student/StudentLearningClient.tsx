@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UnitCard } from "@/components/features/dashboard/UnitCard";
+import { UnitCard } from "@/components/features/dashboard/UnitCard-v2";
 import {
     Select,
     SelectContent,

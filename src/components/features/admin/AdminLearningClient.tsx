@@ -5,7 +5,7 @@ import { Plus, Check, ChevronsUpDown, X } from "lucide-react";
 import { Unit } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { UnitCard } from "@/components/features/dashboard/UnitCard";
+import { UnitCard } from "@/components/features/dashboard/UnitCard-v2";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

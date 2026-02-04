@@ -5,7 +5,7 @@ import { BookOpen } from "lucide-react";
 import { OverallProgress } from "@/components/features/dashboard/OverallProgress";
 import { AchievementDistribution } from "@/components/features/dashboard/AchievementDistribution";
 import { TotalErrorAnalysis } from "@/components/features/dashboard/TotalErrorAnalysis";
-import { UnitCard } from "@/components/features/dashboard/UnitCard";
+import { UnitCard } from "@/components/features/dashboard/UnitCard-v2";
 import { GuideCard } from "@/components/features/dashboard/GuideCard";
 import { Unit } from "@/types";
 import Link from "next/link";
