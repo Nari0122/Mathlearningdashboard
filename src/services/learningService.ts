@@ -20,6 +20,30 @@ async function getNextUnitId(studentDocRef: FirebaseFirestore.DocumentReference)
     return (snapshot.docs[0].data().id || 0) + 1;
 }
 
+// Generate searchKey for incorrect note (denormalized composite key for efficient querying)
+function generateSearchKey(data: {
+    schoolLevel?: string;
+    grade?: string;
+    subject?: string;
+    unitName?: string;
+    unitDetail?: string;
+    bookTagId?: string;
+    errorType?: string;
+    retryCount?: number;
+}): string {
+    const parts = [
+        data.schoolLevel || "_",
+        data.grade || "_",
+        data.subject || "_",
+        data.unitName || "_",
+        data.unitDetail || "_",
+        data.bookTagId || "_",
+        data.errorType || "_",
+        data.retryCount !== undefined ? String(data.retryCount) : "_",
+    ];
+    return parts.join("|");
+}
+
 export const learningService = {
     async getUnits(studentId: number) {
         try {
@@ -237,7 +261,7 @@ export const learningService = {
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("assignments").orderBy("dueDate", "desc").get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as any[];
         } catch (error) {
             console.error("Firestore getAssignments error:", error);
             return [];
@@ -359,8 +383,12 @@ export const learningService = {
             const studentDocRef = await getStudentDocRef(studentId);
             if (!studentDocRef) return { success: false, message: "Student not found" };
 
+            const searchKey = generateSearchKey(data);
+
             await studentDocRef.collection("incorrectNotes").add({
                 ...data,
+                searchKey,
+                attachments: data.attachments || [],
                 createdAt: new Date().toISOString(),
                 isResolved: false
             });
@@ -376,7 +404,13 @@ export const learningService = {
             const studentDocRef = await getStudentDocRef(studentId);
             if (!studentDocRef) return { success: false, message: "Student not found" };
 
-            await studentDocRef.collection("incorrectNotes").doc(noteId).update(data);
+            // Regenerate searchKey if any relevant field is being updated
+            const searchKey = generateSearchKey(data);
+
+            await studentDocRef.collection("incorrectNotes").doc(noteId).update({
+                ...data,
+                searchKey,
+            });
             return { success: true };
         } catch (error) {
             console.error("Firestore updateIncorrectNote error:", error);
@@ -395,5 +429,106 @@ export const learningService = {
             console.error("Firestore deleteIncorrectNote error:", error);
             return { success: false, message: "Failed to delete incorrect note" };
         }
-    }
+    },
+
+    // ========== BookTag Functions ==========
+    async getBookTags(studentId: number) {
+        try {
+            const studentDocRef = await getStudentDocRef(studentId);
+            if (!studentDocRef) return [];
+
+            const snapshot = await studentDocRef.collection("bookTags").orderBy("lastUsedAt", "desc").get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (error) {
+            console.error("Firestore getBookTags error:", error);
+            return [];
+        }
+    },
+
+    async createBookTag(studentId: number, name: string) {
+        try {
+            const studentDocRef = await getStudentDocRef(studentId);
+            if (!studentDocRef) return { success: false, message: "Student not found" };
+
+            // Validate: no spaces
+            if (/\s/.test(name)) {
+                return { success: false, message: "태그에 공백을 포함할 수 없습니다." };
+            }
+
+            // Check for duplicate (case-insensitive)
+            const existing = await studentDocRef.collection("bookTags")
+                .where("nameLower", "==", name.toLowerCase()).limit(1).get();
+            if (!existing.empty) {
+                // Return existing tag
+                const existingDoc = existing.docs[0];
+                return { success: true, tagId: existingDoc.id, existing: true };
+            }
+
+            const now = new Date().toISOString();
+            const docRef = await studentDocRef.collection("bookTags").add({
+                name,
+                nameLower: name.toLowerCase(),
+                createdAt: now,
+                lastUsedAt: now,
+            });
+            return { success: true, tagId: docRef.id };
+        } catch (error) {
+            console.error("Firestore createBookTag error:", error);
+            return { success: false, message: "Failed to create book tag" };
+        }
+    },
+
+    async updateBookTagLastUsed(studentId: number, tagId: string) {
+        try {
+            const studentDocRef = await getStudentDocRef(studentId);
+            if (!studentDocRef) return { success: false };
+
+            await studentDocRef.collection("bookTags").doc(tagId).update({
+                lastUsedAt: new Date().toISOString(),
+            });
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore updateBookTagLastUsed error:", error);
+            return { success: false };
+        }
+    },
+
+    // ========== Advanced Search ==========
+    async searchIncorrectNotes(studentId: number, searchKeys: string[]) {
+        try {
+            const studentDocRef = await getStudentDocRef(studentId);
+            if (!studentDocRef) return [];
+
+            if (searchKeys.length === 0) {
+                // No filters, return all
+                const snapshot = await studentDocRef.collection("incorrectNotes").orderBy("createdAt", "desc").get();
+                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            }
+
+            // Firestore 'in' supports max 10 values, batch if needed
+            const results: any[] = [];
+            const batches = [];
+            for (let i = 0; i < searchKeys.length; i += 10) {
+                batches.push(searchKeys.slice(i, i + 10));
+            }
+
+            for (const batch of batches) {
+                const snapshot = await studentDocRef.collection("incorrectNotes")
+                    .where("searchKey", "in", batch)
+                    .orderBy("createdAt", "desc")
+                    .get();
+                snapshot.docs.forEach(doc => {
+                    results.push({ id: doc.id, ...doc.data() });
+                });
+            }
+
+            // Deduplicate and sort by createdAt desc
+            const uniqueResults = Array.from(new Map(results.map(r => [r.id, r])).values());
+            uniqueResults.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            return uniqueResults;
+        } catch (error) {
+            console.error("Firestore searchIncorrectNotes error:", error);
+            return [];
+        }
+    },
 };

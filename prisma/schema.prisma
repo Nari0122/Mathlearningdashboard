@@ -129,6 +129,32 @@ model IncorrectNote {
   questionImg String?  // URL placeholder
   memo        String?
   errorType   String   // C, M, R, S
+  retryCount  Int?     // 다시 푼 횟수 (1~10)
+  attachments Attachment[]
   isResolved  Boolean  @default(false)
   createdAt   DateTime @default(now())
+}
+
+model Attachment {
+  id              String        @id @default(uuid())
+  originalName    String
+  storagePath     String
+  downloadUrl     String
+  type            String        // "image" | "file"
+  sizeBytes       Int
+  contentType     String
+  width           Int?
+  height          Int?
+  compressed      Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  
+  incorrectNoteId Int
+  incorrectNote   IncorrectNote @relation(fields: [incorrectNoteId], references: [id], onDelete: Cascade)
+}
+
+model SystemSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
 }

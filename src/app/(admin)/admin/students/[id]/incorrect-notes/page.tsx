@@ -16,5 +16,5 @@ export default async function AdminIncorrectNotesPage({
     const { learningService } = await import("@/services/learningService");
     const notes = await learningService.getIncorrectNotes(studentId);
 
-    return <AdminIncorrectNotesClient notes={notes} />;
+    return <AdminIncorrectNotesClient notes={notes} studentId={studentId} />;
 }

@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, HelpCircle, LogOut } from "lucide-react";
+import { Users, HelpCircle, LogOut, Edit2, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { getSystemSettings, updateSystemSettings } from "@/actions/system-actions";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface AdminSidebarProps {
     userName?: string;
@@ -13,6 +17,37 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ userName = "관리자", className }: AdminSidebarProps) {
     const pathname = usePathname();
+    const [settings, setSettings] = useState({ supportEmail: 'support@mathclinic.com', supportPhone: '02-1234-5678' });
+    const [isEditing, setIsEditing] = useState(false);
+    const [editValues, setEditValues] = useState({ supportEmail: '', supportPhone: '' });
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        getSystemSettings().then(data => {
+            setSettings(data);
+            setEditValues(data);
+        });
+    }, []);
+
+    const handleStartEdit = () => {
+        setEditValues(settings);
+        setIsEditing(true);
+    };
+
+    const handleSave = async () => {
+        setIsLoading(true);
+        const result = await updateSystemSettings(editValues.supportEmail, editValues.supportPhone);
+        if (result.success) {
+            setSettings(editValues);
+            setIsEditing(false);
+        }
+        setIsLoading(false);
+    };
+
+    const handleCancel = () => {
+        setIsEditing(false);
+        setEditValues(settings);
+    };
 
     const menuItems = [
         { href: "/admin/students", label: "학생 관리", icon: Users },
@@ -46,7 +81,7 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
                 <ul className="space-y-1">
                     {menuItems.map((item) => {
                         const Icon = item.icon;
-                        const isActive = pathname.startsWith(item.href);
+                        const isActive = pathname?.startsWith(item.href) ?? false;
                         return (
                             <li key={item.label}>
                                 <Link
@@ -100,18 +135,57 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
                             </div>
 
                             <div className="space-y-2">
-                                <h3 className="font-bold text-sm text-gray-900">문의하기</h3>
-                                <p className="text-sm text-gray-600">
-                                    시스템 이용 중 문제가 발생하거나 궁금한 점이 있으시면 아래 연락처로 문의해 주세요.
-                                </p>
-                                <div className="mt-2 text-sm">
-                                    <p className="flex items-center gap-2 text-gray-700">
-                                        <span className="font-semibold">Email:</span> support@mathclinic.com
-                                    </p>
-                                    <p className="flex items-center gap-2 text-gray-700">
-                                        <span className="font-semibold">Tel:</span> 02-1234-5678
-                                    </p>
+                                <div className="flex items-center justify-between">
+                                    <h3 className="font-bold text-sm text-gray-900">문의하기 정보 관리</h3>
+                                    {!isEditing && (
+                                        <Button variant="ghost" size="sm" onClick={handleStartEdit} className="h-8 w-8 p-0">
+                                            <Edit2 size={14} />
+                                        </Button>
+                                    )}
                                 </div>
+
+                                {isEditing ? (
+                                    <div className="space-y-3 p-3 border border-blue-200 rounded-lg bg-blue-50/50">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-medium text-gray-700">이메일</label>
+                                            <Input
+                                                value={editValues.supportEmail}
+                                                onChange={(e) => setEditValues({ ...editValues, supportEmail: e.target.value })}
+                                                className="h-8 text-sm bg-white"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-medium text-gray-700">전화번호</label>
+                                            <Input
+                                                value={editValues.supportPhone}
+                                                onChange={(e) => setEditValues({ ...editValues, supportPhone: e.target.value })}
+                                                className="h-8 text-sm bg-white"
+                                            />
+                                        </div>
+                                        <div className="flex justify-end gap-2 mt-2">
+                                            <Button variant="outline" size="sm" onClick={handleCancel} className="h-8 text-xs">
+                                                <X size={14} className="mr-1" /> 취소
+                                            </Button>
+                                            <Button size="sm" onClick={handleSave} disabled={isLoading} className="h-8 text-xs bg-blue-600 hover:bg-blue-700">
+                                                <Check size={14} className="mr-1" /> 저장
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <p className="text-sm text-gray-600">
+                                            학생들이 보게 될 문의처 정보입니다.
+                                        </p>
+                                        <div className="mt-2 text-sm">
+                                            <p className="flex items-center gap-2 text-gray-700">
+                                                <span className="font-semibold">Email:</span> {settings.supportEmail}
+                                            </p>
+                                            <p className="flex items-center gap-2 text-gray-700">
+                                                <span className="font-semibold">Tel:</span> {settings.supportPhone}
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             <div className="bg-blue-50 p-4 rounded-lg text-xs text-blue-700">

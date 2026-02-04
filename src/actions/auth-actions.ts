@@ -19,6 +19,14 @@ export async function loginAction(id: string, pw: string) {
             const doc = snapshot.docs[0];
             const data = doc.data();
 
+            // Check if account is active
+            if (data.isActive === false) {
+                return {
+                    success: false,
+                    message: "비활성화된 계정입니다. 관리자에게 문의하세요."
+                };
+            }
+
             // Update lastLogin and loginHistory
             const now = new Date().toISOString();
             await doc.ref.update({

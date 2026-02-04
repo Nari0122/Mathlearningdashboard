@@ -27,6 +27,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     const router = useRouter();
     const [students, setStudents] = useState(initialStudents);
     const [searchTerm, setSearchTerm] = useState("");
+    const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
     // Add Student State
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -63,11 +64,20 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         memo: "",
     });
 
-    const filteredStudents = initialStudents.filter(s =>
-        s.name.includes(searchTerm) ||
-        s.loginId.includes(searchTerm) ||
-        (s.phone && s.phone.includes(searchTerm))
-    );
+    const filteredStudents = initialStudents.filter(s => {
+        // Status filter
+        if (statusFilter === "active" && !s.isActive) return false;
+        if (statusFilter === "inactive" && s.isActive) return false;
+
+        // Search filter (name, loginId, phone, schoolName)
+        const matchesSearch =
+            s.name.includes(searchTerm) ||
+            s.loginId.includes(searchTerm) ||
+            (s.phone && s.phone.includes(searchTerm)) ||
+            (s.schoolName && s.schoolName.includes(searchTerm));
+
+        return matchesSearch;
+    });
 
     // Derived Stats
     const totalStudents = initialStudents.length;
@@ -144,7 +154,11 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     };
 
     const handleToggleStatus = async (studentId: number, currentStatus: boolean) => {
-        if (!confirm(currentStatus ? "학생을 비활성화 하시겠습니까? 로그인이 불가능해집니다." : "학생을 활성화 하시겠습니까?")) {
+        const confirmMessage = currentStatus
+            ? "학생 계정을 비활성화하시겠습니까?\n\n• 로그인이 제한됩니다\n• 기존 학습 데이터는 삭제되지 않습니다\n• 관리자 페이지에서 계속 조회 가능합니다\n• 추후 재활성화가 가능합니다"
+            : "학생 계정을 활성화하시겠습니까?\n\n• 기존 ID/PW로 즉시 로그인 가능합니다\n• 모든 학습 데이터가 그대로 유지됩니다";
+
+        if (!confirm(confirmMessage)) {
             return;
         }
 
@@ -186,14 +200,48 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
 
             {/* Actions Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="relative w-full sm:w-[400px]">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                        placeholder="이름, 아이디, 전화번호로 검색..."
-                        className="pl-10 h-11 bg-white border-gray-200 focus:border-blue-500 rounded-xl shadow-sm"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                    {/* Status Filter Buttons */}
+                    <div className="flex bg-gray-100 rounded-lg p-1">
+                        <button
+                            onClick={() => setStatusFilter("all")}
+                            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${statusFilter === "all"
+                                ? "bg-white shadow text-gray-900 font-medium"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            전체
+                        </button>
+                        <button
+                            onClick={() => setStatusFilter("active")}
+                            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${statusFilter === "active"
+                                ? "bg-white shadow text-green-600 font-medium"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            활성화
+                        </button>
+                        <button
+                            onClick={() => setStatusFilter("inactive")}
+                            className={`px-3 py-1.5 text-sm rounded-md transition-colors ${statusFilter === "inactive"
+                                ? "bg-white shadow text-gray-600 font-medium"
+                                : "text-gray-500 hover:text-gray-700"
+                                }`}
+                        >
+                            비활성화
+                        </button>
+                    </div>
+
+                    {/* Search Input */}
+                    <div className="relative flex-1 sm:w-[350px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                            placeholder="이름, 학교, 전화번호로 검색..."
+                            className="pl-10 h-11 bg-white border-gray-200 focus:border-blue-500 rounded-xl shadow-sm"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
 
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
@@ -341,7 +389,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg">{student.name}</h3>
-                                    <p className="text-xs text-gray-400">{student.grade} • {student.loginId}</p>
+                                    <p className="text-xs text-gray-400">{student.grade} • {student.schoolName || "학교 미등록"}</p>
                                 </div>
                             </div>
                         </div>

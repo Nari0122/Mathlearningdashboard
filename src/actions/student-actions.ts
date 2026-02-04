@@ -87,7 +87,7 @@ export async function submitHomework(homeworkId: string, studentId: number) {
 
         // Get homework to check due date
         const homeworks = await learningService.getAssignments(studentId);
-        const homework = homeworks.find((h: any) => h.id === homeworkId);
+        const homework = homeworks.find((h: any) => h.id === homeworkId) as any;
 
         if (!homework) {
             return { success: false, error: "숙제를 찾을 수 없습니다." };

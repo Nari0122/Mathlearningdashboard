@@ -1,5 +1,5 @@
 import { ArrowLeft, User, Mail, Phone } from 'lucide-react';
-import { TabNavigation } from '../components/TabNavigation';
+import { TabNavigation } from '../TabNavigation';
 import { Dashboard } from './Dashboard';
 import { UnitManagement } from './UnitManagement';
 import { ErrorAnalysis } from './ErrorAnalysis';
@@ -53,7 +53,7 @@ interface StudentDetailProps {
   onDeleteLearningRecord?: (id: number) => void;
   onCompletionStatusChange?: (unitId: number, status: 'incomplete' | 'in-progress' | 'completed') => void;
   onStatusChange?: (unitId: number, status: 'HIGH' | 'MID' | 'LOW') => void;
-  
+
   // 수업 일정 관련
   classSessions?: Array<{
     id: number;
@@ -88,7 +88,7 @@ interface StudentDetailProps {
   }) => void;
   onDeleteClassSession?: (id: number) => void;
   onUpdateRegularSchedule?: (schedule: Array<{ id: number; dayOfWeek: string; startTime: string; endTime: string }> | undefined) => void;
-  
+
   // 숙제 관련
   homework?: Array<{
     id: number;
@@ -116,7 +116,7 @@ interface StudentDetailProps {
     feedback?: string;
   }) => void;
   onDeleteHomework?: (id: number) => void;
-  
+
   // 시험 기록 관련
   examRecords?: Array<{
     id: number;
@@ -163,7 +163,7 @@ export function StudentDetail({
   onDeleteLearningRecord,
   onCompletionStatusChange,
   onStatusChange,
-  
+
   // 수업 일정 관련
   classSessions = [],
   regularSchedule,
@@ -171,13 +171,13 @@ export function StudentDetail({
   onUpdateClassSession,
   onDeleteClassSession,
   onUpdateRegularSchedule,
-  
+
   // 숙제 관련
   homework = [],
   onAddHomework,
   onUpdateHomework,
   onDeleteHomework,
-  
+
   // 시험 기록 관련
   examRecords = [],
   onAddExam,
@@ -219,15 +219,15 @@ export function StudentDetail({
       case 'statsReport':
         return <StatsReport units={units} />;
       case 'learningHistory':
-        return <LearningHistory 
-          isAdmin={true} 
+        return <LearningHistory
+          isAdmin={true}
           records={learningRecords}
           onAdd={onAddLearningRecord}
           onUpdate={onUpdateLearningRecord}
           onDelete={onDeleteLearningRecord}
         />;
       case 'classSchedule':
-        return <ClassSchedule 
+        return <ClassSchedule
           isAdmin={true}
           sessions={classSessions}
           regularSchedule={regularSchedule}
@@ -237,7 +237,7 @@ export function StudentDetail({
           onUpdateRegularSchedule={onUpdateRegularSchedule}
         />;
       case 'homework':
-        return <Homework 
+        return <Homework
           isAdmin={true}
           homework={homework}
           onAddHomework={onAddHomework}
@@ -245,7 +245,7 @@ export function StudentDetail({
           onDeleteHomework={onDeleteHomework}
         />;
       case 'examRecords':
-        return <ExamRecords 
+        return <ExamRecords
           isAdmin={true}
           exams={examRecords}
           onAddExam={onAddExam}
@@ -274,7 +274,7 @@ export function StudentDetail({
             <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center border-2 border-gray-200">
               <User size={40} className="text-gray-600" />
             </div>
-          
+
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">{student.name}</h1>
               <div className="flex items-center gap-6 text-sm text-gray-600">
@@ -308,11 +308,10 @@ export function StudentDetail({
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`px-6 py-4 font-medium transition-colors relative ${
-                  currentSubPage === item.id
+                className={`px-6 py-4 font-medium transition-colors relative ${currentSubPage === item.id
                     ? 'text-gray-900'
                     : 'text-gray-600 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 {item.label}
                 {currentSubPage === item.id && (

@@ -10,6 +10,9 @@ export interface CreateIncorrectNoteData {
     errorType: string;
     questionImg?: string;
     unitDetail?: string;
+    retryCount?: number;
+    attachments?: any[];
+    bookTagId?: string; // NEW: for searchKey
     // Curriculum info
     schoolLevel?: string;
     grade?: string;
@@ -18,6 +21,10 @@ export interface CreateIncorrectNoteData {
 }
 
 export async function createIncorrectNote(studentId: number, data: CreateIncorrectNoteData) {
+    if (data.retryCount !== undefined && (data.retryCount < 1 || data.retryCount > 5)) {
+        return { success: false, message: "틀린 횟수는 1~5 사이여야 합니다." };
+    }
+
     const result = await learningService.createIncorrectNote(studentId, data);
     if (result.success) {
         revalidatePath(`/student/${studentId}/incorrect-notes`);
@@ -27,6 +34,10 @@ export async function createIncorrectNote(studentId: number, data: CreateIncorre
 }
 
 export async function updateIncorrectNote(studentId: number, noteId: string, data: any) {
+    if (data.retryCount !== undefined && (data.retryCount < 1 || data.retryCount > 5)) {
+        return { success: false, message: "틀린 횟수는 1~5 사이여야 합니다." };
+    }
+
     const result = await learningService.updateIncorrectNote(studentId, noteId, data);
     if (result.success) {
         revalidatePath(`/student/${studentId}/incorrect-notes`);
@@ -42,6 +53,20 @@ export async function deleteIncorrectNote(studentId: number, noteId: string) {
         revalidatePath(`/admin/students/${studentId}/incorrect-notes`);
     }
     return result;
+}
+
+// ========== BookTag Actions ==========
+export async function getBookTags(studentId: number) {
+    return await learningService.getBookTags(studentId);
+}
+
+export async function createBookTag(studentId: number, name: string) {
+    return await learningService.createBookTag(studentId, name);
+}
+
+// ========== Advanced Search Action ==========
+export async function searchIncorrectNotes(studentId: number, searchKeys: string[]) {
+    return await learningService.searchIncorrectNotes(studentId, searchKeys);
 }
 
 // Exam Actions
@@ -73,7 +98,7 @@ export async function deleteExam(examId: string, studentId: number) {
 }
 
 // Learning Record Actions
-export async function createLearningRecord(studentId: number, data: { date: string; progress: string; comment: string; createdBy?: string }) {
+export async function createLearningRecord(studentId: number, data: { date: string; progress: string; comment: string; sessionNumber?: number; createdBy?: string }) {
     const result = await learningService.createLearningRecord(studentId, {
         ...data,
         createdBy: data.createdBy || "student"
@@ -85,7 +110,7 @@ export async function createLearningRecord(studentId: number, data: { date: stri
     return result;
 }
 
-export async function updateLearningRecord(recordId: string, studentId: number, data: { date: string; progress: string; comment: string }) {
+export async function updateLearningRecord(recordId: string, studentId: number, data: { date: string; progress: string; comment: string; sessionNumber?: number }) {
     const result = await learningService.updateLearningRecord(studentId, recordId, data);
     if (result.success) {
         revalidatePath(`/admin/students/${studentId}/history`);

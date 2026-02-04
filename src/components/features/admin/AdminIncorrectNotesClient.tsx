@@ -8,19 +8,36 @@ import { CheckCircle2, AlertCircle, FileImage, X, Search } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isMiddleSchool } from "@/lib/curriculum-data";
+import { getBookTags } from "@/actions/learning-actions";
 
 interface AdminIncorrectNotesClientProps {
     notes: any[];
+    studentId: number;
 }
 
-export default function AdminIncorrectNotesClient({ notes }: AdminIncorrectNotesClientProps) {
-    // Filter State
+export default function AdminIncorrectNotesClient({ notes, studentId }: AdminIncorrectNotesClientProps) {
+    // Hierarchy Filter State
     const [filterLevel, setFilterLevel] = useState<string>("all");
     const [filterGrade, setFilterGrade] = useState<string>("all");
     const [filterSubject, setFilterSubject] = useState<string>("all");
     const [filterUnitName, setFilterUnitName] = useState<string>("all");
     const [filterDetail, setFilterDetail] = useState<string>("all");
     const [selectedZoomImg, setSelectedZoomImg] = useState<string | null>(null);
+
+    // Extended Filter State (multi-select)
+    const [filterErrorTypes, setFilterErrorTypes] = useState<string[]>([]);
+    const [filterRetryCounts, setFilterRetryCounts] = useState<number[]>([]);
+    const [filterBookTagIds, setFilterBookTagIds] = useState<string[]>([]);
+    const [bookTags, setBookTags] = useState<{ id: string; name: string }[]>([]);
+
+    // Load book tags
+    useEffect(() => {
+        async function loadBookTags() {
+            const tags = await getBookTags(studentId);
+            setBookTags(tags as { id: string; name: string }[]);
+        }
+        loadBookTags();
+    }, [studentId]);
 
     // Reset filter logic
     useEffect(() => { setFilterGrade("all"); setFilterSubject("all"); setFilterUnitName("all"); setFilterDetail("all"); }, [filterLevel]);
@@ -70,17 +87,24 @@ export default function AdminIncorrectNotesClient({ notes }: AdminIncorrectNotes
         return Array.from(unique).sort();
     }, [notes, filterLevel, filterGrade, filterSubject, filterUnitName]);
 
-    // Filtered notes
+    // Filtered notes - includes both hierarchy and extended filters
     const filteredNotes = useMemo(() => {
         return notes.filter((n: any) => {
+            // Hierarchy filters
             const matchesLevel = filterLevel === "all" || n.schoolLevel === filterLevel;
             const matchesGrade = filterGrade === "all" || n.grade === filterGrade;
             const matchesSubject = filterSubject === "all" || n.subject === filterSubject;
             const matchesUnit = filterUnitName === "all" || n.unitName === filterUnitName;
             const matchesDetail = filterDetail === "all" || n.unitDetail === filterDetail;
-            return matchesLevel && matchesGrade && matchesSubject && matchesUnit && matchesDetail;
+
+            // Extended filters (multi-select = OR within category, AND across categories)
+            const matchesErrorType = filterErrorTypes.length === 0 || filterErrorTypes.includes(n.errorType);
+            const matchesRetryCount = filterRetryCounts.length === 0 || filterRetryCounts.includes(n.retryCount);
+            const matchesBookTag = filterBookTagIds.length === 0 || filterBookTagIds.includes(n.bookTagId);
+
+            return matchesLevel && matchesGrade && matchesSubject && matchesUnit && matchesDetail && matchesErrorType && matchesRetryCount && matchesBookTag;
         });
-    }, [notes, filterLevel, filterGrade, filterSubject, filterUnitName, filterDetail]);
+    }, [notes, filterLevel, filterGrade, filterSubject, filterUnitName, filterDetail, filterErrorTypes, filterRetryCounts, filterBookTagIds]);
 
     const resetFilters = () => {
         setFilterLevel("all");
@@ -88,6 +112,9 @@ export default function AdminIncorrectNotesClient({ notes }: AdminIncorrectNotes
         setFilterSubject("all");
         setFilterUnitName("all");
         setFilterDetail("all");
+        setFilterErrorTypes([]);
+        setFilterRetryCounts([]);
+        setFilterBookTagIds([]);
     };
 
     const errorTypeMap: Record<string, string> = {
@@ -176,7 +203,82 @@ export default function AdminIncorrectNotesClient({ notes }: AdminIncorrectNotes
                         </Select>
                     )}
 
-                    {(filterLevel !== "all" || filterGrade !== "all" || filterSubject !== "all" || filterUnitName !== "all" || filterDetail !== "all") && (
+                    {/* Separator */}
+                    <div className="w-px h-6 bg-gray-200 mx-1" />
+
+                    {/* Extended Filters - Error Type Multi-Select */}
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500 mr-1">유형:</span>
+                        {["C", "M", "R", "S"].map(type => (
+                            <button
+                                key={type}
+                                onClick={() => {
+                                    setFilterErrorTypes(prev =>
+                                        prev.includes(type)
+                                            ? prev.filter(t => t !== type)
+                                            : [...prev, type]
+                                    );
+                                }}
+                                className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterErrorTypes.includes(type)
+                                        ? errorColorMap[type] + " border-transparent"
+                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* RetryCount Multi-Select */}
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500 mr-1">회차:</span>
+                        {[1, 2, 3, 4, 5].map(count => (
+                            <button
+                                key={count}
+                                onClick={() => {
+                                    setFilterRetryCounts(prev =>
+                                        prev.includes(count)
+                                            ? prev.filter(c => c !== count)
+                                            : [...prev, count]
+                                    );
+                                }}
+                                className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterRetryCounts.includes(count)
+                                        ? "bg-blue-100 text-blue-700 border-blue-200"
+                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {count}회
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* BookTag Multi-Select */}
+                    {bookTags.length > 0 && (
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500 mr-1">문제집:</span>
+                            {bookTags.slice(0, 5).map(tag => (
+                                <button
+                                    key={tag.id}
+                                    onClick={() => {
+                                        setFilterBookTagIds(prev =>
+                                            prev.includes(tag.id)
+                                                ? prev.filter(t => t !== tag.id)
+                                                : [...prev, tag.id]
+                                        );
+                                    }}
+                                    className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterBookTagIds.includes(tag.id)
+                                            ? "bg-green-100 text-green-700 border-green-200"
+                                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    {tag.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Reset Button - show if any filter is active */}
+                    {(filterLevel !== "all" || filterGrade !== "all" || filterSubject !== "all" || filterUnitName !== "all" || filterDetail !== "all" || filterErrorTypes.length > 0 || filterRetryCounts.length > 0 || filterBookTagIds.length > 0) && (
                         <Button variant="ghost" size="icon" onClick={resetFilters} title="필터 초기화">
                             <X className="h-4 w-4" />
                         </Button>

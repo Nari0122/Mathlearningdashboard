@@ -34,8 +34,11 @@ export default async function StudentDashboardPage({
     const mappedUnits: Unit[] = (student.units || []).map((u: any) => ({
         id: u.id,
         name: u.name,
+        schoolLevel: u.grade?.includes('중') ? '중등' : '고등',
         grade: u.grade || "고1",
         subject: u.subject || "",
+        unitName: u.name,
+        unitDetails: [],
         status: u.status as 'HIGH' | 'MID' | 'LOW',
         selectedDifficulty: u.selectedDifficulty,
         completionStatus: u.completionStatus as 'incomplete' | 'in-progress' | 'completed',

@@ -25,10 +25,12 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
     const [date, setDate] = useState("");
     const [progress, setProgress] = useState("");
     const [comment, setComment] = useState("");
+    const [sessionNumber, setSessionNumber] = useState("");
 
     const [editDate, setEditDate] = useState("");
     const [editProgress, setEditProgress] = useState("");
     const [editComment, setEditComment] = useState("");
+    const [editSessionNumber, setEditSessionNumber] = useState("");
 
     const handleAdd = async () => {
         if (!date || !progress) return;
@@ -37,7 +39,8 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
             const result = await createLearningRecord(studentId, {
                 date,
                 progress,
-                comment
+                comment,
+                sessionNumber: sessionNumber ? parseInt(sessionNumber) : undefined
             });
 
             if (result.success) {
@@ -45,6 +48,7 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
                 setDate("");
                 setProgress("");
                 setComment("");
+                setSessionNumber("");
                 router.refresh();
             } else {
                 alert("기록 추가 실패");
@@ -57,6 +61,7 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
         setEditDate(record.date);
         setEditProgress(record.progress);
         setEditComment(record.comment);
+        setEditSessionNumber(record.sessionNumber ? String(record.sessionNumber) : "");
         setIsEditOpen(true);
     };
 
@@ -67,7 +72,8 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
             const result = await updateLearningRecord(String(currentEditId), studentId, {
                 date: editDate,
                 progress: editProgress,
-                comment: editComment
+                comment: editComment,
+                sessionNumber: editSessionNumber ? parseInt(editSessionNumber) : undefined
             });
 
             if (result.success) {
@@ -114,6 +120,10 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
                                 <Input id="progress" value={progress} onChange={(e) => setProgress(e.target.value)} className="col-span-3" placeholder="예: 미적분 p.30~40" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="sessionNumber" className="text-right">수업 회차</Label>
+                                <Input id="sessionNumber" type="number" min="1" value={sessionNumber} onChange={(e) => setSessionNumber(e.target.value)} className="col-span-3" placeholder="예: 1, 2, 3..." />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="comment" className="text-right">코멘트</Label>
                                 <Textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)} className="col-span-3" placeholder="학생 반응, 특이사항 등" />
                             </div>
@@ -140,6 +150,10 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
                                 <Input id="edit-progress" value={editProgress} onChange={(e) => setEditProgress(e.target.value)} className="col-span-3" />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-sessionNumber" className="text-right">수업 회차</Label>
+                                <Input id="edit-sessionNumber" type="number" min="1" value={editSessionNumber} onChange={(e) => setEditSessionNumber(e.target.value)} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-comment" className="text-right">코멘트</Label>
                                 <Textarea id="edit-comment" value={editComment} onChange={(e) => setEditComment(e.target.value)} className="col-span-3" />
                             </div>
@@ -162,7 +176,12 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
                     records.map((record: any) => (
                         <div key={record.id} className="bg-white p-6 rounded-xl border border-gray-200">
                             <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-bold text-lg">{record.progress}</h3>
+                                <div className="flex items-center gap-2">
+                                    {record.sessionNumber && (
+                                        <span className="text-sm font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{record.sessionNumber}회차</span>
+                                    )}
+                                    <h3 className="font-bold text-lg">{record.progress}</h3>
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">{record.createdBy === 'student' ? '학생 작성' : '관리자 작성'}</span>
                                     <span className="text-sm text-gray-400">{record.date}</span>

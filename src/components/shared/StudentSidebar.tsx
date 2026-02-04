@@ -20,11 +20,18 @@ import { useParams, usePathname } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 
+import { getSystemSettings } from "@/actions/system-actions";
+
 export function StudentSidebar() {
   const pathname = usePathname();
   const params = useParams();
   const studentId = params?.id as string;
   const [studentName, setStudentName] = useState<string>("불러오는 중...");
+  const [settings, setSettings] = useState({ supportEmail: 'support@mathclinic.com', supportPhone: '02-1234-5678' });
+
+  useEffect(() => {
+    getSystemSettings().then(setSettings);
+  }, []);
 
   useEffect(() => {
     if (studentId) {
@@ -125,10 +132,10 @@ export function StudentSidebar() {
                 </p>
                 <div className="mt-2 text-sm">
                   <p className="flex items-center gap-2 text-gray-700">
-                    <span className="font-semibold">Email:</span> nari0024@kaist.ac.kr
+                    <span className="font-semibold">Email:</span> {settings.supportEmail}
                   </p>
                   <p className="flex items-center gap-2 text-gray-700">
-                    <span className="font-semibold">Tel:</span> 010-5755-7957
+                    <span className="font-semibold">Tel:</span> {settings.supportPhone}
                   </p>
                 </div>
               </div>

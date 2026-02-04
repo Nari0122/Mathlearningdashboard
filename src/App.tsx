@@ -1,26 +1,26 @@
 import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Login } from './pages/Login';
-import { AccessDenied } from './pages/AccessDenied';
+import { Login } from './components/pages-legacy/Login';
+import { AccessDenied } from './components/AccessDenied';
 import { Sidebar } from './components/Sidebar';
 import { StudentSidebar } from './components/StudentSidebar';
 import { StudentLayout } from './components/StudentLayout';
 import { Header } from './components/Header';
 import { SupportModal } from './components/SupportModal';
 import { TabNavigation } from './components/TabNavigation';
-import { Dashboard } from './pages/Dashboard';
-import { UnitManagement } from './pages/UnitManagement';
-import { ErrorAnalysis } from './pages/ErrorAnalysis';
-import { StatsReport } from './pages/StatsReport';
-import { LearningHistory } from './pages/LearningHistory';
-import { ClassSchedule } from './pages/ClassSchedule';
-import { Homework } from './pages/Homework';
-import { ExamRecords } from './pages/ExamRecords';
-import { AdminStudentManagement } from './pages/AdminStudentManagement';
-import { StudentAccountManagement } from './pages/StudentAccountManagement';
-import { StudentDetail } from './pages/StudentDetail';
-import { StudentDashboard } from './pages/StudentDashboard';
-import { MyLearning } from './pages/MyLearning';
+import { Dashboard } from './components/pages-legacy/Dashboard';
+import { UnitManagement } from './components/pages-legacy/UnitManagement';
+import { ErrorAnalysis } from './components/pages-legacy/ErrorAnalysis';
+import { StatsReport } from './components/pages-legacy/StatsReport';
+import { LearningHistory } from './components/pages-legacy/LearningHistory';
+import { ClassSchedule } from './components/pages-legacy/ClassSchedule';
+import { Homework } from './components/pages-legacy/Homework';
+import { ExamRecords } from './components/pages-legacy/ExamRecords';
+import { AdminStudentManagement } from './components/pages-legacy/AdminStudentManagement';
+import { StudentAccountManagement } from './components/pages-legacy/StudentAccountManagement';
+import { StudentDetail } from './components/pages-legacy/StudentDetail';
+import { StudentDashboard } from './components/pages-legacy/StudentDashboard';
+import { MyLearning } from './components/pages-legacy/MyLearning';
 import { Student } from './types';
 import { LogOut } from 'lucide-react';
 import { calculateProgress, getProgressStatus } from './utils/progressCalculator';
@@ -30,12 +30,12 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState('');
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [showAccessDenied, setShowAccessDenied] = useState(false);
-  
+
   // 관리자 - 학생 관리 페이지 관련 state
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [isManagingAccount, setIsManagingAccount] = useState(false); // 계정 관리 모드
   const [studentSubPage, setStudentSubPage] = useState('dashboard'); // 학생 상세보기 서브페이지
-  
+
   // 학생 페이지 - 학습 기록 페이지 라우팅
   const [studentView, setStudentView] = useState<'dashboard' | 'learningHistory' | 'myLearning' | 'classSchedule' | 'homework' | 'examRecords'>('dashboard');
 
@@ -113,10 +113,10 @@ function AppContent() {
         }
       ],
       learningRecords: [
-        { 
-          id: 1, 
-          date: '2026-01-12', 
-          progress: '집합과 명제 3-2단원 완료', 
+        {
+          id: 1,
+          date: '2026-01-12',
+          progress: '집합과 명제 3-2단원 완료',
           comment: '개념 이해도 우수. 다음 시간 문제 풀이 예정.',
           createdBy: 'admin' as const
         }
@@ -169,24 +169,24 @@ function AppContent() {
         }
       ],
       learningRecords: [
-        { 
-          id: 1, 
-          date: '2026-01-12', 
-          progress: '집합과 명제 3-2단원 완료', 
+        {
+          id: 1,
+          date: '2026-01-12',
+          progress: '집합과 명제 3-2단원 완료',
           comment: '개념 이해도 우수. 다음 시간 문제 풀이 예정.',
           createdBy: 'admin' as const
         },
-        { 
-          id: 2, 
-          date: '2026-01-11', 
-          progress: '함수 1-1단원 학습', 
+        {
+          id: 2,
+          date: '2026-01-11',
+          progress: '함수 1-1단원 학습',
           comment: '함수 그래프 그리기 연습 필요. 숙제: 연습문제 5개',
           createdBy: 'admin' as const
         },
-        { 
-          id: 3, 
-          date: '2026-01-10', 
-          progress: '방정식과 부등식 복습', 
+        {
+          id: 3,
+          date: '2026-01-10',
+          progress: '방정식과 부등식 복습',
           comment: '이차방정식 실수 줄어듦. 잘하고 있음!',
           createdBy: 'admin' as const
         }
@@ -209,25 +209,25 @@ function AppContent() {
 
   // 학생 목록 데이터
   const [students, setStudents] = useState<Student[]>([
-    { 
-      id: 1, 
-      name: '김민수', 
-      grade: '고1', 
+    {
+      id: 1,
+      name: '김민수',
+      grade: '고1',
       class: '1반',
-      email: 'minsu@example.com', 
-      phone: '010-1111-2222', 
+      email: 'minsu@example.com',
+      phone: '010-1111-2222',
       loginId: 'student2',
       progress: 85,
       statusSummary: '양호',
       lastUpdated: '2026-01-12',
       isActive: true
     },
-    { 
-      id: 2, 
-      name: '이서연', 
-      grade: '고2', 
+    {
+      id: 2,
+      name: '이서연',
+      grade: '고2',
       class: '2반',
-      email: 'seoyeon@example.com', 
+      email: 'seoyeon@example.com',
       phone: '010-3333-4444',
       loginId: 'student3',
       progress: 72,
@@ -235,12 +235,12 @@ function AppContent() {
       lastUpdated: '2026-01-11',
       isActive: true
     },
-    { 
-      id: 3, 
-      name: '박지훈', 
+    {
+      id: 3,
+      name: '박지훈',
       grade: '고1',
       class: '3반',
-      email: 'jihoon@example.com', 
+      email: 'jihoon@example.com',
       phone: '010-5555-6666',
       loginId: 'student4',
       progress: 90,
@@ -248,11 +248,11 @@ function AppContent() {
       lastUpdated: '2026-01-12',
       isActive: true
     },
-    { 
-      id: 4, 
-      name: '최유진', 
+    {
+      id: 4,
+      name: '최유진',
       grade: '고3',
-      email: 'yujin@example.com', 
+      email: 'yujin@example.com',
       phone: '010-7777-8888',
       loginId: 'student5',
       progress: 68,
@@ -329,12 +329,12 @@ function AppContent() {
       if (units.length > 0) {
         const newProgress = calculateProgress(units);
         const newStatusSummary = getProgressStatus(newProgress);
-        
+
         // 해당 학생의 progress만 업데이트
-        setStudents(prevStudents => 
-          prevStudents.map(s => 
+        setStudents(prevStudents =>
+          prevStudents.map(s =>
             s.id === studentId ? {
-              ...s, 
+              ...s,
               progress: newProgress,
               statusSummary: newStatusSummary,
               lastUpdated: new Date().toISOString().split('T')[0]
@@ -348,13 +348,13 @@ function AppContent() {
   const handleDifficultyChange = (unitId: number, difficulty: string) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        units: prev[studentId].units.map(unit => 
-          unit.id === unitId 
+        units: prev[studentId].units.map(unit =>
+          unit.id === unitId
             ? { ...unit, selectedDifficulty: difficulty }
             : unit
         )
@@ -365,7 +365,7 @@ function AppContent() {
   const handleAddUnit = (unitName?: string) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     const currentUnits = studentData[studentId]?.units || [];
     const newId = Math.max(...currentUnits.map(u => u.id), 0) + 1;
     const newUnit = {
@@ -376,7 +376,7 @@ function AppContent() {
       selectedDifficulty: '중',
       completionStatus: 'incomplete' as 'incomplete' | 'in-progress' | 'completed'
     };
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -389,13 +389,13 @@ function AppContent() {
   const handleNameChange = (unitId: number, newName: string) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        units: prev[studentId].units.map(unit => 
-          unit.id === unitId 
+        units: prev[studentId].units.map(unit =>
+          unit.id === unitId
             ? { ...unit, name: newName }
             : unit
         )
@@ -406,7 +406,7 @@ function AppContent() {
   const handleDeleteUnit = (unitId: number) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -419,7 +419,7 @@ function AppContent() {
   const handleErrorChange = (unitId: number, errorType: 'C' | 'M' | 'R' | 'S', delta: number) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -445,13 +445,13 @@ function AppContent() {
   const handleCompletionStatusChange = (unitId: number, status: 'incomplete' | 'in-progress' | 'completed') => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        units: prev[studentId].units.map(unit => 
-          unit.id === unitId 
+        units: prev[studentId].units.map(unit =>
+          unit.id === unitId
             ? { ...unit, completionStatus: status }
             : unit
         )
@@ -463,13 +463,13 @@ function AppContent() {
   const handleStatusChange = (unitId: number, status: 'HIGH' | 'MID' | 'LOW') => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        units: prev[studentId].units.map(unit => 
-          unit.id === unitId 
+        units: prev[studentId].units.map(unit =>
+          unit.id === unitId
             ? { ...unit, status }
             : unit
         )
@@ -481,7 +481,7 @@ function AppContent() {
   const handleAddLearningRecord = (record: { date: string; progress: string; comment: string }) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     const newRecord = {
       id: Math.max(...studentData[studentId].learningRecords.map(r => r.id), 0) + 1,
       ...record,
@@ -499,12 +499,12 @@ function AppContent() {
   const handleUpdateLearningRecord = (id: number, record: { date: string; progress: string; comment: string }) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        learningRecords: prev[studentId].learningRecords.map(r => 
+        learningRecords: prev[studentId].learningRecords.map(r =>
           r.id === id ? { ...r, ...record } : r
         )
       }
@@ -514,7 +514,7 @@ function AppContent() {
   const handleDeleteLearningRecord = (id: number) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -528,13 +528,13 @@ function AppContent() {
   const handleAddClassSession = (session: Omit<typeof studentData[number]['classSessions'][number], 'id'>) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     const currentSessions = studentData[studentId]?.classSessions || [];
     const newSession = {
       id: Math.max(...currentSessions.map(s => s.id), 0) + 1,
       ...session
     };
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -547,12 +547,12 @@ function AppContent() {
   const handleUpdateClassSession = (id: number, session: Partial<typeof studentData[number]['classSessions'][number]>) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        classSessions: prev[studentId].classSessions.map(s => 
+        classSessions: prev[studentId].classSessions.map(s =>
           s.id === id ? { ...s, ...session } : s
         )
       }
@@ -562,7 +562,7 @@ function AppContent() {
   const handleDeleteClassSession = (id: number) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -575,7 +575,7 @@ function AppContent() {
   const handleUpdateRegularSchedule = (schedule: Array<{ id: number; dayOfWeek: string; startTime: string; endTime: string }> | undefined) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -589,13 +589,13 @@ function AppContent() {
   const handleAddHomework = (homework: Omit<typeof studentData[number]['homework'][number], 'id'>) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     const currentHomework = studentData[studentId]?.homework || [];
     const newHomework = {
       id: Math.max(...currentHomework.map(h => h.id), 0) + 1,
       ...homework
     };
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -608,12 +608,12 @@ function AppContent() {
   const handleUpdateHomework = (id: number, homework: Partial<typeof studentData[number]['homework'][number]>) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        homework: prev[studentId].homework.map(h => 
+        homework: prev[studentId].homework.map(h =>
           h.id === id ? { ...h, ...homework } : h
         )
       }
@@ -623,7 +623,7 @@ function AppContent() {
   const handleDeleteHomework = (id: number) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -637,13 +637,13 @@ function AppContent() {
   const handleAddExam = (exam: Omit<typeof studentData[number]['examRecords'][number], 'id'>) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     const currentExams = studentData[studentId]?.examRecords || [];
     const newExam = {
       id: Math.max(...currentExams.map(e => e.id), 0) + 1,
       ...exam
     };
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -656,12 +656,12 @@ function AppContent() {
   const handleUpdateExam = (id: number, exam: Partial<typeof studentData[number]['examRecords'][number]>) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        examRecords: prev[studentId].examRecords.map(e => 
+        examRecords: prev[studentId].examRecords.map(e =>
           e.id === id ? { ...e, ...exam } : e
         )
       }
@@ -671,7 +671,7 @@ function AppContent() {
   const handleDeleteExam = (id: number) => {
     const studentId = getCurrentStudentId();
     if (studentId === null) return;
-    
+
     setStudentData(prev => ({
       ...prev,
       [studentId]: {
@@ -682,13 +682,13 @@ function AppContent() {
   };
 
   // 학생 추가
-  const handleAddStudent = (studentData: Omit<Student, 'id' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'>) => {
+  const handleAddStudent = (studentData: Omit<Student, 'id' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'> & { tempPassword: string }) => {
     const newId = Math.max(...students.map(s => s.id), 0) + 1;
-    
+
     // 학습 진행률 계산 (초기 학생은 0%)
     const progress = 0;
     const statusSummary = getProgressStatus(progress);
-    
+
     const newStudent: Student = {
       ...studentData,
       id: newId,
@@ -698,7 +698,7 @@ function AppContent() {
       isActive: true
     };
     setStudents([...students, newStudent]);
-    
+
     // 신규 학생의 빈 데이터 초기화
     setStudentData(prev => ({
       ...prev,
@@ -710,7 +710,7 @@ function AppContent() {
         examRecords: []
       }
     }));
-    
+
     // AuthContext에 로그인 가능한 사용자 추가 (중요!)
     addUser({
       loginId: studentData.loginId,
@@ -724,7 +724,7 @@ function AppContent() {
   const handleUpdateStudent = (updatedStudent: Student, newPassword?: string) => {
     // 기존 학생의 loginId 찾기
     const originalStudent = students.find(s => s.id === updatedStudent.id);
-    
+
     if (originalStudent) {
       // AuthContext의 User 데이 업데이트 (로그인 정보)
       const updateSuccess = updateUser(originalStudent.loginId, {
@@ -732,10 +732,10 @@ function AppContent() {
         newPassword: newPassword || undefined,
         name: updatedStudent.name
       });
-      
+
       if (updateSuccess) {
         // Student 데이터 업데이트
-        setStudents(students.map(s => 
+        setStudents(students.map(s =>
           s.id === updatedStudent.id ? updatedStudent : s
         ));
       }
@@ -745,7 +745,7 @@ function AppContent() {
   // 학생 삭제 (관리자 전용)
   const handleDeleteStudent = (studentId: number) => {
     // isActive 상태를 토글
-    setStudents(students.map(s => 
+    setStudents(students.map(s =>
       s.id === studentId ? { ...s, isActive: !s.isActive } : s
     ));
   };
@@ -785,7 +785,7 @@ function AppContent() {
       setShowAccessDenied(true);
       return;
     }
-    
+
     setCurrentPage(page);
     setSelectedStudentId(null);
   };
@@ -894,38 +894,38 @@ function AppContent() {
               {...commonProps}
             />
           )}
-          
+
           {studentView === 'learningHistory' && (
-            <LearningHistory 
+            <LearningHistory
               isAdmin={false}
               records={getCurrentStudentData().learningRecords}
             />
           )}
-          
+
           {studentView === 'myLearning' && (
-            <MyLearning 
+            <MyLearning
               {...commonProps}
             />
           )}
-          
+
           {studentView === 'classSchedule' && (
-            <ClassSchedule 
+            <ClassSchedule
               isAdmin={false}
               sessions={getCurrentStudentData().classSessions}
               regularSchedule={getCurrentStudentData().regularSchedule}
             />
           )}
-          
+
           {studentView === 'homework' && (
-            <Homework 
+            <Homework
               isAdmin={false}
               homework={getCurrentStudentData().homework}
               onUpdateHomework={handleUpdateHomework}
             />
           )}
-          
+
           {studentView === 'examRecords' && (
-            <ExamRecords 
+            <ExamRecords
               isAdmin={false}
               exams={getCurrentStudentData().examRecords}
             />
@@ -938,7 +938,7 @@ function AppContent() {
     switch (currentPage) {
       case 'studentManagement':
         return (
-          <AdminStudentManagement 
+          <AdminStudentManagement
             students={students}
             onStudentSelect={handleStudentSelect}
             onStudentManage={handleStudentManage}
@@ -948,7 +948,7 @@ function AppContent() {
         );
       default:
         return (
-          <AdminStudentManagement 
+          <AdminStudentManagement
             students={students}
             onStudentSelect={handleStudentSelect}
             onStudentManage={handleStudentManage}
@@ -963,7 +963,7 @@ function AppContent() {
     <div className="flex h-screen bg-gray-50">
       {/* 학생은 사이드바 완전 숨김, 관리자는 학생 계정 관리 모드/상세보기 모드에서만 숨김 */}
       {!hasRole('student') && !isManagingAccount && selectedStudentId === null && (
-        <Sidebar 
+        <Sidebar
           currentPage={currentPage}
           onNavigate={handleNavigate}
           onSupportClick={() => setIsSupportModalOpen(true)}
@@ -972,11 +972,11 @@ function AppContent() {
           userName={user.name}
         />
       )}
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* 학생 또는 관리자 계정 관리 모드/상세보기 모드에서는 헤더 숨김 */}
         {!hasRole('student') && !isManagingAccount && selectedStudentId === null && <Header />}
-        
+
         <main className="flex-1 overflow-y-auto">
           {renderPage()}
         </main>
@@ -984,7 +984,7 @@ function AppContent() {
 
       {/* 관리자만 Support 모달 사용 */}
       {hasRole('admin') && (
-        <SupportModal 
+        <SupportModal
           isOpen={isSupportModalOpen}
           onClose={() => setIsSupportModalOpen(false)}
         />

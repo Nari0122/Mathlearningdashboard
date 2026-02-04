@@ -11,8 +11,27 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertCircle, Plus, FileImage, X, Trash2, Pencil } from "lucide-react";
-import { createIncorrectNote, deleteIncorrectNote, updateIncorrectNote } from "@/actions/learning-actions";
+import { createIncorrectNote, deleteIncorrectNote, updateIncorrectNote, getBookTags, createBookTag } from "@/actions/learning-actions";
 import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, CURRICULUM_DATA, isMiddleSchool } from "@/lib/curriculum-data";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import imageCompression from "browser-image-compression";
+import { v4 as uuidv4 } from "uuid";
+import { Progress } from "@/components/ui/progress"; // Assuming shadcn Progress component exists, or I will use simple div
+import { FileText, Loader2 } from "lucide-react";
+
+interface Attachment {
+    id: string;
+    originalName: string;
+    storagePath: string;
+    downloadUrl: string;
+    type: "image" | "file";
+    sizeBytes: number;
+    contentType: string;
+    width?: number;
+    height?: number;
+    compressed?: boolean;
+}
 
 interface StudentIncorrectNotesClientProps {
     studentId: number;
@@ -34,6 +53,10 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
     const [filterSubject, setFilterSubject] = useState<string>("all");
     const [filterUnitName, setFilterUnitName] = useState<string>("all");
     const [filterDetail, setFilterDetail] = useState<string>("all");
+    // Extended filters - multi-select
+    const [filterErrorTypes, setFilterErrorTypes] = useState<string[]>([]);
+    const [filterRetryCounts, setFilterRetryCounts] = useState<number[]>([]);
+    const [filterBookTagIds, setFilterBookTagIds] = useState<string[]>([]);
 
     // 5-Level Selection State (for Add Modal)
     const [selLevel, setSelLevel] = useState<string>("");
@@ -120,17 +143,24 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
         return Array.from(unique).sort();
     }, [notes, filterLevel, filterGrade, filterSubject, filterUnitName]);
 
-    // Filtered notes
+    // Filtered notes - includes both hierarchy and extended filters
     const filteredNotes = useMemo(() => {
         return notes.filter((n: any) => {
+            // Hierarchy filters
             const matchesLevel = filterLevel === "all" || n.schoolLevel === filterLevel;
             const matchesGrade = filterGrade === "all" || n.grade === filterGrade;
             const matchesSubject = filterSubject === "all" || n.subject === filterSubject;
             const matchesUnit = filterUnitName === "all" || n.unitName === filterUnitName;
             const matchesDetail = filterDetail === "all" || n.unitDetail === filterDetail;
-            return matchesLevel && matchesGrade && matchesSubject && matchesUnit && matchesDetail;
+
+            // Extended filters (multi-select = OR within category, AND across categories)
+            const matchesErrorType = filterErrorTypes.length === 0 || filterErrorTypes.includes(n.errorType);
+            const matchesRetryCount = filterRetryCounts.length === 0 || filterRetryCounts.includes(n.retryCount);
+            const matchesBookTag = filterBookTagIds.length === 0 || filterBookTagIds.includes(n.bookTagId);
+
+            return matchesLevel && matchesGrade && matchesSubject && matchesUnit && matchesDetail && matchesErrorType && matchesRetryCount && matchesBookTag;
         });
-    }, [notes, filterLevel, filterGrade, filterSubject, filterUnitName, filterDetail]);
+    }, [notes, filterLevel, filterGrade, filterSubject, filterUnitName, filterDetail, filterErrorTypes, filterRetryCounts, filterBookTagIds]);
 
     const resetFilters = () => {
         setFilterLevel("all");
@@ -138,6 +168,9 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
         setFilterSubject("all");
         setFilterUnitName("all");
         setFilterDetail("all");
+        setFilterErrorTypes([]);
+        setFilterRetryCounts([]);
+        setFilterBookTagIds([]);
     };
 
     const [formData, setFormData] = useState({
@@ -146,8 +179,28 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
         number: "",
         memo: "",
         errorType: "C",
-        questionImg: "",
+        questionImg: "", // Legacy backward compatibility or simple preview
+        retryCount: "",
     });
+
+    const [attachments, setAttachments] = useState<Attachment[]>([]);
+    const [uploadProgress, setUploadProgress] = useState<{ [key: string]: number }>({});
+    const [isUploading, setIsUploading] = useState(false);
+
+    // BookTag state
+    const [bookTags, setBookTags] = useState<{ id: string; name: string }[]>([]);
+    const [bookTagInput, setBookTagInput] = useState("");
+    const [selectedBookTagId, setSelectedBookTagId] = useState<string | null>(null);
+    const [showBookTagSuggestions, setShowBookTagSuggestions] = useState(false);
+
+    // Fetch book tags on mount
+    useEffect(() => {
+        const fetchTags = async () => {
+            const tags = await getBookTags(studentId);
+            setBookTags(tags as { id: string; name: string }[]);
+        };
+        fetchTags();
+    }, [studentId]);
 
     const handleOpenAdd = () => {
         setModalMode('add');
@@ -160,7 +213,12 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
             memo: "",
             errorType: "C",
             questionImg: "",
+            retryCount: "",
         });
+        setAttachments([]);
+        setUploadProgress({});
+        setBookTagInput("");
+        setSelectedBookTagId(null);
         setIsModalOpen(true);
     };
 
@@ -204,6 +262,7 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                 memo: note.memo || "",
                 errorType: note.errorType || "C",
                 questionImg: note.questionImg || "",
+                retryCount: note.retryCount ? String(note.retryCount) : "",
             });
         } else {
             setFormData({
@@ -213,7 +272,22 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                 memo: note.memo || "",
                 errorType: note.errorType || "C",
                 questionImg: note.questionImg || "",
+                retryCount: note.retryCount ? String(note.retryCount) : "",
             });
+        }
+
+        // Load attachments if any (check both note.attachments and legacy questionImg)
+        const loadedAttachments: Attachment[] = note.attachments || [];
+        setAttachments(loadedAttachments);
+
+        // Load bookTag if any
+        if (note.bookTagId) {
+            setSelectedBookTagId(note.bookTagId);
+            const matchingTag = bookTags.find(t => t.id === note.bookTagId);
+            setBookTagInput(matchingTag?.name || "");
+        } else {
+            setSelectedBookTagId(null);
+            setBookTagInput("");
         }
 
         setIsModalOpen(true);
@@ -240,7 +314,10 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
             schoolLevel: selLevel,
             grade: selGrade,
             subject: selSubject,
-            unitName: selUnitName
+            unitName: selUnitName,
+            retryCount: formData.retryCount ? parseInt(formData.retryCount) : undefined,
+            attachments: attachments,
+            bookTagId: selectedBookTagId || undefined,
         };
 
         let result;
@@ -285,6 +362,101 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
         } else {
             alert(result.message || "삭제 실패");
         }
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        setIsUploading(true);
+        const newAttachments: Attachment[] = []; // Collect successful uploads
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const fileId = uuidv4();
+            const wrongNoteId = editingNoteId || "temp_" + Date.now();
+            const isImage = file.type.startsWith("image/");
+
+            try {
+                let uploadFile = file;
+                let compressed = false;
+                let width, height;
+
+                // 1. Image Compression
+                if (isImage) {
+                    const options = {
+                        maxSizeMB: 1, // Start small
+                        maxWidthOrHeight: 1920,
+                        useWebWorker: true,
+                        initialQuality: 0.7,
+                    };
+                    try {
+                        const compressedFile = await imageCompression(file, options);
+                        uploadFile = compressedFile;
+                        compressed = true;
+
+                        // Get dimensions if possible (optional)
+                    } catch (err) {
+                        console.error("Compression failed, using original", err);
+                    }
+                }
+
+                // 2. Upload to Firebase Storage
+                // Path: students/{studentId}/wrongNotes/{wrongNoteId}/attachments/{fileId}_{filename}
+                const storagePath = `students/${studentId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
+                const storageRef = ref(storage, storagePath);
+
+                const uploadTask = uploadBytesResumable(storageRef, uploadFile);
+
+                await new Promise<void>((resolve, reject) => {
+                    uploadTask.on('state_changed',
+                        (snapshot) => {
+                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                            setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
+                        },
+                        (error) => {
+                            console.error("Upload error:", error);
+                            reject(error);
+                        },
+                        () => {
+                            resolve();
+                        }
+                    );
+                });
+
+                const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+
+                const attachment: Attachment = {
+                    id: fileId,
+                    originalName: file.name,
+                    storagePath: storagePath,
+                    downloadUrl: downloadUrl,
+                    type: isImage ? "image" : "file",
+                    sizeBytes: uploadFile.size,
+                    contentType: uploadFile.type,
+                    compressed: compressed,
+                };
+
+                // Add to list immediately
+                setAttachments(prev => [...prev, attachment]);
+
+            } catch (error) {
+                console.error(`Failed to upload ${file.name}`, error);
+                alert(`${file.name} 업로드 실패: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
+            }
+        }
+
+        setIsUploading(false);
+        // Reset file input
+        e.target.value = "";
+    };
+
+    const removeAttachment = (id: string) => {
+        if (!confirm("첨부파일을 목록에서 삭제하시겠습니까? (저장 시 반영됨)")) return;
+        setAttachments(prev => prev.filter(a => a.id !== id));
+        // Note: Real deletion from Storage could happen here or on save. 
+        // For simplicity, we just remove from the list to be saved. 
+        // Orphaned files in Storage can be cleaned up periodically or we can implement direct delete.
     };
 
     const errorTypeMap: Record<string, string> = {
@@ -404,19 +576,99 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* BookTag Input with Autocomplete */}
+                                    <div className="grid gap-2">
+                                        <Label className="font-semibold">문제집 태그 (선택)</Label>
+                                        <div className="relative">
+                                            <Input
+                                                placeholder="태그 입력 (예: 쎈, 블랙라벨)"
+                                                value={bookTagInput}
+                                                onChange={(e) => {
+                                                    const val = e.target.value.replace(/\s/g, ''); // no spaces
+                                                    setBookTagInput(val);
+                                                    setSelectedBookTagId(null);
+                                                    setShowBookTagSuggestions(val.length > 0);
+                                                }}
+                                                onFocus={() => setShowBookTagSuggestions(bookTagInput.length > 0 || bookTags.length > 0)}
+                                                onBlur={() => setTimeout(() => setShowBookTagSuggestions(false), 150)}
+                                            />
+                                            {showBookTagSuggestions && (
+                                                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                                                    {bookTags
+                                                        .filter(t => t.name.toLowerCase().includes(bookTagInput.toLowerCase()))
+                                                        .slice(0, 5)
+                                                        .map(tag => (
+                                                            <div
+                                                                key={tag.id}
+                                                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm"
+                                                                onMouseDown={() => {
+                                                                    setBookTagInput(tag.name);
+                                                                    setSelectedBookTagId(tag.id);
+                                                                    setShowBookTagSuggestions(false);
+                                                                }}
+                                                            >
+                                                                {tag.name}
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    {bookTagInput.length > 0 && !bookTags.some(t => t.name.toLowerCase() === bookTagInput.toLowerCase()) && (
+                                                        <div
+                                                            className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm text-green-700 border-t"
+                                                            onMouseDown={async () => {
+                                                                const result = await createBookTag(studentId, bookTagInput);
+                                                                if (result.success && result.tagId) {
+                                                                    setSelectedBookTagId(result.tagId);
+                                                                    // Refresh tags
+                                                                    const newTags = await getBookTags(studentId);
+                                                                    setBookTags(newTags as { id: string; name: string }[]);
+                                                                }
+                                                                setShowBookTagSuggestions(false);
+                                                            }}
+                                                        >
+                                                            + 새 태그: <strong>{bookTagInput}</strong>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {selectedBookTagId && (
+                                                <Badge className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-100 text-blue-700">
+                                                    저장됨
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="grid gap-2">
                                         <Label className="font-semibold">오답 유형</Label>
-                                        <Select value={formData.errorType} onValueChange={(val) => setFormData({ ...formData, errorType: val })}>
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="C">개념(C) - 공식이나 정의를 모름</SelectItem>
-                                                <SelectItem value="M">계산(M) - 풀이 과정 중 실수</SelectItem>
-                                                <SelectItem value="R">독해(R) - 문제 요구사항 해석 오류</SelectItem>
-                                                <SelectItem value="S">전략(S) - 접근 방법 못 찾음</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        <div className="flex gap-4">
+                                            <Select value={formData.errorType} onValueChange={(val) => setFormData({ ...formData, errorType: val })}>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="C">개념(C) - 공식이나 정의를 모름</SelectItem>
+                                                    <SelectItem value="M">계산(M) - 풀이 과정 중 실수</SelectItem>
+                                                    <SelectItem value="R">독해(R) - 문제 요구사항 해석 오류</SelectItem>
+                                                    <SelectItem value="S">전략(S) - 접근 방법 못 찾음</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+
+                                            <div className="w-[180px]">
+                                                <Select
+                                                    value={formData.retryCount ? String(formData.retryCount) : ""}
+                                                    onValueChange={(val) => setFormData({ ...formData, retryCount: val })}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="틀린 횟수" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {Array.from({ length: 5 }, (_, i) => i + 1).map((num) => (
+                                                            <SelectItem key={num} value={String(num)}>{num}회</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div className="grid gap-2">
                                         <Label className="font-semibold">메모 / 풀이</Label>
@@ -430,53 +682,74 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                                 </div>
 
                                 <div className="space-y-4">
-                                    <Label className="font-semibold">이미지 첨부 (선택)</Label>
+                                    <Label className="font-semibold">파일 첨부 (이미지/문서)</Label>
+
+                                    {/* Upload Area */}
                                     <div
-                                        className="h-[250px] border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-50 hover:border-blue-300 transition-all cursor-pointer relative overflow-hidden"
+                                        className="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-50 hover:border-blue-300 transition-all cursor-pointer"
                                         onClick={() => document.getElementById('file-upload')?.click()}
                                     >
-                                        {formData.questionImg ? (
-                                            <img
-                                                src={formData.questionImg}
-                                                alt="Preview"
-                                                className="h-full w-full object-contain p-2"
-                                            />
-                                        ) : (
-                                            <>
-                                                <FileImage className="h-10 w-10 text-gray-300 mb-2" />
-                                                <span className="text-sm text-gray-500">클릭하여 이미지 업로드</span>
-                                            </>
-                                        )}
+                                        <div className="bg-blue-50 text-blue-600 p-3 rounded-full mb-3">
+                                            {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-6 w-6" />}
+                                        </div>
+                                        <p className="text-sm font-medium text-gray-700">클릭하여 파일 업로드</p>
+                                        <p className="text-xs text-gray-400 mt-1">이미지는 자동 압축됩니다. (최대 10장)</p>
+
                                         <Input
                                             id="file-upload"
                                             type="file"
                                             className="hidden"
-                                            accept="image/*"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) {
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => {
-                                                        setFormData({ ...formData, questionImg: reader.result as string });
-                                                    };
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }}
+                                            multiple
+                                            accept="image/*,.pdf,.hwp,.docx"
+                                            onChange={handleFileUpload}
+                                            disabled={isUploading}
                                         />
-                                        {formData.questionImg && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setFormData({ ...formData, questionImg: "" });
-                                                }}
-                                                className="absolute top-2 right-2 bg-gray-900/50 text-white rounded-full p-1.5 hover:bg-red-600 transition-colors"
-                                                type="button"
-                                            >
-                                                <X className="w-4 h-4" />
-                                            </button>
-                                        )}
                                     </div>
-                                    <p className="text-xs text-gray-400 text-center">이미지를 드래그하거나 클릭하여 파일을 선택하세요.</p>
+
+                                    {/* Attachment List */}
+                                    {attachments.length > 0 && (
+                                        <div className="grid grid-cols-1 gap-2 mt-4">
+                                            {attachments.map((file) => (
+                                                <div key={file.id} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg shadow-sm">
+                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                        {file.type === 'image' ? (
+                                                            <div className="h-10 w-10 relative rounded overflow-hidden flex-shrink-0 bg-gray-100 border">
+                                                                <img src={file.downloadUrl} alt="Thumbnail" className="h-full w-full object-cover" />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="h-10 w-10 flex items-center justify-center bg-gray-100 rounded text-gray-500 flex-shrink-0">
+                                                                <FileText className="h-5 w-5" />
+                                                            </div>
+                                                        )}
+                                                        <div className="min-w-0">
+                                                            <p className="text-sm font-medium text-gray-700 truncate">{file.originalName}</p>
+                                                            <p className="text-xs text-gray-400">
+                                                                {(file.sizeBytes / 1024).toFixed(1)} KB {file.compressed && <span className="text-green-600 font-bold">(압축됨)</span>}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); removeAttachment(file.id); }}>
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Upload Progress */}
+                                    {Object.entries(uploadProgress).map(([key, value]) => (
+                                        value < 100 && (
+                                            <div key={key} className="space-y-1">
+                                                <div className="flex justify-between text-xs text-gray-500">
+                                                    <span>업로드 중...</span>
+                                                    <span>{Math.round(value)}%</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${value}%` }} />
+                                                </div>
+                                            </div>
+                                        )
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -556,7 +829,82 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                         </Select>
                     )}
 
-                    {(filterLevel !== "all" || filterGrade !== "all" || filterSubject !== "all" || filterUnitName !== "all" || filterDetail !== "all") && (
+                    {/* Separator */}
+                    <div className="w-px h-6 bg-gray-200 mx-1" />
+
+                    {/* Extended Filters - Error Type Multi-Select */}
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500 mr-1">유형:</span>
+                        {["C", "M", "R", "S"].map(type => (
+                            <button
+                                key={type}
+                                onClick={() => {
+                                    setFilterErrorTypes(prev =>
+                                        prev.includes(type)
+                                            ? prev.filter(t => t !== type)
+                                            : [...prev, type]
+                                    );
+                                }}
+                                className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterErrorTypes.includes(type)
+                                    ? errorColorMap[type] + " border-transparent"
+                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {type}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* RetryCount Multi-Select */}
+                    <div className="flex items-center gap-1">
+                        <span className="text-xs text-gray-500 mr-1">회차:</span>
+                        {[1, 2, 3, 4, 5].map(count => (
+                            <button
+                                key={count}
+                                onClick={() => {
+                                    setFilterRetryCounts(prev =>
+                                        prev.includes(count)
+                                            ? prev.filter(c => c !== count)
+                                            : [...prev, count]
+                                    );
+                                }}
+                                className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterRetryCounts.includes(count)
+                                    ? "bg-blue-100 text-blue-700 border-blue-200"
+                                    : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                    }`}
+                            >
+                                {count}회
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* BookTag Multi-Select */}
+                    {bookTags.length > 0 && (
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-500 mr-1">문제집:</span>
+                            {bookTags.slice(0, 5).map(tag => (
+                                <button
+                                    key={tag.id}
+                                    onClick={() => {
+                                        setFilterBookTagIds(prev =>
+                                            prev.includes(tag.id)
+                                                ? prev.filter(t => t !== tag.id)
+                                                : [...prev, tag.id]
+                                        );
+                                    }}
+                                    className={`px-2 py-1 text-xs rounded-full border transition-colors ${filterBookTagIds.includes(tag.id)
+                                        ? "bg-green-100 text-green-700 border-green-200"
+                                        : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                                        }`}
+                                >
+                                    {tag.name}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Reset Button - show if any filter is active */}
+                    {(filterLevel !== "all" || filterGrade !== "all" || filterSubject !== "all" || filterUnitName !== "all" || filterDetail !== "all" || filterErrorTypes.length > 0 || filterRetryCounts.length > 0 || filterBookTagIds.length > 0) && (
                         <Button variant="ghost" size="icon" onClick={resetFilters} title="필터 초기화">
                             <X className="h-4 w-4" />
                         </Button>
@@ -593,6 +941,11 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                                             <span className={`text-xs font-bold px-2 py-0.5 rounded ${errorColorMap[note.errorType] || 'bg-gray-100 text-gray-800'}`}>
                                                 {errorTypeMap[note.errorType] || note.errorType}
                                             </span>
+                                            {note.retryCount && (
+                                                <Badge variant="outline" className="bg-white font-medium text-gray-700">
+                                                    {note.retryCount}회차
+                                                </Badge>
+                                            )}
                                             {note.isResolved && (
                                                 <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100">
                                                     <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -640,7 +993,43 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
 
                                     <div className="space-y-2">
                                         <h4 className="text-sm font-semibold text-gray-700">이미지 첨부</h4>
-                                        {note.questionImg ? (
+                                        <h4 className="text-sm font-semibold text-gray-700">첨부 파일</h4>
+
+                                        {/* Display Attachments Grid */}
+                                        {note.attachments && note.attachments.length > 0 ? (
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {note.attachments.map((att: any) => (
+                                                    att.type === 'image' ? (
+                                                        <div
+                                                            key={att.id}
+                                                            className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 group cursor-zoom-in"
+                                                            onClick={() => setSelectedZoomImg(att.downloadUrl)}
+                                                        >
+                                                            <img
+                                                                src={att.downloadUrl}
+                                                                alt={att.originalName}
+                                                                className="w-full h-full object-contain"
+                                                            />
+                                                            <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] p-1 truncate px-2">
+                                                                {att.originalName}
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <a
+                                                            key={att.id}
+                                                            href={att.downloadUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex flex-col items-center justify-center aspect-video bg-gray-50 rounded-lg border border-gray-200 hover:bg-blue-50 transition-colors p-2 text-center"
+                                                        >
+                                                            <FileText className="h-8 w-8 text-blue-500 mb-1" />
+                                                            <span className="text-xs text-gray-600 truncate w-full px-2">{att.originalName}</span>
+                                                        </a>
+                                                    )
+                                                ))}
+                                            </div>
+                                        ) : note.questionImg ? (
+                                            /* Legacy Backward Compatibility */
                                             <div
                                                 className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 group cursor-zoom-in"
                                                 onClick={() => setSelectedZoomImg(note.questionImg)}
