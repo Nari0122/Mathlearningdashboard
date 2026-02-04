@@ -1,8 +1,8 @@
-import { OverallProgress } from '../components/OverallProgress';
-import { AchievementDistribution } from '../components/AchievementDistribution';
-import { TotalErrorAnalysis } from '../components/TotalErrorAnalysis';
-import { UnitCard } from '../components/UnitCard';
-import { GuideCard } from '../components/GuideCard';
+import { OverallProgress } from '../OverallProgress';
+import { AchievementDistribution } from '../AchievementDistribution';
+import { TotalErrorAnalysis } from '../TotalErrorAnalysis';
+import { UnitCard } from '../UnitCard';
+import { GuideCard } from '../GuideCard';
 import { Plus, BookOpen } from 'lucide-react';
 
 interface DashboardProps {
@@ -59,7 +59,7 @@ export function Dashboard({
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">단원별 정밀 분석 리스트</h2>
               {showAddButton && (
-                <button 
+                <button
                   onClick={onAddUnit}
                   className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
                 >
@@ -77,12 +77,12 @@ export function Dashboard({
                   </div>
                   <p className="text-lg font-medium text-gray-700 mb-2">아직 학습 데이터가 없습니다</p>
                   <p className="text-sm text-gray-500 mb-6 text-center max-w-md">
-                    {isAdmin 
+                    {isAdmin
                       ? '단원을 추가하거나 학습을 시작하면 이곳에 표시됩니다.'
                       : '학습을 시작하면 이곳에 단원별 분석 결과가 표시됩니다.'}
                   </p>
                   {showAddButton && (
-                    <button 
+                    <button
                       onClick={onAddUnit}
                       className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
                     >
@@ -93,8 +93,8 @@ export function Dashboard({
                 </div>
               ) : (
                 units.map((unit) => (
-                  <UnitCard 
-                    key={unit.id} 
+                  <UnitCard
+                    key={unit.id}
                     unit={unit}
                     onDifficultyChange={onDifficultyChange}
                     onNameChange={onNameChange}

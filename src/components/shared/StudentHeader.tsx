@@ -34,7 +34,7 @@ export function StudentHeader({ studentName = "학생" }: { studentName?: string
                     {menuItems.map((item) => {
                         const isActive = item.href === "/dashboard"
                             ? pathname === "/dashboard"
-                            : pathname.startsWith(item.href);
+                            : (pathname && pathname.startsWith(item.href));
 
                         return (
                             <Link
@@ -70,7 +70,7 @@ export function StudentHeader({ studentName = "학생" }: { studentName?: string
                 {menuItems.map((item) => {
                     const isActive = item.href === "/dashboard"
                         ? pathname === "/dashboard"
-                        : pathname.startsWith(item.href);
+                        : (pathname && pathname.startsWith(item.href));
                     return (
                         <Link
                             key={item.href}

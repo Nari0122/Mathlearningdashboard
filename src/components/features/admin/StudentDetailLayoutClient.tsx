@@ -219,7 +219,7 @@ export default function StudentDetailLayoutClient({
                     {tabs.map((tab) => {
                         const isActive = tab.exact
                             ? pathname === tab.href
-                            : pathname.startsWith(tab.href);
+                            : (pathname && pathname.startsWith(tab.href));
 
                         return (
                             <Link

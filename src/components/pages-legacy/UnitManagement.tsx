@@ -1,6 +1,6 @@
 import { FolderTree, Search, Plus } from 'lucide-react';
-import { UnitCard } from '../components/UnitCard';
-import { AddUnitModal } from '../components/AddUnitModal';
+import { UnitCard } from '../UnitCard';
+import { AddUnitModal } from '../AddUnitModal';
 import { useState } from 'react';
 
 interface UnitManagementProps {
@@ -42,7 +42,7 @@ export function UnitManagement({
   const [searchQuery, setSearchQuery] = useState('');
 
   // 검색 필터링
-  const filteredUnits = units.filter(unit => 
+  const filteredUnits = units.filter(unit =>
     unit.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -74,7 +74,7 @@ export function UnitManagement({
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
           />
         </div>
-        <button 
+        <button
           onClick={() => setIsAddModalOpen(true)}
           className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
@@ -90,12 +90,12 @@ export function UnitManagement({
             {searchQuery ? `검색 결과 (${filteredUnits.length})` : `전체 단원 (${units.length})`}
           </h2>
         </div>
-        
+
         {filteredUnits.length > 0 ? (
           <div className="grid grid-cols-3 gap-4">
             {filteredUnits.map((unit) => (
-              <UnitCard 
-                key={unit.id} 
+              <UnitCard
+                key={unit.id}
                 unit={unit}
                 onDifficultyChange={onDifficultyChange}
                 onNameChange={onNameChange}
@@ -113,7 +113,7 @@ export function UnitManagement({
             {searchQuery ? (
               <>
                 <p className="text-gray-500 mb-2">"{searchQuery}"에 대한 검색 결과가 없습니다.</p>
-                <button 
+                <button
                   onClick={() => setSearchQuery('')}
                   className="text-indigo-600 hover:text-indigo-700 text-sm font-medium"
                 >
@@ -124,12 +124,12 @@ export function UnitManagement({
               <>
                 <p className="text-lg font-medium text-gray-700 mb-2">등록된 단원이 없습니다</p>
                 <p className="text-sm text-gray-500 mb-4">
-                  {isAdmin 
-                    ? '단원을 추가하여 학습 관리를 시작하세요.' 
+                  {isAdmin
+                    ? '단원을 추가하여 학습 관리를 시작하세요.'
                     : '학습을 시작하면 단원이 표시됩니다.'}
                 </p>
                 {isAdmin && (
-                  <button 
+                  <button
                     onClick={() => setIsAddModalOpen(true)}
                     className="mt-4 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                   >
@@ -142,7 +142,7 @@ export function UnitManagement({
         )}
       </div>
 
-      <AddUnitModal 
+      <AddUnitModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddUnit}

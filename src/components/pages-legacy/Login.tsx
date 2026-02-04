@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AlertCircle, Lock, User } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -20,7 +20,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
     try {
       const success = await login(loginId, password);
-      
+
       if (success) {
         onLoginSuccess();
       } else {

@@ -1,9 +1,9 @@
 import { User, LogOut, BookOpen } from 'lucide-react';
-import { OverallProgress } from '../components/OverallProgress';
-import { AchievementDistribution } from '../components/AchievementDistribution';
-import { TotalErrorAnalysis } from '../components/TotalErrorAnalysis';
-import { UnitCard } from '../components/UnitCard';
-import { GuideCard } from '../components/GuideCard';
+import { OverallProgress } from '../OverallProgress';
+import { AchievementDistribution } from '../AchievementDistribution';
+import { TotalErrorAnalysis } from '../TotalErrorAnalysis';
+import { UnitCard } from '../UnitCard';
+import { GuideCard } from '../GuideCard';
 
 interface StudentDashboardProps {
   studentName: string;
@@ -51,7 +51,7 @@ export function StudentDashboard({
   // 완료 상태 기반 통계
   const completedUnits = units.filter(u => u.completionStatus === 'completed').length;
   const totalUnits = units.length;
-  
+
   // 진행 중 + 미완료 단원만 필터링 (완료 단원 숨김)
   const activeUnits = units.filter(u => u.completionStatus !== 'completed');
 
@@ -94,7 +94,7 @@ export function StudentDashboard({
                 </div>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gray-900 transition-all duration-500"
                   style={{ width: `${totalUnits > 0 ? (completedUnits / totalUnits) * 100 : 0}%` }}
                 />
@@ -144,8 +144,8 @@ export function StudentDashboard({
 
               <div className="grid grid-cols-2 gap-4">
                 {activeUnits.map((unit) => (
-                  <UnitCard 
-                    key={unit.id} 
+                  <UnitCard
+                    key={unit.id}
                     unit={unit}
                     onDifficultyChange={onDifficultyChange}
                     onNameChange={onNameChange}

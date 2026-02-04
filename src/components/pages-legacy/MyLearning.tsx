@@ -1,6 +1,6 @@
 import { BookOpen, Filter } from 'lucide-react';
 import { useState } from 'react';
-import { UnitCard } from '../components/UnitCard';
+import { UnitCard } from '../UnitCard';
 
 interface MyLearningProps {
   units: Array<{
@@ -73,18 +73,16 @@ export function MyLearning({
                 <button
                   key={filter.type}
                   onClick={() => setActiveFilter(filter.type)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                    isActive
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${isActive
                       ? `${filter.color} text-white shadow-md`
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
+                    }`}
                 >
                   <span>{filter.label}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    isActive
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${isActive
                       ? 'bg-white bg-opacity-30 text-gray-900'
                       : 'bg-gray-200 text-gray-600'
-                  }`}>
+                    }`}>
                     {filter.count}
                   </span>
                 </button>
@@ -110,8 +108,8 @@ export function MyLearning({
         {filteredUnits.length > 0 ? (
           <div className="grid grid-cols-3 gap-4">
             {filteredUnits.map((unit) => (
-              <UnitCard 
-                key={unit.id} 
+              <UnitCard
+                key={unit.id}
                 unit={unit}
                 onDifficultyChange={onDifficultyChange}
                 onNameChange={onNameChange}

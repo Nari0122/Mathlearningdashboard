@@ -12,8 +12,11 @@ export async function getUnits(userId: number) {
         return units.map((u: any) => ({
             id: u.id,
             name: u.name,
+            unitName: u.name, // Map name to unitName
+            schoolLevel: u.schoolLevel || '고등', // Default or from DB
             grade: u.grade,
-            subject: u.subject,
+            subject: u.subject || '수학', // Default subject
+            unitDetails: u.unitDetails || [],
             status: u.status as 'HIGH' | 'MID' | 'LOW',
             selectedDifficulty: u.selectedDifficulty,
             completionStatus: u.completionStatus as 'incomplete' | 'in-progress' | 'completed',

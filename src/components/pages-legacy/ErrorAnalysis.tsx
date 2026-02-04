@@ -89,7 +89,7 @@ export function ErrorAnalysis({ units }: ErrorAnalysisProps) {
             {errorTypes.map((error) => {
               const Icon = error.icon;
               const percentage = totalErrorCount > 0 ? ((error.count / totalErrorCount) * 100).toFixed(1) : '0';
-              
+
               return (
                 <div key={error.type} className="bg-white rounded-2xl shadow-sm p-6">
                   <div className="flex items-center gap-3 mb-4">
@@ -103,7 +103,7 @@ export function ErrorAnalysis({ units }: ErrorAnalysisProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-gray-100 rounded-full h-2">
-                      <div 
+                      <div
                         className={`${error.color} h-2 rounded-full transition-all`}
                         style={{ width: `${percentage}%` }}
                       />
@@ -128,7 +128,7 @@ export function ErrorAnalysis({ units }: ErrorAnalysisProps) {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                       outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
@@ -153,19 +153,19 @@ export function ErrorAnalysis({ units }: ErrorAnalysisProps) {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={barData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="name" 
+                  <XAxis
+                    dataKey="name"
                     tick={{ fontSize: 12 }}
                     stroke="#6b7280"
                   />
-                  <YAxis 
+                  <YAxis
                     tick={{ fontSize: 12 }}
                     stroke="#6b7280"
                     allowDecimals={false}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px'
                     }}
@@ -187,27 +187,27 @@ export function ErrorAnalysis({ units }: ErrorAnalysisProps) {
               <ResponsiveContainer width="100%" height={400}>
                 <BarChart data={unitErrorData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="name" 
+                  <XAxis
+                    dataKey="name"
                     tick={{ fontSize: 12 }}
                     stroke="#6b7280"
                     angle={-15}
                     textAnchor="end"
                     height={80}
                   />
-                  <YAxis 
+                  <YAxis
                     tick={{ fontSize: 12 }}
                     stroke="#6b7280"
                     allowDecimals={false}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px'
                     }}
                   />
-                  <Legend 
+                  <Legend
                     wrapperStyle={{ paddingTop: '20px' }}
                   />
                   <Bar dataKey="C" name="개념" fill="#3b82f6" radius={[4, 4, 0, 0]} />
