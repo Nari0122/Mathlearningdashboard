@@ -109,6 +109,7 @@ export function UnitCard({
                             )}
                         </span>
                         <h4 className="text-lg font-semibold text-gray-900">
+                            {/* [Updated] 고등 학제인 경우 세부내용을 제목으로 표시 */}
                             {unit.schoolLevel !== '중등' && unit.unitDetails && unit.unitDetails.length > 0
                                 ? unit.unitDetails[0]
                                 : (unit.unitName || unit.name)}
