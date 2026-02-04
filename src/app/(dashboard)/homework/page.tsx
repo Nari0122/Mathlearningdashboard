@@ -1,12 +1,12 @@
-import { db } from "@/lib/db";
+import { studentService } from "@/services/studentService";
 import { getHomeworks } from "@/actions/homework-actions";
 import HomeworkClient from "@/components/features/homework/HomeworkClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function HomeworkPage() {
-    // 1. Get logged in user (Mock logic - retrieve first student found)
-    const studentUser = await db.user.findFirst({ where: { role: 'student' } });
+    // 1. Get logged in user from Firestore
+    const studentUser = await studentService.getFirstStudent();
 
     if (!studentUser) {
         return (

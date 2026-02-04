@@ -144,15 +144,17 @@ export const learningService = {
 
     // Helper for "flat" API actions that don't pass studentId
     async findUnitRefGlobally(unitId: number) {
-        const students = await adminDb.collection("students").get();
-        for (const studentDoc of students.docs) {
-            const unitSnapshot = await studentDoc.ref.collection("units").where("id", "==", unitId).limit(1).get();
-            if (!unitSnapshot.empty) {
-                return {
-                    unitRef: unitSnapshot.docs[0].ref,
-                    studentId: studentDoc.data().id
-                };
-            }
+        // Optimization: Use collectionGroup to search across all 'units' sub-collections 
+        // Note: This requires a Firestore index. If not indexed, it will provide a link to create one in console.
+        const snapshot = await adminDb.collectionGroup("units").where("id", "==", unitId).limit(1).get();
+        if (!snapshot.empty) {
+            const unitDoc = snapshot.docs[0];
+            // Get studentId from parent student document
+            const studentDoc = await unitDoc.ref.parent.parent?.get();
+            return {
+                unitRef: unitDoc.ref,
+                studentId: studentDoc?.data()?.id
+            };
         }
         return null;
     },

@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { studentService } from "@/services/studentService";
 import { getIncorrectNotes } from "@/actions/note-actions";
 import { getUnits } from "@/actions/unit-actions";
 import IncorrectNotesClient from "@/components/features/learning/IncorrectNotesClient";
@@ -6,7 +6,7 @@ import IncorrectNotesClient from "@/components/features/learning/IncorrectNotesC
 export const dynamic = 'force-dynamic';
 
 export default async function IncorrectNotesPage() {
-    const studentUser = await db.user.findFirst({ where: { role: 'student' } });
+    const studentUser = await studentService.getFirstStudent();
     if (!studentUser) return <div>Student not found</div>;
 
     const notes = await getIncorrectNotes(studentUser.id);

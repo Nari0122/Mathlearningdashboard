@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { StudentHeader } from "@/components/shared/StudentHeader";
-import { db } from "@/lib/db";
+import { studentService } from "@/services/studentService";
 
 export const metadata: Metadata = {
     title: "Student Dashboard | MATHCLINIC",
@@ -12,8 +12,8 @@ export default async function DashboardLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    // Fetch student user (using mock ID 2 logic as per other pages, or first student)
-    const studentUser = await db.user.findFirst({ where: { role: 'student' } });
+    // Fetch student user from Firestore
+    const studentUser = await studentService.getFirstStudent();
     const studentName = studentUser ? studentUser.name : "학생";
 
     return (

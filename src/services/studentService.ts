@@ -2,10 +2,10 @@ import { adminDb } from "@/lib/firebase-admin";
 import { Student } from "@/types";
 
 // Internal helper to find Firestore document ID by numeric ID field
-async function getDocIdByNumericId(collection: string, numericId: number) {
+async function getDocRefByNumericId(collection: string, numericId: number) {
     const snapshot = await adminDb.collection(collection).where("id", "==", numericId).limit(1).get();
     if (snapshot.empty) return null;
-    return snapshot.docs[0].id;
+    return snapshot.docs[0].ref;
 }
 
 // Internal helper to get next available numeric ID
@@ -30,6 +30,22 @@ export const studentService = {
         } catch (error) {
             console.error("Firestore getStudents error:", error);
             return [];
+        }
+    },
+
+    async getFirstStudent() {
+        try {
+            const snapshot = await adminDb.collection("students").where("status", "==", "active").limit(1).get();
+            if (snapshot.empty) {
+                // Fallback to any student if no active ones
+                const fallback = await adminDb.collection("students").limit(1).get();
+                if (fallback.empty) return null;
+                return fallback.docs[0].data() as any;
+            }
+            return snapshot.docs[0].data() as any;
+        } catch (error) {
+            console.error("Firestore getFirstStudent error:", error);
+            return null;
         }
     },
 
@@ -73,10 +89,10 @@ export const studentService = {
 
     async updateStudent(id: number, data: any) {
         try {
-            const docId = await getDocIdByNumericId("students", id);
-            if (!docId) return { success: false, message: "Student not found" };
+            const docRef = await getDocRefByNumericId("students", id);
+            if (!docRef) return { success: false, message: "Student not found" };
 
-            await adminDb.collection("students").doc(docId).update(data);
+            await docRef.update(data);
             return { success: true };
         } catch (error) {
             console.error("Firestore updateStudent error:", error);

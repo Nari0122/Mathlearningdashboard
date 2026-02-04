@@ -1,4 +1,3 @@
-import { db } from "@/lib/db";
 import { getUnits } from "@/actions/unit-actions";
 import AnalysisClient from "@/components/features/admin/AnalysisClient";
 

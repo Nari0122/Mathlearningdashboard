@@ -3,7 +3,10 @@
 import { adminDb, admin } from "@/lib/firebase-admin";
 
 export async function loginAction(id: string, pw: string) {
-    if (id === "admin" && pw === "admin") {
+    const adminId = process.env.ADMIN_LOGIN_ID || "admin";
+    const adminPw = process.env.ADMIN_LOGIN_PASSWORD || "admin";
+
+    if (id === adminId && pw === adminPw) {
         return { success: true, role: "admin", redirectUrl: "/admin/students" };
     }
 
