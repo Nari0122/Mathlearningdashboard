@@ -22,7 +22,7 @@ export default function IncorrectNotesClient({ notes, units, userId }: { notes: 
 
     // Delete Confirmation State
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-    const [noteToDelete, setNoteToDelete] = useState<number | null>(null);
+    const [noteToDelete, setNoteToDelete] = useState<string | null>(null);
 
     const filteredNotes = notes.filter(note => {
         if (selectedUnit === "all") return true;
@@ -62,14 +62,14 @@ export default function IncorrectNotesClient({ notes, units, userId }: { notes: 
         setSelectedFile(null);
     };
 
-    const handleDeleteClick = (noteId: number) => {
+    const handleDeleteClick = (noteId: string) => {
         setNoteToDelete(noteId);
         setIsDeleteConfirmOpen(true);
     };
 
     const handleConfirmDelete = async () => {
         if (noteToDelete) {
-            await deleteNote(noteToDelete);
+            await deleteNote(userId, noteToDelete);
         }
         setIsDeleteConfirmOpen(false);
         setNoteToDelete(null);
