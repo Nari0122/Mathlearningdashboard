@@ -100,7 +100,7 @@ export default function AdminLearningClient({ initialUnits, studentId }: AdminLe
                 subject: selectedSubject,
                 unitName: selectedUnit,
                 unitDetails: isMiddle ? [] : [selectedDetail], // Store as array for backward compatibility
-                name: selectedUnit, // Backward compatibility
+                name: isMiddle ? selectedUnit : selectedDetail, // For High School, detail is the primary name
                 status: "MID",
                 selectedDifficulty: "중"
             });

@@ -100,6 +100,21 @@ export const studentService = {
         }
     },
 
+    async deleteStudent(id: number) {
+        try {
+            const docRef = await getDocRefByNumericId("students", id);
+            if (!docRef) return { success: false, message: "Student not found" };
+
+            // Note: In a production app, we might want to delete sub-collections too.
+            // For now, we delete the main document as per the simple requirement.
+            await docRef.delete();
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore deleteStudent error:", error);
+            return { success: false, message: "Failed to delete student" };
+        }
+    },
+
     async getDashboardStats(studentId: number) {
         try {
             const snapshot = await adminDb.collection("students").where("id", "==", studentId).limit(1).get();

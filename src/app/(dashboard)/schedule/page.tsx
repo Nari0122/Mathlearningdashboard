@@ -14,7 +14,13 @@ const CLASS_SESSIONS = [
 
 const REGULAR_SCHEDULE = [{ id: 1, dayOfWeek: '화요일', startTime: '16:00', endTime: '18:00' }];
 
+const DAY_ORDER = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
+
 export default function SchedulePage() {
+    const sortedRegularSchedules = [...REGULAR_SCHEDULE].sort((a, b) =>
+        DAY_ORDER.indexOf(a.dayOfWeek) - DAY_ORDER.indexOf(b.dayOfWeek)
+    );
+
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
@@ -37,7 +43,7 @@ export default function SchedulePage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                {REGULAR_SCHEDULE.map(schedule => (
+                                {sortedRegularSchedules.map(schedule => (
                                     <div key={schedule.id} className="bg-white/10 rounded-lg p-3 flex items-center justify-between backdrop-blur-sm">
                                         <span className="font-bold">{schedule.dayOfWeek}</span>
                                         <span className="font-medium">{schedule.startTime} - {schedule.endTime}</span>

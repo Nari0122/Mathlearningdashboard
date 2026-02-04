@@ -65,6 +65,22 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (isResourceOwner() || isAdmin());
     }
 
+    match /students/{studentId} {
+      // 생성/수정/삭제: 관리자만
+      allow create, update, delete: if isAdmin();
+      
+      // 읽기: 본인 또는 관리자
+      allow read: if isAuthenticated() && (isOwner(studentId) || isAdmin());
+
+      // 하위 컬렉션에 대한 기본 권한 (관리자만 쓰기 가능)
+      // 필요에 따라 exams 등은 학생 권한을 따로 줄 수 있으나, 
+      // 현재는 안전하게 관리자 위주로 설정
+      match /{allSubcollections=**} {
+        allow read: if isAuthenticated() && (isOwner(studentId) || isAdmin());
+        allow create, update, delete: if isAdmin();
+      }
+    }
+
     // =========================================================
     // 2. 학습 콘텐츠 (Units, Homeworks)
     // - 학생이 '난이도 선택'이나 '숙제 제출'을 해야 하므로 UPDATE 허용

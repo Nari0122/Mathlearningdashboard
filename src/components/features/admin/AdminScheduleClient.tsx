@@ -100,7 +100,9 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
         });
     }
 
-    const regularSchedules = schedules.filter((s: any) => s.isRegular);
+    const regularSchedules = schedules
+        .filter((s: any) => s.isRegular)
+        .sort((a: any, b: any) => DAYS.indexOf(a.dayOfWeek) - DAYS.indexOf(b.dayOfWeek));
     const sessions = schedules.filter((s: any) => !s.isRegular);
 
     return (

@@ -14,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { createStudent, updateStudent, updateStudentStatus } from "@/actions/student-actions";
+import { createStudent, updateStudent, updateStudentStatus, deleteStudent } from "@/actions/student-actions";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Edit } from "lucide-react";
@@ -164,6 +164,35 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
 
         const res = await updateStudentStatus(studentId, !currentStatus);
         if (res.success) {
+            router.refresh();
+        } else {
+            alert(res.message);
+        }
+    };
+
+    const handleDeleteStudent = async () => {
+        if (!editingId) return;
+
+        const confirmMessage = "학생 정보를 영구적으로 삭제하시겠습니까?\n\n• 이 작업은 되돌릴 수 없습니다.\n• 모든 학습 데이터와 기록이 삭제될 수 있습니다.\n• 계속하시려면 학생의 이름을 입력해주세요.";
+
+        if (!confirm(confirmMessage)) return;
+
+        const studentName = editFormData.name;
+        const inputName = prompt(`삭제 확인을 위해 학생 이름 [${studentName}]을 입력해주세요:`);
+
+        if (inputName !== studentName) {
+            alert("이름이 일치하지 않아 삭제가 취소되었습니다.");
+            return;
+        }
+
+        setIsLoading(true);
+        const res = await deleteStudent(editingId);
+        setIsLoading(false);
+
+        if (res.success) {
+            alert("학생 정보가 영구 삭제되었습니다.");
+            setIsEditOpen(false);
+            setEditingId(null);
             router.refresh();
         } else {
             alert(res.message);
@@ -546,11 +575,21 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                             />
                         </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsEditOpen(false)} className="h-10">취소</Button>
-                        <Button onClick={handleEditSave} disabled={isLoading} className="h-10 bg-blue-600 hover:bg-blue-700">
-                            {isLoading ? "수정 중..." : "수정완료"}
+                    <DialogFooter className="flex justify-between items-center sm:justify-between">
+                        <Button
+                            variant="ghost"
+                            onClick={handleDeleteStudent}
+                            disabled={isLoading}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                            학생 영구 삭제
                         </Button>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => setIsEditOpen(false)} className="h-10">취소</Button>
+                            <Button onClick={handleEditSave} disabled={isLoading} className="h-10 bg-blue-600 hover:bg-blue-700">
+                                {isLoading ? "수정 중..." : "수정완료"}
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

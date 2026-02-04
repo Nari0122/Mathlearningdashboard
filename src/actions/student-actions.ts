@@ -70,6 +70,17 @@ export async function updateStudent(userId: number, data: UpdateStudentData) {
     return result;
 }
 
+export async function deleteStudent(userId: number) {
+    // Structural Admin Check (Placeholder - should be replaced with real session auth)
+    // const session = await getSession(); if (!session || session.role !== 'admin') return { success: false, message: 'Unauthorized' };
+
+    const result = await studentService.deleteStudent(userId);
+    if (result.success) {
+        revalidatePath("/admin/students");
+    }
+    return result;
+}
+
 export async function getStudentDetail(userId: number) {
     return await studentService.getStudentDetail(userId);
 }

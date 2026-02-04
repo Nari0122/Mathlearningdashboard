@@ -8,9 +8,13 @@ interface StudentScheduleClientProps {
     schedules: any[];
 }
 
+const DAYS = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
+
 export default function StudentScheduleClient({ schedules }: StudentScheduleClientProps) {
     // Split schedules into regular and sessions
-    const regularSchedules = schedules.filter((s: any) => s.isRegular);
+    const regularSchedules = schedules
+        .filter((s: any) => s.isRegular)
+        .sort((a: any, b: any) => DAYS.indexOf(a.dayOfWeek) - DAYS.indexOf(b.dayOfWeek));
     const sessions = schedules.filter((s: any) => !s.isRegular);
 
     return (

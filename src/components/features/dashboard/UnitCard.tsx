@@ -109,7 +109,9 @@ export function UnitCard({
                             )}
                         </span>
                         <h4 className="text-lg font-semibold text-gray-900">
-                            {unit.unitName || unit.name}
+                            {unit.schoolLevel !== '중등' && unit.unitDetails && unit.unitDetails.length > 0
+                                ? unit.unitDetails[0]
+                                : (unit.unitName || unit.name)}
                         </h4>
                     </div>
                     {showStatus && (
