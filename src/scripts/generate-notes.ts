@@ -1,3 +1,4 @@
+export { };
 
 const admin = require("firebase-admin");
 const path = require("path");
@@ -30,7 +31,7 @@ async function generateNotes() {
     // Clear existing
     const existingNotes = await notesRef.get();
     const batch = db.batch();
-    existingNotes.docs.forEach(doc => batch.delete(doc.ref));
+    existingNotes.docs.forEach((doc: any) => batch.delete(doc.ref));
     await batch.commit();
 
     const notesData = [

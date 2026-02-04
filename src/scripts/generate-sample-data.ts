@@ -1,3 +1,4 @@
+export { };
 
 const admin = require("firebase-admin");
 const path = require("path");
@@ -135,7 +136,7 @@ async function generateData() {
     // Delete existing to be clean (simple batch delete of fetched docs)
     const existingUnits = await unitsRef.get();
     const batch = db.batch();
-    existingUnits.docs.forEach(doc => batch.delete(doc.ref));
+    existingUnits.docs.forEach((doc: any) => batch.delete(doc.ref));
     await batch.commit();
 
     for (const unit of unitsData) {
@@ -187,7 +188,7 @@ async function generateData() {
     // Clear existing
     const existingSchedules = await schedulesRef.get();
     const scheduleBatch = db.batch();
-    existingSchedules.docs.forEach(doc => scheduleBatch.delete(doc.ref));
+    existingSchedules.docs.forEach((doc: any) => scheduleBatch.delete(doc.ref));
     await scheduleBatch.commit();
 
     for (const sch of schedulesData) {
@@ -221,7 +222,7 @@ async function generateData() {
     // Clear
     const existingAssignments = await assignmentsRef.get();
     const assignBatch = db.batch();
-    existingAssignments.docs.forEach(doc => assignBatch.delete(doc.ref));
+    existingAssignments.docs.forEach((doc: any) => assignBatch.delete(doc.ref));
     await assignBatch.commit();
 
     for (const assign of assignmentsData) {
@@ -246,7 +247,7 @@ async function generateData() {
     // Clear
     const existingExams = await examsRef.get();
     const examBatch = db.batch();
-    existingExams.docs.forEach(doc => examBatch.delete(doc.ref));
+    existingExams.docs.forEach((doc: any) => examBatch.delete(doc.ref));
     await examBatch.commit();
 
     for (const exam of examsData) {
@@ -267,7 +268,7 @@ async function generateData() {
     // Clear
     const existingRecords = await recordsRef.get();
     const recordBatch = db.batch();
-    existingRecords.docs.forEach(doc => recordBatch.delete(doc.ref));
+    existingRecords.docs.forEach((doc: any) => recordBatch.delete(doc.ref));
     await recordBatch.commit();
 
     for (const rec of recordsData) {
