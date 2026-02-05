@@ -10,9 +10,17 @@ interface AnalysisClientProps {
 const COLORS = ['#3b82f6', '#ef4444', '#f97316', '#a855f7']; // C, M, R, S colors
 
 export default function AnalysisClient({ units }: AnalysisClientProps) {
+    // Helper function to get display name based on school level
+    const getUnitDisplayName = (unit: Unit) => {
+        if (unit.schoolLevel !== '중등' && unit.unitDetails && unit.unitDetails.length > 0) {
+            return unit.unitDetails[0];
+        }
+        return unit.unitName || unit.name;
+    };
+
     // 1. Data Prep for Bar Chart
     const barData = units.map(u => ({
-        name: u.name,
+        name: getUnitDisplayName(u),
         C: u.errors.C,
         M: u.errors.M,
         R: u.errors.R,
@@ -135,7 +143,7 @@ export default function AnalysisClient({ units }: AnalysisClientProps) {
                             const sum = u.errors.C + u.errors.M + u.errors.R + u.errors.S;
                             return (
                                 <tr key={u.id} className="hover:bg-gray-50">
-                                    <td className="p-4 font-medium text-gray-900">{u.name}</td>
+                                    <td className="p-4 font-medium text-gray-900">{getUnitDisplayName(u)}</td>
                                     <td className="p-4 text-center">{u.errors.C || '-'}</td>
                                     <td className="p-4 text-center">{u.errors.M || '-'}</td>
                                     <td className="p-4 text-center">{u.errors.R || '-'}</td>

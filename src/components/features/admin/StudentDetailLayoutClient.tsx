@@ -214,8 +214,8 @@ export default function StudentDetailLayoutClient({
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200">
-                <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <div className="border-b border-gray-200 overflow-x-auto scrollbar-hide">
+                <nav className="-mb-px flex space-x-8 min-w-max px-4" aria-label="Tabs">
                     {tabs.map((tab) => {
                         const isActive = tab.exact
                             ? pathname === tab.href
