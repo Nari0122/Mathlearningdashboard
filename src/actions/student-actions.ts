@@ -104,9 +104,8 @@ export async function submitHomework(homeworkId: string, studentId: number) {
             return { success: false, error: "숙제를 찾을 수 없습니다." };
         }
 
-        const now = new Date();
-        const dueDate = new Date(homework.dueDate);
-        const isLate = now > dueDate;
+        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+        const isLate = today > homework.dueDate;
 
         // Use updateHomework from admin-actions
         const { updateHomework } = await import("@/actions/admin-actions");
@@ -114,7 +113,7 @@ export async function submitHomework(homeworkId: string, studentId: number) {
             title: homework.title,
             dueDate: homework.dueDate,
             status: isLate ? 'late-submitted' : 'submitted',
-            submittedDate: now.toISOString().split('T')[0]
+            submittedDate: today
         });
 
         if (result.success) {

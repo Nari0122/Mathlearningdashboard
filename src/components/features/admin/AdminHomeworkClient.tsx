@@ -164,11 +164,8 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
                             </tr>
                         ) : (
                             homeworks.map((hw: any) => {
-                                const today = new Date();
-                                today.setHours(0, 0, 0, 0);
-                                const dueDate = new Date(hw.dueDate);
-                                dueDate.setHours(0, 0, 0, 0);
-                                const isOverdue = today > dueDate && hw.status !== 'submitted' && hw.status !== 'late-submitted';
+                                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+                                const isOverdue = today > hw.dueDate && hw.status !== 'submitted' && hw.status !== 'late-submitted';
 
                                 return (
                                     <tr key={hw.id} className="border-b last:border-0 hover:bg-gray-50">

@@ -244,6 +244,33 @@ export const learningService = {
         }
     },
 
+    async getSchedule(studentId: number, scheduleId: string) {
+        try {
+            const studentDocRef = await getStudentDocRef(studentId);
+            if (!studentDocRef) return null;
+
+            const doc = await studentDocRef.collection("schedules").doc(scheduleId).get();
+            if (!doc.exists) return null;
+            return { id: doc.id, ...doc.data() };
+        } catch (error) {
+            console.error("Firestore getSchedule error:", error);
+            return null;
+        }
+    },
+
+    async updateSchedule(studentId: number, scheduleId: string, data: any) {
+        try {
+            const studentDocRef = await getStudentDocRef(studentId);
+            if (!studentDocRef) return { success: false, message: "Student not found" };
+
+            await studentDocRef.collection("schedules").doc(scheduleId).update(data);
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore updateSchedule error:", error);
+            return { success: false, message: "Failed to update schedule" };
+        }
+    },
+
     async deleteSchedule(studentId: number, scheduleId: string) {
         try {
             const studentDocRef = await getStudentDocRef(studentId);

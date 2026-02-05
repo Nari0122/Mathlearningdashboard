@@ -34,7 +34,12 @@ export default function StudentHistoryClient({ records }: StudentHistoryClientPr
                         <div key={record.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h3 className="font-bold text-lg text-gray-900">{record.progress}</h3>
+                                    <div className="flex items-center gap-2">
+                                        {record.sessionNumber && (
+                                            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{record.sessionNumber}회차</span>
+                                        )}
+                                        <h3 className="font-bold text-lg text-gray-900">{record.progress}</h3>
+                                    </div>
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider ${record.createdBy === 'student'
                                             ? 'bg-blue-100 text-blue-700'

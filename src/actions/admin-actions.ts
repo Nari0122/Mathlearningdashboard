@@ -31,6 +31,51 @@ export async function createSchedule(studentId: number, data: { date: string; st
     return result;
 }
 
+export async function updateSchedule(studentId: number, scheduleId: string, data: any, originalSnapshot?: any, force: boolean = false) {
+    // 1. If force save, skip checks
+    if (force) {
+        const result = await learningService.updateSchedule(studentId, scheduleId, data);
+        if (result.success) {
+            revalidatePath(`/admin/students/${studentId}/schedule`);
+        }
+        return result;
+    }
+
+    // 2. Fetch current data for conflict check
+    const currentData = await learningService.getSchedule(studentId, scheduleId) as any;
+    if (!currentData) {
+        return { success: false, message: "Schedule not found" };
+    }
+
+    // 3. Compare with snapshot
+    // If originalSnapshot is provided, check if currentData matches it.
+    // If mismatch, it means someone else changed it.
+    if (originalSnapshot) {
+        const isConflict =
+            currentData.date !== originalSnapshot.date ||
+            currentData.startTime !== originalSnapshot.startTime ||
+            currentData.endTime !== originalSnapshot.endTime ||
+            currentData.dayOfWeek !== originalSnapshot.dayOfWeek || // for regular
+            currentData.isRegular !== originalSnapshot.isRegular;
+
+        if (isConflict) {
+            return {
+                success: false,
+                conflict: true,
+                message: "Information has been changed on the server.",
+                latestData: currentData
+            };
+        }
+    }
+
+    // 4. Update
+    const result = await learningService.updateSchedule(studentId, scheduleId, data);
+    if (result.success) {
+        revalidatePath(`/admin/students/${studentId}/schedule`);
+    }
+    return result;
+}
+
 export async function deleteSchedule(id: string, studentId: number) {
     const result = await learningService.deleteSchedule(studentId, id);
     if (result.success) {

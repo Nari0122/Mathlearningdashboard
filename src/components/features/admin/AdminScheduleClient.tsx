@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Trash, Clock } from "lucide-react";
+import { Plus, Trash, Clock, Pencil, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createSchedule, deleteSchedule } from "@/actions/admin-actions";
+import { createSchedule, deleteSchedule, updateSchedule } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
 
 interface AdminScheduleClientProps {
     schedules: any[];
@@ -22,15 +23,28 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
     const router = useRouter();
     const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
     const [isRegularOpen, setIsRegularOpen] = useState(false);
+    const [isEditSessionOpen, setIsEditSessionOpen] = useState(false);
+    const [isEditRegularOpen, setIsEditRegularOpen] = useState(false);
+    const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+
+    // Conflict Data State
+    const [conflictData, setConflictData] = useState<any>(null);
+    const [pendingUpdateData, setPendingUpdateData] = useState<any>(null);
+    const [pendingOriginalSnapshot, setPendingOriginalSnapshot] = useState<any>(null);
+    const [pendingUpdateType, setPendingUpdateType] = useState<"session" | "regular" | null>(null);
+
     const [isPending, startTransition] = useTransition();
 
-    // Session State
+    // Session State (Add/Edit)
+    const [currentEditId, setCurrentEditId] = useState<string | null>(null);
+    const [originalData, setOriginalData] = useState<any>(null); // Snapshot when edit started
+
     const [date, setDate] = useState("");
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
     const [sessionNumber, setSessionNumber] = useState("");
 
-    // Regular Schedule State
+    // Regular Schedule State (Add/Edit)
     const [regularDay, setRegularDay] = useState("월요일");
     const [regularStart, setRegularStart] = useState("");
     const [regularEnd, setRegularEnd] = useState("");
@@ -90,6 +104,127 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                 alert("정규 수업 추가 실패");
             }
         });
+    };
+
+    // --- Handlers for Editing ---
+
+    const handleEditSession = (s: any) => {
+        setCurrentEditId(s.id);
+        setDate(s.date);
+        setStartTime(s.startTime);
+        setEndTime(s.endTime);
+        setSessionNumber(s.sessionNumber ? String(s.sessionNumber) : "");
+        setOriginalData(s); // Save snapshot
+        setIsEditSessionOpen(true);
+    };
+
+    const handleEditRegular = (s: any) => {
+        setCurrentEditId(s.id);
+        setRegularDay(s.dayOfWeek);
+        setRegularStart(s.startTime);
+        setRegularEnd(s.endTime);
+        setOriginalData(s); // Save snapshot
+        setIsEditRegularOpen(true);
+    };
+
+    // --- Update Logic ---
+
+    const handleUpdateSession = async (force: boolean = false) => {
+        if (!currentEditId || !date || !startTime || !endTime) return;
+
+        const dataToUpdate = {
+            date,
+            startTime,
+            endTime,
+            status: "scheduled", // Maintain status or update? Usually status isn't edited here, just time. 
+            // Actually, if date changes, status might stay same.
+            // For now, let's keep other fields same.
+            isRegular: false,
+            sessionNumber: sessionNumber ? parseInt(sessionNumber) : undefined
+        };
+
+        const snapshot = force ? null : originalData;
+
+        startTransition(async () => {
+            const result = await updateSchedule(studentId, currentEditId, dataToUpdate, snapshot, force) as any;
+
+            if (result.success) {
+                setIsEditSessionOpen(false);
+                setIsConflictModalOpen(false);
+                router.refresh();
+            } else if (result.conflict) {
+                // Conflict detected!
+                setConflictData(result.latestData);
+                setPendingUpdateData(dataToUpdate);
+                setPendingOriginalSnapshot(snapshot);
+                setPendingUpdateType("session");
+                setIsConflictModalOpen(true);
+            } else {
+                alert("수정 실패: " + result.message);
+            }
+        });
+    };
+
+    const handleUpdateRegular = async (force: boolean = false) => {
+        if (!currentEditId || !regularDay || !regularStart || !regularEnd) return;
+
+        const dataToUpdate = {
+            startTime: regularStart,
+            endTime: regularEnd,
+            isRegular: true,
+            dayOfWeek: regularDay
+            // Regular schedules don't use date/status usually the same way
+        };
+
+        const snapshot = force ? null : originalData;
+
+        startTransition(async () => {
+            const result = await updateSchedule(studentId, currentEditId, dataToUpdate, snapshot, force) as any;
+
+            if (result.success) {
+                setIsEditRegularOpen(false);
+                setIsConflictModalOpen(false);
+                router.refresh();
+            } else if (result.conflict) {
+                setConflictData(result.latestData);
+                setPendingUpdateData(dataToUpdate);
+                setPendingOriginalSnapshot(snapshot);
+                setPendingUpdateType("regular");
+                setIsConflictModalOpen(true);
+            } else {
+                alert("수정 실패: " + result.message);
+            }
+        });
+    };
+
+    // --- Conflict Resolution Handlers ---
+
+    const handleConflictReload = () => {
+        // Discard user changes, load latest data
+        if (!conflictData) return;
+
+        if (pendingUpdateType === "session") {
+            setDate(conflictData.date);
+            setStartTime(conflictData.startTime);
+            setEndTime(conflictData.endTime);
+            setSessionNumber(conflictData.sessionNumber ? String(conflictData.sessionNumber) : "");
+            setOriginalData(conflictData); // Update snapshot to latest
+        } else {
+            setRegularDay(conflictData.dayOfWeek);
+            setRegularStart(conflictData.startTime);
+            setRegularEnd(conflictData.endTime);
+            setOriginalData(conflictData); // Update snapshot
+        }
+        setIsConflictModalOpen(false);
+    };
+
+    const handleConflictForceSave = () => {
+        // Force save with user's current input
+        if (pendingUpdateType === "session") {
+            handleUpdateSession(true);
+        } else {
+            handleUpdateRegular(true);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -187,7 +322,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
-                    <CardHeader><CardTitle className="text-sm text-gray-500">정규 수업 ({regularSchedules.length})</CardTitle></CardHeader>
+                    <CardHeader><CardTitle className="text-sm text-gray-500">정규 수업 · 주 {regularSchedules.length}회</CardTitle></CardHeader>
                     <CardContent>
                         {regularSchedules.length === 0 ? (
                             <p className="text-sm text-gray-400">설정된 정규 일정이 없습니다.</p>
@@ -196,9 +331,12 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                                 <div key={s.id} className="flex justify-between items-center p-3 bg-gray-50 rounded mb-2">
                                     <span className="font-bold text-gray-700">{s.dayOfWeek}</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-900">{s.startTime} - {s.endTime}</span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
-                                            <Trash className="h-3 w-3" />
+                                        <span className="font-medium text-gray-900 mr-2">{s.startTime} - {s.endTime}</span>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={() => handleEditRegular(s)}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
+                                            <Trash className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
@@ -224,12 +362,26 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="text-xs text-gray-400">{s.status}</div>
+                                        <div className="text-xs text-gray-400">
+                                            {(() => {
+                                                const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
+                                                const now = new Date();
+                                                const isPassed = now > scheduleEnd;
+
+                                                if (s.status === 'cancelled') return '취소됨';
+                                                if (s.status === 'completed' || isPassed) return '수업 완료';
+                                                if (s.status === 'scheduled') return '예정됨';
+                                                return s.status;
+                                            })()}
+                                        </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm">{s.startTime} - {s.endTime}</span>
-                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
-                                            <Trash className="h-3 w-3" />
+                                        <span className="text-sm mr-2">{s.startTime} - {s.endTime}</span>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={() => handleEditSession(s)}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
+                                            <Trash className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </div>
@@ -237,6 +389,117 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                         )}
                     </CardContent>
                 </Card>
+
+                <Dialog open={isEditRegularOpen} onOpenChange={setIsEditRegularOpen}>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>정규 수업 일정 수정</DialogTitle></DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-r-day" className="text-right">요일</Label>
+                                <Select value={regularDay} onValueChange={setRegularDay}>
+                                    <SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        {DAYS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-r-start" className="text-right">시작 시간</Label>
+                                <Input id="edit-r-start" type="time" value={regularStart} onChange={(e) => setRegularStart(e.target.value)} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-r-end" className="text-right">종료 시간</Label>
+                                <Input id="edit-r-end" type="time" value={regularEnd} onChange={(e) => setRegularEnd(e.target.value)} className="col-span-3" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => handleUpdateRegular(false)} disabled={isPending}>
+                                {isPending ? "수정 중..." : "수정하기"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={isEditSessionOpen} onOpenChange={setIsEditSessionOpen}>
+                    <DialogContent>
+                        <DialogHeader><DialogTitle>수업 일정 수정</DialogTitle></DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-date" className="text-right">날짜</Label>
+                                <Input id="edit-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-sessionNumber" className="text-right">회차</Label>
+                                <Input
+                                    id="edit-sessionNumber"
+                                    type="number"
+                                    placeholder="예: 1"
+                                    value={sessionNumber}
+                                    onChange={(e) => setSessionNumber(e.target.value)}
+                                    className="col-span-3"
+                                    min="1"
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-start" className="text-right">시작 시간</Label>
+                                <Input id="edit-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="col-span-3" />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="edit-end" className="text-right">종료 시간</Label>
+                                <Input id="edit-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="col-span-3" />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => handleUpdateSession(false)} disabled={isPending}>
+                                {isPending ? "수정 중..." : "수정하기"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Conflict Modal */}
+                <Dialog open={isConflictModalOpen} onOpenChange={setIsConflictModalOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-amber-600">
+                                <AlertCircle className="h-5 w-5" />
+                                수업 정보가 변경됨
+                            </DialogTitle>
+                            <DialogDescription>
+                                편집하는 동안 다른 사용자에 의해 수업 정보가 변경되었습니다.
+                                어떻게 처리하시겠습니까?
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="bg-amber-50 p-4 rounded-md text-sm text-amber-800 mb-4">
+                            <p className="font-bold mb-2">변경된 최신 정보:</p>
+                            {conflictData && (
+                                <ul className="list-disc pl-5 space-y-1">
+                                    {pendingUpdateType === 'session' ? (
+                                        <>
+                                            <li>날짜: {conflictData.date}</li>
+                                            <li>시간: {conflictData.startTime} - {conflictData.endTime}</li>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <li>요일: {conflictData.dayOfWeek}</li>
+                                            <li>시간: {conflictData.startTime} - {conflictData.endTime}</li>
+                                        </>
+                                    )}
+                                </ul>
+                            )}
+                        </div>
+
+                        <DialogFooter className="flex-col sm:flex-row gap-2">
+                            <Button variant="outline" onClick={handleConflictReload} className="w-full sm:w-auto">
+                                최신 정보로 다시 불러오기
+                            </Button>
+                            <Button onClick={handleConflictForceSave} className="w-full sm:w-auto">
+                                내 입력 유지하고 저장
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         </div>
     );

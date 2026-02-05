@@ -64,7 +64,16 @@ export default function StudentScheduleClient({ schedules }: StudentScheduleClie
                                             )}
                                         </div>
                                         <div className="text-xs text-gray-400 mt-1">
-                                            {s.status === 'completed' ? '수업 완료' : s.status === 'cancelled' ? '취소됨' : s.status === 'scheduled' ? '예정됨' : s.status}
+                                            {(() => {
+                                                const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
+                                                const now = new Date();
+                                                const isPassed = now > scheduleEnd;
+
+                                                if (s.status === 'cancelled') return '취소됨';
+                                                if (s.status === 'completed' || isPassed) return '수업 완료';
+                                                if (s.status === 'scheduled') return '예정됨';
+                                                return s.status;
+                                            })()}
                                         </div>
                                     </div>
                                     <span className="text-sm text-gray-600">{s.startTime} - {s.endTime}</span>

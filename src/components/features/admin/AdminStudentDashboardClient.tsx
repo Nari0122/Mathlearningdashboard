@@ -41,17 +41,36 @@ export default function AdminStudentDashboardClient({ stats, recentAssignments =
                     <CardContent>
                         <div className="space-y-4">
                             {recentAssignments.length > 0 ? (
-                                recentAssignments.map((a) => (
-                                    <div key={a.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                                        <div className="space-y-1">
-                                            <p className="text-sm font-medium leading-none">{a.title}</p>
-                                            <p className="text-xs text-muted-foreground">마감: {formatDate(a.dueDate)}</p>
+                                recentAssignments.map((a) => {
+                                    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+                                    const isOverdue = today > a.dueDate && a.status !== 'submitted' && a.status !== 'late-submitted';
+
+                                    return (
+                                        <div key={a.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium leading-none">{a.title}</p>
+                                                <p className="text-xs text-muted-foreground">마감: {formatDate(a.dueDate)}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <Badge
+                                                    variant={a.status === 'submitted' ? "default" : a.status === 'late-submitted' ? "destructive" : "outline"}
+                                                    className={
+                                                        a.status === 'submitted' ? "bg-green-600" :
+                                                            a.status === 'late-submitted' ? "bg-yellow-500 hover:bg-yellow-600" : ""
+                                                    }
+                                                >
+                                                    {a.status === 'submitted' ? '완료' :
+                                                        a.status === 'late-submitted' ? '지각제출' : '미완료'}
+                                                </Badge>
+                                                {isOverdue && (
+                                                    <Badge variant="destructive" className="bg-red-600">
+                                                        마감됨
+                                                    </Badge>
+                                                )}
+                                            </div>
                                         </div>
-                                        <Badge variant={a.status === 'submitted' ? "default" : "outline"} className={a.status === 'submitted' ? "bg-green-600" : ""}>
-                                            {a.status === 'submitted' ? '완료' : '미완료'}
-                                        </Badge>
-                                    </div>
-                                ))
+                                    );
+                                })
                             ) : (
                                 <p className="text-sm text-center py-4 text-muted-foreground">최근 숙제가 없습니다.</p>
                             )}

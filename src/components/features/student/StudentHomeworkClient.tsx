@@ -65,11 +65,8 @@ export default function StudentHomeworkClient({ assignments, studentId }: Studen
             <h1 className="text-2xl font-bold">숙제 관리</h1>
             <div className="grid grid-cols-1 gap-4">
                 {assignments.map((assignment: any) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const dueDate = new Date(assignment.dueDate);
-                    dueDate.setHours(0, 0, 0, 0);
-                    const isOverdue = today > dueDate && assignment.status !== 'submitted' && assignment.status !== 'late-submitted';
+                    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+                    const isOverdue = today > assignment.dueDate && assignment.status !== 'submitted' && assignment.status !== 'late-submitted';
                     const isCompleted = assignment.status === 'submitted' || assignment.status === 'late-submitted';
 
                     return (
