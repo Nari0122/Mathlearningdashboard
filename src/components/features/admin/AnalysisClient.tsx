@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Unit } from "@/types";
 
@@ -10,17 +11,55 @@ interface AnalysisClientProps {
 const COLORS = ['#3b82f6', '#ef4444', '#f97316', '#a855f7']; // C, M, R, S colors
 
 export default function AnalysisClient({ units }: AnalysisClientProps) {
-    // Helper function to get display name based on school level
+    // Helper function (still useful for Middle School or checks)
     const getUnitDisplayName = (unit: Unit) => {
-        if (unit.schoolLevel !== '중등' && unit.unitDetails && unit.unitDetails.length > 0) {
-            return unit.unitDetails[0];
-        }
-        return unit.unitName || unit.name;
+        const baseName = (unit.schoolLevel !== '중등' && unit.unitDetails && unit.unitDetails.length > 0)
+            ? unit.unitDetails[0]
+            : (unit.unitName || unit.name);
+        return `${unit.grade}/${baseName}`;
     };
 
-    // 1. Data Prep for Bar Chart
-    const barData = units.map(u => ({
-        name: getUnitDisplayName(u),
+    // Aggregation Logic
+    const aggregatedData = useMemo(() => {
+        const map = new Map<string, { id: string | number, name: string, errors: { C: number, M: number, R: number, S: number } }>();
+
+        units.forEach(u => {
+            let key: string;
+            let displayName: string;
+
+            if (u.schoolLevel === '중등') {
+                // Middle School: Keep detailed (unique per unit ID)
+                key = `mid-${u.id}`;
+                displayName = getUnitDisplayName(u);
+            } else {
+                // High School: Aggregate by Parent Category (unitName)
+                // If unitName is missing, fall back to name.
+                key = `high-${u.unitName || u.name}`;
+                // Prepend grade to the aggregated parent name as well
+                displayName = `${u.grade}/${u.unitName || u.name}`;
+            }
+
+            if (!map.has(key)) {
+                map.set(key, {
+                    id: key,
+                    name: displayName,
+                    errors: { C: 0, M: 0, R: 0, S: 0 }
+                });
+            }
+
+            const entry = map.get(key)!;
+            entry.errors.C += u.errors.C;
+            entry.errors.M += u.errors.M;
+            entry.errors.R += u.errors.R;
+            entry.errors.S += u.errors.S;
+        });
+
+        return Array.from(map.values());
+    }, [units]);
+
+    // 1. Data Prep for Bar Chart (use aggregatedData)
+    const barData = aggregatedData.map(u => ({
+        name: u.name,
         C: u.errors.C,
         M: u.errors.M,
         R: u.errors.R,
@@ -60,7 +99,14 @@ export default function AnalysisClient({ units }: AnalysisClientProps) {
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={barData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
+                                    <XAxis
+                                        dataKey="name"
+                                        fontSize={12}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        interval={0}
+                                        tickFormatter={(val) => val.length > 12 ? `${val.slice(0, 12)}...` : val}
+                                    />
                                     <YAxis fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                                     <Tooltip
                                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
@@ -139,11 +185,11 @@ export default function AnalysisClient({ units }: AnalysisClientProps) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {units.length > 0 ? units.map(u => {
+                        {aggregatedData.length > 0 ? aggregatedData.map(u => {
                             const sum = u.errors.C + u.errors.M + u.errors.R + u.errors.S;
                             return (
                                 <tr key={u.id} className="hover:bg-gray-50">
-                                    <td className="p-4 font-medium text-gray-900">{getUnitDisplayName(u)}</td>
+                                    <td className="p-4 font-medium text-gray-900">{u.name}</td>
                                     <td className="p-4 text-center">{u.errors.C || '-'}</td>
                                     <td className="p-4 text-center">{u.errors.M || '-'}</td>
                                     <td className="p-4 text-center">{u.errors.R || '-'}</td>
