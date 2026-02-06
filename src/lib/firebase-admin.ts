@@ -2,6 +2,11 @@ import * as admin from "firebase-admin";
 
 if (!admin.apps.length) {
     try {
+        console.log("DEBUG: Initializing Firebase Admin");
+        console.log("DEBUG: FIREBASE_PROJECT_ID exists:", !!process.env.FIREBASE_PROJECT_ID);
+        console.log("DEBUG: FIREBASE_CLIENT_EMAIL exists:", !!process.env.FIREBASE_CLIENT_EMAIL);
+        console.log("DEBUG: FIREBASE_PRIVATE_KEY exists:", !!process.env.FIREBASE_PRIVATE_KEY);
+
         admin.initializeApp({
             credential: admin.credential.cert({
                 projectId: process.env.FIREBASE_PROJECT_ID,
