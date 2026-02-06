@@ -12,7 +12,7 @@ export async function getUnits(userId: number) {
         return units.map((u: any) => ({
             id: u.id,
             name: u.name,
-            unitName: u.name, // Map name to unitName
+            unitName: u.unitName, // Correctly map unitName from service
             schoolLevel: u.schoolLevel || '고등', // Default or from DB
             grade: u.grade,
             subject: u.subject || '수학', // Default subject

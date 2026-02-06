@@ -35,45 +35,41 @@ export function StudentStats({ stats }: StudentStatsProps) {
     };
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">최근 접속 시간</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-sm">{formatDate(stats.recentLogin || "")}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        마지막 활동 시각
-                    </p>
-                </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 min-[510px]:grid-cols-3 gap-3 mb-4">
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between gap-1">
+                <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">최근 접속 시간</p>
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <div>
+                    <p className="text-sm font-bold text-gray-900">{formatDate(stats.recentLogin || "")}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">마지막 활동 시각</p>
+                </div>
+            </div>
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">다음 수업 일정</CardTitle>
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold text-sm tracking-tight">{formatSchedule(stats.nextClass)}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between gap-1">
+                <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">다음 수업 일정</p>
+                    <Calendar className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <div>
+                    <p className="text-sm font-bold text-gray-900 tracking-tight">{formatSchedule(stats.nextClass)}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
                         {stats.nextClass ? "잊지 말고 참석하세요!" : "일정이 잡히면 알려드릴게요"}
                     </p>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">이번 달 접속</CardTitle>
-                    <Hash className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats.monthlyLoginCount}회</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        꾸준한 학습이 중요합니다
-                    </p>
-                </CardContent>
-            </Card>
+            <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between gap-1">
+                <div className="flex items-center justify-between">
+                    <p className="text-xs text-gray-500">이번 달 접속</p>
+                    <Hash className="h-3 w-3 text-muted-foreground" />
+                </div>
+                <div>
+                    <p className="text-sm font-bold text-gray-900">{stats.monthlyLoginCount}회</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">꾸준한 학습이 중요합니다</p>
+                </div>
+            </div>
         </div>
     );
 }

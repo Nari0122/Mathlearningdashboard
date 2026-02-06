@@ -332,7 +332,7 @@ export default function AdminIncorrectNotesClient({ notes, studentId }: AdminInc
                                 </div>
                             </CardHeader>
                             <CardContent className="pt-1">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-2 gap-3 md:gap-6">
                                     <div className="space-y-2">
                                         <h4 className="text-sm font-semibold text-gray-700">문제 메모</h4>
                                         <div className="bg-yellow-50/50 p-4 rounded-lg border border-yellow-100 min-h-[100px] text-sm text-gray-700 whitespace-pre-wrap">

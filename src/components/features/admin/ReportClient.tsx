@@ -141,21 +141,21 @@ export default function ReportClient({ units, studentName, learningRecords }: Re
                 <p className="text-gray-500 mt-1">{studentName} 학생의 학습 패턴과 성취도를 분석한 리포트입니다.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 min-[510px]:grid-cols-3 gap-3">
                 {patterns.map((p) => (
-                    <div key={p.label} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                    <div key={p.label} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between gap-2">
                         <div>
-                            <p className="text-sm text-gray-500 mb-1">{p.label}</p>
-                            <p className="text-2xl font-bold text-gray-900">{p.value}</p>
+                            <p className="text-xs text-gray-500 mb-0.5">{p.label}</p>
+                            <p className="text-base font-bold text-gray-900">{p.value}</p>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${p.color}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap ${p.color}`}>
                             {p.status}
                         </span>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {/* Improvement Points */}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
                     <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
