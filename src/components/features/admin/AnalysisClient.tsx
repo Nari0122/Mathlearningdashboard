@@ -492,7 +492,7 @@ export default function AnalysisClient({ units }: AnalysisClientProps) {
                             )
                         }) : (
                             <div className="col-span-full text-center py-12 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                {searchTerm ? "검색 결과가 없습니다." : "데이터가 없습니다."}
+                                데이터가 없습니다.
                             </div>
                         )}
                     </div>
