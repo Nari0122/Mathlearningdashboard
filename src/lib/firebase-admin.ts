@@ -4,12 +4,11 @@ if (!admin.apps.length) {
     try {
         console.log("DEBUG: Initializing Firebase Admin");
 
-        // Debugging: Dump ALL keys (names only) to find the ghost variable
-        console.log("DEBUG: ALL Env Keys:", JSON.stringify(Object.keys(process.env)));
+        // Debugging: Find any key that looks like project_id to catch typos
+        console.log("DEBUG: Keys containing PROJECT_ID:", JSON.stringify(Object.keys(process.env).filter(key => key.includes('PROJECT_ID'))));
+        console.log("DEBUG: Keys containing FIREBASE:", JSON.stringify(Object.keys(process.env).filter(key => key.includes('FIREBASE'))));
 
         console.log("DEBUG: FIREBASE_PROJECT_ID exists:", !!process.env.FIREBASE_PROJECT_ID);
-        console.log("DEBUG: FIREBASE_CLIENT_EMAIL exists:", !!process.env.FIREBASE_CLIENT_EMAIL);
-        console.log("DEBUG: FIREBASE_PRIVATE_KEY exists:", !!process.env.FIREBASE_PRIVATE_KEY);
 
         admin.initializeApp({
             credential: admin.credential.cert({
