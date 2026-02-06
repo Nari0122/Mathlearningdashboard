@@ -453,49 +453,49 @@ export default function AnalysisClient({ units }: AnalysisClientProps) {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Unified Unit Details Grid (Replaces separate Table/List) */}
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-4">단원별 상세 분석</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {sortedUnits.length > 0 ? sortedUnits.map(u => {
-                            const sum = u.errors.C + u.errors.M + u.errors.R + u.errors.S;
-                            return (
-                                <div key={u.id} className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <p className="text-sm font-bold text-gray-900 flex-1 mr-2 break-keep leading-tight">
-                                            {getDetailedUnitName(u)}
-                                        </p>
-                                        <span className="px-2 py-0.5 bg-white border border-gray-200 rounded-md text-xs font-bold text-gray-700 whitespace-nowrap shadow-sm">
-                                            {sum}건
-                                        </span>
+            {/* Unified Unit Details Grid (Replaces separate Table/List) - Visible on ALL screens */}
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="text-sm md:text-base font-semibold text-gray-900 mb-4">단원별 상세 분석</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {sortedUnits.length > 0 ? sortedUnits.map(u => {
+                        const sum = u.errors.C + u.errors.M + u.errors.R + u.errors.S;
+                        return (
+                            <div key={u.id} className="p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                <div className="flex justify-between items-start mb-2">
+                                    <p className="text-sm font-bold text-gray-900 flex-1 mr-2 break-keep leading-tight">
+                                        {getDetailedUnitName(u)}
+                                    </p>
+                                    <span className="px-2 py-0.5 bg-white border border-gray-200 rounded-md text-xs font-bold text-gray-700 whitespace-nowrap shadow-sm">
+                                        {sum}건
+                                    </span>
+                                </div>
+                                <div className="grid grid-cols-4 gap-2 text-center">
+                                    <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                                        <span className="text-[10px] text-gray-500 mb-0.5">개념</span>
+                                        <span className="text-sm font-bold text-blue-600">{u.errors.C}</span>
                                     </div>
-                                    <div className="grid grid-cols-4 gap-2 text-center">
-                                        <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
-                                            <span className="text-[10px] text-gray-500 mb-0.5">개념</span>
-                                            <span className="text-sm font-bold text-blue-600">{u.errors.C}</span>
-                                        </div>
-                                        <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
-                                            <span className="text-[10px] text-gray-500 mb-0.5">계산</span>
-                                            <span className="text-sm font-bold text-red-600">{u.errors.M}</span>
-                                        </div>
-                                        <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
-                                            <span className="text-[10px] text-gray-500 mb-0.5">독해</span>
-                                            <span className="text-sm font-bold text-orange-600">{u.errors.R}</span>
-                                        </div>
-                                        <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
-                                            <span className="text-[10px] text-gray-500 mb-0.5">전략</span>
-                                            <span className="text-sm font-bold text-purple-600">{u.errors.S}</span>
-                                        </div>
+                                    <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                                        <span className="text-[10px] text-gray-500 mb-0.5">계산</span>
+                                        <span className="text-sm font-bold text-red-600">{u.errors.M}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                                        <span className="text-[10px] text-gray-500 mb-0.5">독해</span>
+                                        <span className="text-sm font-bold text-orange-600">{u.errors.R}</span>
+                                    </div>
+                                    <div className="flex flex-col items-center bg-white p-2 rounded-lg border border-gray-100 shadow-sm">
+                                        <span className="text-[10px] text-gray-500 mb-0.5">전략</span>
+                                        <span className="text-sm font-bold text-purple-600">{u.errors.S}</span>
                                     </div>
                                 </div>
-                            )
-                        }) : (
-                            <div className="col-span-full text-center py-12 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                데이터가 없습니다.
                             </div>
-                        )}
-                    </div>
+                        )
+                    }) : (
+                        <div className="col-span-full text-center py-12 text-gray-400 text-sm bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            데이터가 없습니다.
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
