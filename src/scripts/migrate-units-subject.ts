@@ -12,8 +12,14 @@ import { adminDb } from '../lib/firebase-admin';
 async function migrateUnitsSubject() {
     console.log('🚀 Starting units subject migration...\n');
 
+    const db = adminDb;
+    if (!db) {
+        console.error('❌ Firebase Admin not initialized. Check FIREBASE_* env vars.');
+        process.exit(1);
+    }
+
     try {
-        const studentsSnapshot = await adminDb.collection('students').get();
+        const studentsSnapshot = await db.collection('students').get();
 
         for (const studentDoc of studentsSnapshot.docs) {
             const studentData = studentDoc.data();

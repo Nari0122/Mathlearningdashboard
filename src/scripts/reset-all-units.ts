@@ -25,8 +25,14 @@ async function resetAllUnits() {
         process.exit(1);
     }
 
+    const db = adminDb;
+    if (!db) {
+        console.error('❌ Firebase Admin not initialized. Check FIREBASE_* env vars.');
+        process.exit(1);
+    }
+
     try {
-        const studentsSnapshot = await adminDb.collection('students').get();
+        const studentsSnapshot = await db.collection('students').get();
         let totalDeleted = 0;
 
         for (const studentDoc of studentsSnapshot.docs) {
@@ -38,7 +44,7 @@ async function resetAllUnits() {
             const unitsSnapshot = await studentDoc.ref.collection('units').get();
 
             if (!unitsSnapshot.empty) {
-                const batch = adminDb.batch();
+                const batch = db.batch();
                 let count = 0;
 
                 for (const unitDoc of unitsSnapshot.docs) {
