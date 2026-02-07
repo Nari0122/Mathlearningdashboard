@@ -5,6 +5,7 @@ const PARENTS_COLLECTION = "parents";
 
 export const parentService = {
     async getParentByUid(uid: string): Promise<{ uid: string; studentIds?: number[]; [key: string]: unknown } | null> {
+        if (!adminDb) return null;
         try {
             const doc = await adminDb.collection(PARENTS_COLLECTION).doc(uid).get();
             if (!doc.exists) return null;
@@ -24,6 +25,7 @@ export const parentService = {
         studentPhone: string,
         parentPhone: string
     ): Promise<{ id: number; name: string; [key: string]: unknown } | null> {
+        if (!adminDb) return null;
         try {
             const snapshot = await adminDb
                 .collection("students")
@@ -43,6 +45,7 @@ export const parentService = {
 
     /** 학부모 문서의 studentIds 배열에 학생 id 추가 (중복 시 무시) */
     async addStudentIdToParent(parentUid: string, studentId: number): Promise<{ success: true } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
         try {
             const ref = adminDb.collection(PARENTS_COLLECTION).doc(parentUid);
             await ref.update({
@@ -60,6 +63,7 @@ export const parentService = {
         name?: string | null;
         image?: string | null;
     }): Promise<{ success: true } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
         try {
             await adminDb
                 .collection(PARENTS_COLLECTION)

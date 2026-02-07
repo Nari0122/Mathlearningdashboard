@@ -14,5 +14,6 @@ if (!admin.apps.length) {
     }
 }
 
-export const adminDb = admin.firestore();
+/** 초기화 성공 시에만 Firestore 인스턴스. 실패 시 null (서버 예외 방지) */
+export const adminDb: admin.firestore.Firestore | null = admin.apps.length > 0 ? admin.firestore() : null;
 export { admin };

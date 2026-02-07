@@ -2,6 +2,7 @@ import { adminDb } from "@/lib/firebase-admin";
 
 // Internal helper to find student document by numeric ID
 async function getStudentDocRef(studentId: number) {
+    if (!adminDb) return null;
     const snapshot = await adminDb.collection("students").where("id", "==", studentId).limit(1).get();
     if (snapshot.empty) return null;
     return snapshot.docs[0].ref;
@@ -144,6 +145,7 @@ export const learningService = {
 
     // Helper for "flat" API actions that don't pass studentId
     async findUnitRefGlobally(unitId: number) {
+        if (!adminDb) return null;
         // Optimization: Use collectionGroup to search across all 'units' sub-collections 
         // Note: This requires a Firestore index. If not indexed, it will provide a link to create one in console.
         const snapshot = await adminDb.collectionGroup("units").where("id", "==", unitId).limit(1).get();

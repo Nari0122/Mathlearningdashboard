@@ -3,6 +3,7 @@ import { Student } from "@/types";
 
 // Internal helper to find Firestore document ID by numeric ID field
 async function getDocRefByNumericId(collection: string, numericId: number) {
+    if (!adminDb) return null;
     const snapshot = await adminDb.collection(collection).where("id", "==", numericId).limit(1).get();
     if (snapshot.empty) return null;
     return snapshot.docs[0].ref;
@@ -10,6 +11,7 @@ async function getDocRefByNumericId(collection: string, numericId: number) {
 
 // Internal helper to get next available numeric ID
 async function getNextNumericId(collection: string) {
+    if (!adminDb) return 1;
     const snapshot = await adminDb.collection(collection).orderBy("id", "desc").limit(1).get();
     if (snapshot.empty) return 1;
     const data = snapshot.docs[0].data();
@@ -18,6 +20,7 @@ async function getNextNumericId(collection: string) {
 
 export const studentService = {
     async getStudents() {
+        if (!adminDb) return [];
         try {
             const snapshot = await adminDb.collection("students").orderBy("createdAt", "desc").get();
             return snapshot.docs.map(doc => {
@@ -31,6 +34,7 @@ export const studentService = {
     },
 
     async getFirstStudent() {
+        if (!adminDb) return null;
         try {
             const snapshot = await adminDb.collection("students").where("status", "==", "active").limit(1).get();
             if (snapshot.empty) {
@@ -48,6 +52,7 @@ export const studentService = {
 
     /** 카카오 로그인: doc ID = 카카오 uid. 문서 존재 여부·approvalStatus 확인용 */
     async getStudentByUid(uid: string): Promise<{ id: number; [key: string]: unknown } | null> {
+        if (!adminDb) return null;
         try {
             const doc = await adminDb.collection("students").doc(uid).get();
             if (!doc.exists) return null;
@@ -63,6 +68,7 @@ export const studentService = {
         uid: string,
         data: Record<string, unknown>
     ): Promise<{ success: true; id: number } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
         try {
             const nextId = await getNextNumericId("students");
             const approvalStatus = (data.approvalStatus as string) ?? "PENDING";
@@ -83,7 +89,7 @@ export const studentService = {
 
     /** 여러 학생 id에 대한 id·이름 목록 (자녀 목록 등) */
     async getStudentsByIds(ids: number[]): Promise<{ id: number; name: string }[]> {
-        if (ids.length === 0) return [];
+        if (ids.length === 0 || !adminDb) return [];
         try {
             const snapshot = await adminDb.collection("students").where("id", "in", ids.slice(0, 30)).get();
             return snapshot.docs.map(d => {
@@ -97,6 +103,7 @@ export const studentService = {
     },
 
     async getStudentDetail(id: number) {
+        if (!adminDb) return null;
         try {
             const snapshot = await adminDb.collection("students").where("id", "==", id).limit(1).get();
             if (snapshot.empty) return null;
@@ -119,6 +126,7 @@ export const studentService = {
     },
 
     async createStudent(data: any): Promise<{ success: true; id: number } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
         try {
             const nextId = await getNextNumericId("students");
             const approvalStatus = data.approvalStatus ?? "APPROVED"; // 카카오/회원가입은 "PENDING" 전달
@@ -138,6 +146,7 @@ export const studentService = {
     },
 
     async updateStudent(id: number, data: any) {
+        if (!adminDb) return { success: false, message: "Database not available" };
         try {
             const docRef = await getDocRefByNumericId("students", id);
             if (!docRef) return { success: false, message: "Student not found" };
@@ -151,6 +160,7 @@ export const studentService = {
     },
 
     async deleteStudent(id: number) {
+        if (!adminDb) return { success: false, message: "Student not found" };
         try {
             const docRef = await getDocRefByNumericId("students", id);
             if (!docRef) return { success: false, message: "Student not found" };
@@ -166,6 +176,9 @@ export const studentService = {
     },
 
     async getDashboardStats(studentId: number) {
+        if (!adminDb) {
+            return { recentLogin: null, nextClass: null, monthlyLoginCount: 0, persistenceRate: 100 };
+        }
         try {
             const snapshot = await adminDb.collection("students").where("id", "==", studentId).limit(1).get();
             if (snapshot.empty) return null;

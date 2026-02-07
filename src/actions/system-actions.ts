@@ -4,6 +4,9 @@ import { adminDb } from "@/lib/firebase-admin";
 import { revalidatePath } from "next/cache";
 
 export async function getSystemSettings() {
+    if (!adminDb) {
+        return { supportEmail: 'support@mathclinic.com', supportPhone: '02-1234-5678' };
+    }
     try {
         const settingsRef = adminDb.collection("systemSettings");
         const emailDoc = await settingsRef.doc("support_email").get();
@@ -23,6 +26,9 @@ export async function getSystemSettings() {
 }
 
 export async function updateSystemSettings(email: string, phone: string) {
+    if (!adminDb) {
+        return { success: false, error: "Database not available" };
+    }
     try {
         const settingsRef = adminDb.collection("systemSettings");
 
