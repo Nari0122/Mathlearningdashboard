@@ -43,6 +43,8 @@ interface UnitCardProps {
     isAdmin?: boolean;
     showDifficultySelector?: boolean;
     showStatus?: boolean;
+    /** false면 오류 +/- 버튼 숨김 (읽기 전용) */
+    showErrorChangeButtons?: boolean;
 }
 
 export function UnitCard({
@@ -57,7 +59,8 @@ export function UnitCard({
     onCompletionStatusChange,
     isAdmin = false,
     showDifficultySelector = true,
-    showStatus = true
+    showStatus = true,
+    showErrorChangeButtons = true
 }: UnitCardProps) {
     const config = getDifficultyStatusConfig(unit.selectedDifficulty);
 
@@ -138,19 +141,25 @@ export function UnitCard({
                                 </span>
                             </div>
                             <div className="flex items-center justify-center gap-3">
-                                <button
-                                    className="w-7 h-7 bg-white rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm border border-gray-100"
-                                    onClick={() => onErrorChange(unit.id, type as 'C' | 'M' | 'R' | 'S', -1)}
-                                >
-                                    <Minus size={14} className="text-gray-600" />
-                                </button>
-                                <span className="text-xl font-bold text-gray-900 w-8 text-center">{(count as number)}</span>
-                                <button
-                                    className="w-7 h-7 bg-white rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm border border-gray-100"
-                                    onClick={() => onErrorChange(unit.id, type as 'C' | 'M' | 'R' | 'S', 1)}
-                                >
-                                    <Plus size={14} className="text-gray-600" />
-                                </button>
+                                {showErrorChangeButtons ? (
+                                    <>
+                                        <button
+                                            className="w-7 h-7 bg-white rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm border border-gray-100"
+                                            onClick={() => onErrorChange(unit.id, type as 'C' | 'M' | 'R' | 'S', -1)}
+                                        >
+                                            <Minus size={14} className="text-gray-600" />
+                                        </button>
+                                        <span className="text-xl font-bold text-gray-900 w-8 text-center">{(count as number)}</span>
+                                        <button
+                                            className="w-7 h-7 bg-white rounded-md flex items-center justify-center hover:bg-gray-100 transition-colors shadow-sm border border-gray-100"
+                                            onClick={() => onErrorChange(unit.id, type as 'C' | 'M' | 'R' | 'S', 1)}
+                                        >
+                                            <Plus size={14} className="text-gray-600" />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <span className="text-xl font-bold text-gray-900">{(count as number)}</span>
+                                )}
                             </div>
                         </div>
                     );

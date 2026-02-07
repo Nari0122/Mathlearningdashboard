@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Trash } from "lucide-react";
+import { Plus, Pencil, Trash, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createExam, updateExam, deleteExam } from "@/actions/learning-actions";
 import { useRouter } from "next/navigation";
+import { useReadOnly } from "@/contexts/ReadOnlyContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface StudentExamsClientProps {
@@ -17,6 +18,7 @@ interface StudentExamsClientProps {
 
 export default function StudentExamsClient({ exams, studentId }: StudentExamsClientProps) {
     const router = useRouter();
+    const readOnly = useReadOnly();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [currentEditId, setCurrentEditId] = useState<string | null>(null);
@@ -98,8 +100,17 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">시험 성적 관리</h2>
+            <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                        <BarChart3 className="w-6 h-6 text-[#5D00E2]" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-[#2F3438]">시험 성적 관리</h2>
+                        <p className="text-sm text-[#6C727A] mt-0.5">시험별 점수와 성적 추이를 확인하세요.</p>
+                    </div>
+                </div>
+                {!readOnly && (
                 <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                     <DialogTrigger asChild>
                         <Button className="bg-blue-600 hover:bg-blue-700">
@@ -136,8 +147,10 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                )}
 
                 {/* Edit Dialog */}
+                {!readOnly && (
                 <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
                     <DialogContent>
                         <DialogHeader><DialogTitle>성적 수정</DialogTitle></DialogHeader>
@@ -169,6 +182,7 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                )}
             </div>
 
             {/* Score Trend Graph */}
@@ -219,13 +233,13 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
                             <th className="p-4 font-medium text-gray-500">시험명</th>
                             <th className="p-4 font-medium text-gray-500">점수</th>
                             <th className="p-4 font-medium text-gray-500">날짜</th>
-                            <th className="p-4 font-medium text-gray-500 text-right">관리</th>
+                            {!readOnly && <th className="p-4 font-medium text-gray-500 text-right">관리</th>}
                         </tr>
                     </thead>
                     <tbody>
                         {exams.length === 0 ? (
                             <tr>
-                                <td colSpan={4} className="p-8 text-center text-gray-400">
+                                <td colSpan={readOnly ? 3 : 4} className="p-8 text-center text-gray-400">
                                     등록된 시험 성적이 없습니다.
                                 </td>
                             </tr>
@@ -235,6 +249,7 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
                                     <td className="p-4 font-medium text-gray-900">{exam.examType}</td>
                                     <td className="p-4 font-bold text-blue-600">{exam.score}점</td>
                                     <td className="p-4 text-gray-500">{exam.date}</td>
+                                    {!readOnly && (
                                     <td className="p-4 text-right flex justify-end gap-2">
                                         <Button variant="ghost" size="sm" onClick={() => handleEditClick(exam)}>
                                             <Pencil className="w-4 h-4 mr-1 text-gray-400" /> 수정
@@ -243,6 +258,7 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
                                             <Trash className="w-4 h-4 mr-1" /> 삭제
                                         </Button>
                                     </td>
+                                    )}
                                 </tr>
                             ))
                         )}

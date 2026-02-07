@@ -84,6 +84,68 @@ export async function deleteSchedule(id: string, studentId: number) {
     return result;
 }
 
+/** 수업 일정 연기/보강/취소/일정변경: 기존 일정 상태 변경 + (취소 제외) 신규 일정 생성 */
+export type ScheduleChangeType = "보강" | "연기" | "취소" | "일정변경";
+
+export async function postponeOrChangeSchedule(
+    studentId: number,
+    originScheduleId: string,
+    payload: {
+        changeType: ScheduleChangeType;
+        reason: string;
+        newDate?: string;
+        newStartTime?: string;
+        newEndTime?: string;
+    }
+) {
+    const origin = await learningService.getSchedule(studentId, originScheduleId) as any;
+    if (!origin || origin.isRegular) {
+        return { success: false, message: "해당 일정을 찾을 수 없거나 정규 일정은 변경할 수 없습니다." };
+    }
+
+    const { changeType, reason, newDate, newStartTime, newEndTime } = payload;
+
+    if (changeType === "취소") {
+        const result = await learningService.updateSchedule(studentId, originScheduleId, {
+            status: "CANCELLED",
+            isModified: true,
+            changeType: "취소",
+            changeReason: reason || undefined,
+        });
+        if (result.success) revalidatePath(`/admin/students/${studentId}/schedule`);
+        return result;
+    }
+
+    if (!newDate || !newStartTime || !newEndTime) {
+        return { success: false, message: "새 날짜와 시간을 입력해주세요." };
+    }
+
+    const originStatus = changeType === "연기" ? "POSTPONED" : "CHANGED";
+    const updateResult = await learningService.updateSchedule(studentId, originScheduleId, {
+        status: originStatus,
+        isModified: true,
+        changeType,
+        changeReason: reason || undefined,
+    });
+    if (!updateResult.success) return updateResult;
+
+    const createResult = await learningService.createSchedule(studentId, {
+        date: newDate,
+        startTime: newStartTime,
+        endTime: newEndTime,
+        status: "scheduled",
+        isRegular: false,
+        sessionNumber: origin.sessionNumber,
+        scheduleChangeType: changeType,
+        originScheduleId,
+        changeReason: reason || undefined,
+    });
+    if (!createResult.success) return createResult;
+
+    revalidatePath(`/admin/students/${studentId}/schedule`);
+    return { success: true };
+}
+
 export async function createHomework(studentId: number, data: { title: string; dueDate: string; assignedDate: string }) {
     const result = await learningService.createAssignment(studentId, data);
     if (result.success) {

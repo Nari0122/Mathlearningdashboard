@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Plus, FileImage, X, Trash2, Pencil } from "lucide-react";
+import { CheckCircle2, AlertCircle, Plus, FileImage, X, Trash2, Pencil, BookMarked } from "lucide-react";
 import { createIncorrectNote, deleteIncorrectNote, updateIncorrectNote, getBookTags, createBookTag } from "@/actions/learning-actions";
 import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, CURRICULUM_DATA, isMiddleSchool } from "@/lib/curriculum-data";
 import { storage } from "@/lib/firebase";
@@ -19,6 +19,7 @@ import imageCompression from "browser-image-compression";
 import { v4 as uuidv4 } from "uuid";
 import { Progress } from "@/components/ui/progress"; // Assuming shadcn Progress component exists, or I will use simple div
 import { FileText, Loader2 } from "lucide-react";
+import { useReadOnly } from "@/contexts/ReadOnlyContext";
 
 interface Attachment {
     id: string;
@@ -41,6 +42,7 @@ interface StudentIncorrectNotesClientProps {
 
 export default function StudentIncorrectNotesClient({ studentId, notes, units }: StudentIncorrectNotesClientProps) {
     const router = useRouter();
+    const readOnly = useReadOnly();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -475,8 +477,17 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold tracking-tight">오답 노트 ({filteredNotes.length})</h2>
+            <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                        <BookMarked className="w-6 h-6 text-[#5D00E2]" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-[#2F3438]">오답 노트 ({filteredNotes.length})</h2>
+                        <p className="text-sm text-[#6C727A] mt-0.5">틀린 문제를 정리하고 유형별로 복습하세요.</p>
+                    </div>
+                </div>
+                {!readOnly && (
                 <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                     <Button className="bg-blue-600 hover:bg-blue-700" onClick={handleOpenAdd}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -761,6 +772,7 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                )}
             </div>
 
             {/* Filter Section */}
@@ -961,6 +973,8 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                                         <div className="text-xs text-gray-400 whitespace-nowrap mt-2">
                                             {new Date(note.createdAt).toLocaleDateString()}
                                         </div>
+                                        {!readOnly && (
+                                        <>
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -979,6 +993,8 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
+                                        </>
+                                        )}
                                     </div>
                                 </div>
                             </CardHeader>

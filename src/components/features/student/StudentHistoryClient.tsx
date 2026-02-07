@@ -11,15 +11,13 @@ interface StudentHistoryClientProps {
 export default function StudentHistoryClient({ records }: StudentHistoryClientProps) {
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <ClipboardList className="w-6 h-6 text-indigo-600" />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">학습 기록 조회</h2>
-                        <p className="text-sm text-gray-500">지금까지의 학습 히스토리와 선생님의 피드백을 확인하세요.</p>
-                    </div>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                    <ClipboardList className="w-6 h-6 text-[#5D00E2]" />
+                </div>
+                <div>
+                    <h2 className="text-xl font-bold text-[#2F3438]">학습 기록 조회</h2>
+                    <p className="text-sm text-[#6C727A] mt-0.5">지금까지의 학습 히스토리와 선생님의 피드백을 확인하세요.</p>
                 </div>
             </div>
 

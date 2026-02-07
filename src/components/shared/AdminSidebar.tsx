@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Users, HelpCircle, LogOut, Edit2, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -17,6 +18,8 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ userName = "관리자", className }: AdminSidebarProps) {
     const pathname = usePathname();
+    const { data: session } = useSession();
+    const displayName = session?.user?.name ?? userName;
     const [settings, setSettings] = useState({ supportEmail: 'support@mathclinic.com', supportPhone: '02-1234-5678' });
     const [isEditing, setIsEditing] = useState(false);
     const [editValues, setEditValues] = useState({ supportEmail: '', supportPhone: '' });
@@ -58,12 +61,12 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
             {/* Logo Section */}
             <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center">
+                    <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center shrink-0">
                         <span className="text-xl font-bold text-white">M</span>
                     </div>
-                    <div>
-                        <h1 className="text-lg font-bold text-gray-900">MATHCLINIC</h1>
-                        <p className="text-xs text-gray-500">LAB</p>
+                    <div className="min-w-0">
+                        <h1 className="text-base font-bold text-gray-900 tracking-tight leading-tight">강나리 MATH LAB</h1>
+                        <p className="text-xs text-gray-500 mt-0.5 font-normal">admin</p>
                     </div>
                 </div>
             </div>
@@ -71,8 +74,8 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
             {/* User Info */}
             <div className="p-4 border-b border-gray-200">
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">관리자</p>
-                    <p className="text-sm font-semibold text-gray-900 truncate">{userName}</p>
+                    <p className="text-xs text-gray-500 mb-1">admin</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
                 </div>
             </div>
 
@@ -129,7 +132,7 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
                             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                                 <h3 className="font-bold text-sm mb-2 text-gray-900">내 계정 정보</h3>
                                 <div className="space-y-1 text-sm text-gray-600">
-                                    <p>이름: {userName}</p>
+                                    <p>이름: {displayName}</p>
                                     <p>권한: 관리자</p>
                                 </div>
                             </div>

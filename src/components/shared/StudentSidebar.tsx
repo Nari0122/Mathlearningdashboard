@@ -69,14 +69,18 @@ export function StudentSidebar({ className }: StudentSidebarProps) {
 
   return (
     <div className={cn("w-64 bg-white border-r border-gray-200 flex flex-col h-full", className)}>
-      <div className="p-6">
-        <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-lg">M</span>
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center shrink-0">
+            <span className="text-xl font-bold text-white">M</span>
           </div>
-          <span className="text-xl font-bold text-gray-900">MATHCLINIC</span>
+          <div className="min-w-0">
+            <h1 className="text-base font-bold text-gray-900 tracking-tight leading-tight">강나리 MATH LAB</h1>
+            <p className="text-xs text-gray-500 mt-0.5 font-normal">student</p>
+          </div>
         </div>
-
+      </div>
+      <div className="p-4 flex-1">
         <div className="space-y-1">
           {sidebarItems.map((item) => {
             const Icon = item.icon;

@@ -72,10 +72,6 @@ export function StudentManagement({ onStudentSelect }: StudentManagementProps) {
                 
                 <div className="space-y-2 mb-4">
                   <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Mail size={14} />
-                    <span>{student.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
                     <Phone size={14} />
                     <span>{student.phone}</span>
                   </div>

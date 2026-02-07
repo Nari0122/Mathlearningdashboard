@@ -9,13 +9,15 @@ import { useParams } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 
 interface StudentDashboardClientProps {
-    initialUnits: any[];
+    initialUnits?: any[];
     stats?: any | null;
     recentAssignments?: any[];
     recentRecords?: any[];
+    /** 학부모 읽기 전용 시 링크 경로 (예: /parent/student) */
+    basePath?: string;
 }
 
-export default function StudentDashboardClient({ stats, recentAssignments = [], recentRecords = [] }: StudentDashboardClientProps) {
+export default function StudentDashboardClient({ stats, recentAssignments = [], recentRecords = [], basePath = "/student" }: StudentDashboardClientProps) {
     const params = useParams();
     const id = (params?.id as string) || "";
 
@@ -32,7 +34,7 @@ export default function StudentDashboardClient({ stats, recentAssignments = [], 
                             <ClipboardList className="h-5 w-5 text-blue-600" />
                             최근 내준 숙제
                         </CardTitle>
-                        <Link href={`/student/${id}/homework`} className="text-xs text-muted-foreground flex items-center hover:text-blue-600">
+                        <Link href={`${basePath}/${id}/homework`} className="text-xs text-muted-foreground flex items-center hover:text-blue-600">
                             더보기 <ChevronRight className="h-3 w-3" />
                         </Link>
                     </CardHeader>
@@ -83,7 +85,7 @@ export default function StudentDashboardClient({ stats, recentAssignments = [], 
                             <BookOpen className="h-5 w-5 text-purple-600" />
                             최근 학습 기록
                         </CardTitle>
-                        <Link href={`/student/${id}/history`} className="text-xs text-muted-foreground flex items-center hover:text-purple-600">
+                        <Link href={`${basePath}/${id}/history`} className="text-xs text-muted-foreground flex items-center hover:text-purple-600">
                             더보기 <ChevronRight className="h-3 w-3" />
                         </Link>
                     </CardHeader>

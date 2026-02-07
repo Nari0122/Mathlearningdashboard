@@ -1,16 +1,23 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Trash, Clock, Pencil, AlertCircle } from "lucide-react";
+import { Plus, Trash, Clock, Pencil, AlertCircle, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createSchedule, deleteSchedule, updateSchedule } from "@/actions/admin-actions";
+import { createSchedule, deleteSchedule, updateSchedule, postponeOrChangeSchedule, type ScheduleChangeType } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+
+const CHANGE_TYPES: { value: ScheduleChangeType; label: string }[] = [
+    { value: "보강", label: "보강" },
+    { value: "연기", label: "연기" },
+    { value: "취소", label: "취소" },
+    { value: "일정변경", label: "일정변경" },
+];
 
 interface AdminScheduleClientProps {
     schedules: any[];
@@ -48,6 +55,15 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
     const [regularDay, setRegularDay] = useState("월요일");
     const [regularStart, setRegularStart] = useState("");
     const [regularEnd, setRegularEnd] = useState("");
+
+    // 연기/변경 팝업 (연기하기)
+    const [isPostponeOpen, setIsPostponeOpen] = useState(false);
+    const [postponeTarget, setPostponeTarget] = useState<any>(null);
+    const [changeType, setChangeType] = useState<ScheduleChangeType>("연기");
+    const [changeReason, setChangeReason] = useState("");
+    const [newDate, setNewDate] = useState("");
+    const [newStartTime, setNewStartTime] = useState("");
+    const [newEndTime, setNewEndTime] = useState("");
 
     const handleAddSession = async () => {
         if (!date || !startTime || !endTime) return;
@@ -233,12 +249,52 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
             await deleteSchedule(id, studentId);
             router.refresh();
         });
-    }
+    };
+
+    const handleOpenPostpone = (s: any) => {
+        setPostponeTarget(s);
+        setChangeType("연기");
+        setChangeReason("");
+        setNewDate(s.date || "");
+        setNewStartTime(s.startTime || "");
+        setNewEndTime(s.endTime || "");
+        setIsPostponeOpen(true);
+    };
+
+    const handlePostponeSubmit = async () => {
+        if (!postponeTarget?.id) return;
+        if (!changeReason.trim()) {
+            alert("변경 사유를 입력해주세요.");
+            return;
+        }
+        if (changeType !== "취소" && (!newDate || !newStartTime || !newEndTime)) {
+            alert("새 날짜와 시간을 입력해주세요.");
+            return;
+        }
+        startTransition(async () => {
+            const result = await postponeOrChangeSchedule(studentId, postponeTarget.id, {
+                changeType,
+                reason: changeReason.trim(),
+                newDate: changeType === "취소" ? undefined : newDate,
+                newStartTime: changeType === "취소" ? undefined : newStartTime,
+                newEndTime: changeType === "취소" ? undefined : newEndTime,
+            });
+            if (result.success) {
+                setIsPostponeOpen(false);
+                setPostponeTarget(null);
+                router.refresh();
+            } else {
+                alert(result.message || "처리 실패");
+            }
+        });
+    };
 
     const regularSchedules = schedules
         .filter((s: any) => s.isRegular)
         .sort((a: any, b: any) => DAYS.indexOf(a.dayOfWeek) - DAYS.indexOf(b.dayOfWeek));
-    const sessions = schedules.filter((s: any) => !s.isRegular);
+    const sessions = schedules
+        .filter((s: any) => !s.isRegular)
+        .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || "") || (b.startTime || "").localeCompare(a.startTime || ""));
 
     return (
         <div className="space-y-8">
@@ -320,8 +376,8 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="md:col-span-1">
                     <CardHeader><CardTitle className="text-sm text-gray-500">정규 수업 · 주 {regularSchedules.length}회</CardTitle></CardHeader>
                     <CardContent>
                         {regularSchedules.length === 0 ? (
@@ -329,9 +385,9 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                         ) : (
                             regularSchedules.map((s: any) => (
                                 <div key={s.id} className="flex justify-between items-center p-3 bg-gray-50 rounded mb-2">
-                                    <span className="font-bold text-gray-700">{s.dayOfWeek}</span>
+                                    <span className="font-bold text-gray-700 text-sm">{s.dayOfWeek}</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-900 mr-2">{s.startTime} - {s.endTime}</span>
+                                        <span className="text-xs font-medium text-gray-900 mr-2 shrink-0">{s.startTime} - {s.endTime}</span>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={() => handleEditRegular(s)}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>
@@ -345,47 +401,66 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="md:col-span-2">
                     <CardHeader><CardTitle className="text-sm text-gray-500">최근 수업 내역</CardTitle></CardHeader>
                     <CardContent>
                         {sessions.length === 0 ? (
                             <p className="text-sm text-gray-400">수업 내역이 없습니다.</p>
                         ) : (
-                            sessions.map((s: any) => (
-                                <div key={s.id} className="flex justify-between items-center p-3 border-b last:border-0">
-                                    <div>
+                            sessions.map((s: any) => {
+                                const isModified = s.isModified || s.status === "POSTPONED" || s.status === "CHANGED" || s.status === "CANCELLED";
+                                const hasChangeBadge = s.scheduleChangeType;
+                                return (
+                                    <div
+                                        key={s.id}
+                                        className={`flex justify-between items-center p-3 border-b last:border-0 ${isModified ? "opacity-70" : ""}`}
+                                    >
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {hasChangeBadge && (
+                                                    <Badge className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-full">
+                                                        {s.scheduleChangeType}
+                                                    </Badge>
+                                                )}
+                                                <div className={isModified ? "line-through text-gray-500" : "font-bold"}>{s.date}</div>
+                                                {s.sessionNumber && (
+                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                                        {s.sessionNumber}회차
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-gray-400">
+                                                {(() => {
+                                                    if (s.status === "CANCELLED") return "취소됨";
+                                                    if (s.status === "POSTPONED") return "연기됨";
+                                                    if (s.status === "CHANGED") return "일정 변경됨";
+                                                    const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
+                                                    const now = new Date();
+                                                    const isPassed = now > scheduleEnd;
+                                                    if (s.status === "cancelled") return "취소됨";
+                                                    if (s.status === "completed" || isPassed) return "수업 완료";
+                                                    if (s.status === "scheduled") return "예정됨";
+                                                    return s.status;
+                                                })()}
+                                            </div>
+                                        </div>
                                         <div className="flex items-center gap-2">
-                                            <div className="font-bold">{s.date}</div>
-                                            {s.sessionNumber && (
-                                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                                    {s.sessionNumber}회차
-                                                </span>
+                                            <span className={`text-sm mr-2 ${isModified ? "line-through text-gray-500" : ""}`}>{s.startTime} - {s.endTime}</span>
+                                            {!isModified && (
+                                                <Button variant="ghost" size="sm" className="h-8 text-violet-600 hover:text-violet-700 hover:bg-violet-50" onClick={() => handleOpenPostpone(s)} title="연기/보강/취소/일정변경">
+                                                    <CalendarClock className="h-4 w-4 mr-1" /> 연기
+                                                </Button>
                                             )}
-                                        </div>
-                                        <div className="text-xs text-gray-400">
-                                            {(() => {
-                                                const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
-                                                const now = new Date();
-                                                const isPassed = now > scheduleEnd;
-
-                                                if (s.status === 'cancelled') return '취소됨';
-                                                if (s.status === 'completed' || isPassed) return '수업 완료';
-                                                if (s.status === 'scheduled') return '예정됨';
-                                                return s.status;
-                                            })()}
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={() => handleEditSession(s)}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
+                                                <Trash className="h-4 w-4" />
+                                            </Button>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm mr-2">{s.startTime} - {s.endTime}</span>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={() => handleEditSession(s)}>
-                                            <Pencil className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
-                                            <Trash className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </CardContent>
                 </Card>
@@ -496,6 +571,90 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
                             </Button>
                             <Button onClick={handleConflictForceSave} className="w-full sm:w-auto">
                                 내 입력 유지하고 저장
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* 연기/보강/취소/일정변경 팝업 */}
+                <Dialog open={isPostponeOpen} onOpenChange={setIsPostponeOpen}>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <CalendarClock className="h-5 w-5 text-violet-600" />
+                                수업 일정 연기 및 변경
+                            </DialogTitle>
+                            <DialogDescription>
+                                {postponeTarget && (
+                                    <span className="text-gray-600">
+                                        기존 일정: {postponeTarget.date} {postponeTarget.startTime} - {postponeTarget.endTime}
+                                    </span>
+                                )}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label className="text-right">변경 유형</Label>
+                                <Select value={changeType} onValueChange={(v) => setChangeType(v as ScheduleChangeType)}>
+                                    <SelectTrigger className="col-span-3">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {CHANGE_TYPES.map((t) => (
+                                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="change-reason" className="text-right">변경 사유</Label>
+                                <Input
+                                    id="change-reason"
+                                    value={changeReason}
+                                    onChange={(e) => setChangeReason(e.target.value)}
+                                    placeholder="사유 입력"
+                                    className="col-span-3"
+                                />
+                            </div>
+                            {changeType !== "취소" && (
+                                <>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="new-date" className="text-right">새 날짜</Label>
+                                        <Input
+                                            id="new-date"
+                                            type="date"
+                                            value={newDate}
+                                            onChange={(e) => setNewDate(e.target.value)}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="new-start" className="text-right">시작 시간</Label>
+                                        <Input
+                                            id="new-start"
+                                            type="time"
+                                            value={newStartTime}
+                                            onChange={(e) => setNewStartTime(e.target.value)}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="new-end" className="text-right">종료 시간</Label>
+                                        <Input
+                                            id="new-end"
+                                            type="time"
+                                            value={newEndTime}
+                                            onChange={(e) => setNewEndTime(e.target.value)}
+                                            className="col-span-3"
+                                        />
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsPostponeOpen(false)}>취소</Button>
+                            <Button onClick={handlePostponeSubmit} disabled={isPending} className="bg-violet-600 hover:bg-violet-700">
+                                {isPending ? "저장 중..." : "저장"}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

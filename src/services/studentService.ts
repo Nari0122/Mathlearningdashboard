@@ -22,10 +22,7 @@ export const studentService = {
             const snapshot = await adminDb.collection("students").orderBy("createdAt", "desc").get();
             return snapshot.docs.map(doc => {
                 const data = doc.data();
-                return {
-                    ...data,
-                    createdAt: data.createdAt
-                };
+                return { ...data, createdAt: data.createdAt };
             });
         } catch (error) {
             console.error("Firestore getStudents error:", error);
@@ -46,6 +43,56 @@ export const studentService = {
         } catch (error) {
             console.error("Firestore getFirstStudent error:", error);
             return null;
+        }
+    },
+
+    /** 카카오 로그인: doc ID = 카카오 uid. 문서 존재 여부·approvalStatus 확인용 */
+    async getStudentByUid(uid: string): Promise<{ id: number; [key: string]: unknown } | null> {
+        try {
+            const doc = await adminDb.collection("students").doc(uid).get();
+            if (!doc.exists) return null;
+            return doc.data() as { id: number; [key: string]: unknown };
+        } catch (error) {
+            console.error("Firestore getStudentByUid error:", error);
+            return null;
+        }
+    },
+
+    /** 카카오 회원가입 완료: doc ID = uid(카카오 uid), 추가정보 제출 시에만 호출 */
+    async createStudentWithDocId(
+        uid: string,
+        data: Record<string, unknown>
+    ): Promise<{ success: true; id: number } | { success: false; message: string }> {
+        try {
+            const nextId = await getNextNumericId("students");
+            const approvalStatus = (data.approvalStatus as string) ?? "PENDING";
+            const { approvalStatus: _, ...rest } = data;
+            await adminDb.collection("students").doc(uid).set({
+                ...rest,
+                id: nextId,
+                createdAt: new Date().toISOString(),
+                isActive: true,
+                approvalStatus,
+            });
+            return { success: true, id: nextId };
+        } catch (error) {
+            console.error("Firestore createStudentWithDocId error:", error);
+            return { success: false, message: "Failed to create student" };
+        }
+    },
+
+    /** 여러 학생 id에 대한 id·이름 목록 (자녀 목록 등) */
+    async getStudentsByIds(ids: number[]): Promise<{ id: number; name: string }[]> {
+        if (ids.length === 0) return [];
+        try {
+            const snapshot = await adminDb.collection("students").where("id", "in", ids.slice(0, 30)).get();
+            return snapshot.docs.map(d => {
+                const d_ = d.data();
+                return { id: d_.id as number, name: (d_.name as string) || "" };
+            });
+        } catch (error) {
+            console.error("Firestore getStudentsByIds error:", error);
+            return [];
         }
     },
 
@@ -71,16 +118,19 @@ export const studentService = {
         }
     },
 
-    async createStudent(data: any) {
+    async createStudent(data: any): Promise<{ success: true; id: number } | { success: false; message: string }> {
         try {
             const nextId = await getNextNumericId("students");
+            const approvalStatus = data.approvalStatus ?? "APPROVED"; // 카카오/회원가입은 "PENDING" 전달
+            const { approvalStatus: _, ...rest } = data;
             await adminDb.collection("students").add({
-                ...data,
+                ...rest,
                 id: nextId,
                 createdAt: new Date().toISOString(),
                 isActive: true,
+                approvalStatus,
             });
-            return { success: true };
+            return { success: true, id: nextId };
         } catch (error) {
             console.error("Firestore createStudent error:", error);
             return { success: false, message: "Failed to create student" };

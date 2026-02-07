@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock } from "lucide-react";
+import { CalendarDays, Clock, Calendar } from "lucide-react";
 
 interface StudentScheduleClientProps {
     schedules: any[];
@@ -15,12 +15,20 @@ export default function StudentScheduleClient({ schedules }: StudentScheduleClie
     const regularSchedules = schedules
         .filter((s: any) => s.isRegular)
         .sort((a: any, b: any) => DAYS.indexOf(a.dayOfWeek) - DAYS.indexOf(b.dayOfWeek));
-    const sessions = schedules.filter((s: any) => !s.isRegular);
+    const sessions = schedules
+        .filter((s: any) => !s.isRegular)
+        .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || "") || (b.startTime || "").localeCompare(a.startTime || ""));
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold">수업 일정</h1>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                    <Calendar className="w-6 h-6 text-[#5D00E2]" />
+                </div>
+                <div>
+                    <h1 className="text-xl font-bold text-[#2F3438]">수업 일정</h1>
+                    <p className="text-sm text-[#6C727A] mt-0.5">정규 수업과 수업 일정을 확인하세요.</p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -52,33 +60,44 @@ export default function StudentScheduleClient({ schedules }: StudentScheduleClie
                         {sessions.length === 0 ? (
                             <p className="text-sm text-gray-400">수업 내역이 없습니다.</p>
                         ) : (
-                            sessions.map((s: any) => (
-                                <div key={s.id} className="flex justify-between items-center p-3 border-b last:border-0">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="font-bold">{s.date}</div>
-                                            {s.sessionNumber && (
-                                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                                    {s.sessionNumber}회차
-                                                </span>
-                                            )}
+                            sessions.map((s: any) => {
+                                const isModified = s.isModified || s.status === "POSTPONED" || s.status === "CHANGED" || s.status === "CANCELLED";
+                                const hasChangeBadge = s.scheduleChangeType;
+                                return (
+                                    <div key={s.id} className={`flex justify-between items-center p-3 border-b last:border-0 ${isModified ? "opacity-70" : ""}`}>
+                                        <div>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                {hasChangeBadge && (
+                                                    <Badge className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-full text-xs">
+                                                        {s.scheduleChangeType}
+                                                    </Badge>
+                                                )}
+                                                <div className={isModified ? "line-through text-gray-500" : "font-bold"}>{s.date}</div>
+                                                {s.sessionNumber && (
+                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                                        {s.sessionNumber}회차
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-gray-400 mt-1">
+                                                {(() => {
+                                                    if (s.status === "CANCELLED") return "취소됨";
+                                                    if (s.status === "POSTPONED") return "연기됨";
+                                                    if (s.status === "CHANGED") return "일정 변경됨";
+                                                    const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
+                                                    const now = new Date();
+                                                    const isPassed = now > scheduleEnd;
+                                                    if (s.status === "cancelled") return "취소됨";
+                                                    if (s.status === "completed" || isPassed) return "수업 완료";
+                                                    if (s.status === "scheduled") return "예정됨";
+                                                    return s.status;
+                                                })()}
+                                            </div>
                                         </div>
-                                        <div className="text-xs text-gray-400 mt-1">
-                                            {(() => {
-                                                const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
-                                                const now = new Date();
-                                                const isPassed = now > scheduleEnd;
-
-                                                if (s.status === 'cancelled') return '취소됨';
-                                                if (s.status === 'completed' || isPassed) return '수업 완료';
-                                                if (s.status === 'scheduled') return '예정됨';
-                                                return s.status;
-                                            })()}
-                                        </div>
+                                        <span className={`text-sm ${isModified ? "line-through text-gray-500" : "text-gray-600"}`}>{s.startTime} - {s.endTime}</span>
                                     </div>
-                                    <span className="text-sm text-gray-600">{s.startTime} - {s.endTime}</span>
-                                </div>
-                            ))
+                                );
+                            })
                         )}
                     </CardContent>
                 </Card>

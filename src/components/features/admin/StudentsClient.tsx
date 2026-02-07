@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, MoreHorizontal, User, Phone, BookOpen, GraduationCap, Users, TrendingUp, Clock } from "lucide-react";
+import { Search, User, Phone, Users, Clock, UserCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -14,7 +14,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { createStudent, updateStudent, updateStudentStatus, deleteStudent } from "@/actions/student-actions";
+import { updateStudent, updateStudentStatus, deleteStudent, approveStudent } from "@/actions/student-actions";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Edit } from "lucide-react";
@@ -29,22 +29,8 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
-    // Add Student State
-    const [isAddOpen, setIsAddOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState({
-        name: "",
-        loginId: "",
-        password: "",
-        grade: "고1",
-        phone: "",
-        parentPhone: "",
-        parentRelation: "부",
-        schoolName: "",
-        schoolType: "일반고",
-        enrollmentDate: new Date().toISOString().split('T')[0], // Default to today
-        memo: "",
-    });
+    const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
 
     // Edit Student State
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -52,10 +38,8 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     const [editFormData, setEditFormData] = useState({
         name: "",
         loginId: "",
-        password: "",
         grade: "고1",
         phone: "",
-        email: "",
         parentPhone: "",
         parentRelation: "부",
         schoolName: "",
@@ -64,54 +48,36 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         memo: "",
     });
 
-    const filteredStudents = initialStudents.filter(s => {
-        // Status filter
+    const approvedStudents = initialStudents.filter(
+        (s: any) => s.approvalStatus !== "PENDING"
+    );
+    const pendingStudents = initialStudents.filter(
+        (s: any) => s.approvalStatus === "PENDING"
+    );
+
+    const filteredStudents = approvedStudents.filter(s => {
         if (statusFilter === "active" && !s.isActive) return false;
         if (statusFilter === "inactive" && s.isActive) return false;
-
-        // Search filter (name, loginId, phone, schoolName)
         const matchesSearch =
-            s.name.includes(searchTerm) ||
-            s.loginId.includes(searchTerm) ||
+            (s.name && s.name.includes(searchTerm)) ||
+            (s.loginId && s.loginId.includes(searchTerm)) ||
+            (s.username && String(s.username).includes(searchTerm)) ||
             (s.phone && s.phone.includes(searchTerm)) ||
             (s.schoolName && s.schoolName.includes(searchTerm));
-
         return matchesSearch;
     });
 
-    // Derived Stats
-    const totalStudents = initialStudents.length;
-    const activeStudents = initialStudents.filter(s => s.isActive).length;
+    const totalStudents = approvedStudents.length;
+    const activeStudents = approvedStudents.filter(s => s.isActive).length;
     const averageProgress = totalStudents > 0
-        ? Math.round(initialStudents.reduce((acc, s) => acc + (s.progress || 0), 0) / totalStudents)
+        ? Math.round(approvedStudents.reduce((acc, s) => acc + (s.progress || 0), 0) / totalStudents)
         : 0;
 
-    const handleCreate = async () => {
-        if (!formData.name || !formData.loginId || !formData.password) {
-            alert("필수 항목을 모두 입력해주세요.");
-            return;
-        }
-
+    const handleApprove = async (studentId: number) => {
         setIsLoading(true);
-        const res = await createStudent(formData);
+        const res = await approveStudent(studentId);
         setIsLoading(false);
-
         if (res.success) {
-            alert("학생이 등록되었습니다.");
-            setIsAddOpen(false);
-            setFormData({
-                name: "",
-                loginId: "",
-                password: "",
-                grade: "고1",
-                phone: "",
-                parentPhone: "",
-                parentRelation: "부",
-                schoolName: "",
-                schoolType: "일반고",
-                enrollmentDate: new Date().toISOString().split('T')[0],
-                memo: "",
-            });
             router.refresh();
         } else {
             alert(res.message);
@@ -123,10 +89,8 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         setEditFormData({
             name: student.name,
             loginId: student.loginId,
-            password: "",
             grade: student.grade,
             phone: student.phone,
-            email: student.email || "",
             parentPhone: student.parentPhone || "",
             parentRelation: student.parentRelation || "부",
             schoolName: student.schoolName || "",
@@ -273,128 +237,61 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                     </div>
                 </div>
 
-                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                <Dialog open={isPendingModalOpen} onOpenChange={setIsPendingModalOpen}>
                     <DialogTrigger asChild>
                         <Button className="w-full sm:w-auto h-11 px-6 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-md transition-all hover:shadow-lg">
-                            <Plus className="mr-2 h-4 w-4" />
-                            학생 등록
+                            <UserCheck className="mr-2 h-4 w-4" />
+                            승인 대기
+                            {pendingStudents.length > 0 && (
+                                <span className="ml-2 bg-amber-500 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                                    {pendingStudents.length}
+                                </span>
+                            )}
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[700px] border-none shadow-2xl overflow-y-auto max-h-[85vh]">
+                    <DialogContent className="sm:max-w-[600px] border-none shadow-2xl overflow-y-auto max-h-[85vh]">
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold">학생 신규 등록</DialogTitle>
+                            <DialogTitle className="text-xl font-bold">승인 대기 (카카오/회원가입 학생)</DialogTitle>
+                            <p className="text-sm text-gray-500">PENDING → APPROVED로 변경하면 서비스 이용이 가능합니다.</p>
                         </DialogHeader>
-                        <div className="grid gap-6 py-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="name">이름</Label>
-                                    <Input id="name" placeholder="홍길동" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="h-10" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="id">아이디</Label>
-                                    <Input id="id" placeholder="student123" value={formData.loginId} onChange={(e) => setFormData({ ...formData, loginId: e.target.value })} className="h-10" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="password">비밀번호</Label>
-                                    <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="h-10" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="enrollmentDate">등록일</Label>
-                                    <Input id="enrollmentDate" type="date" value={formData.enrollmentDate} onChange={(e) => setFormData({ ...formData, enrollmentDate: e.target.value })} className="h-10" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label>학년</Label>
-                                    <Select value={formData.grade} onValueChange={(val) => setFormData({ ...formData, grade: val })}>
-                                        <SelectTrigger className="h-10">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="중1">중1</SelectItem>
-                                            <SelectItem value="중2">중2</SelectItem>
-                                            <SelectItem value="중3">중3</SelectItem>
-                                            <SelectItem value="고1">고1</SelectItem>
-                                            <SelectItem value="고2">고2</SelectItem>
-                                            <SelectItem value="고3">고3</SelectItem>
-                                            <SelectItem value="N수">N수</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="phone">연락처</Label>
-                                    <Input id="phone" placeholder="010-0000-0000" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="h-10" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="schoolName">학교명</Label>
-                                    <Input id="schoolName" placeholder="OO고등학교" value={formData.schoolName} onChange={(e) => setFormData({ ...formData, schoolName: e.target.value })} className="h-10" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label>학교 유형</Label>
-                                    <Select value={formData.schoolType} onValueChange={(val) => setFormData({ ...formData, schoolType: val })}>
-                                        <SelectTrigger className="h-10">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="일반고">일반고</SelectItem>
-                                            <SelectItem value="자사고">자사고</SelectItem>
-                                            <SelectItem value="특목고">특목고</SelectItem>
-                                            <SelectItem value="특성화고">특성화고</SelectItem>
-                                            <SelectItem value="기타">기타</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label>학부모 연락처</Label>
-                                <div className="flex gap-2">
-                                    <Select
-                                        value={formData.parentRelation}
-                                        onValueChange={(val) => setFormData({ ...formData, parentRelation: val })}
-                                    >
-                                        <SelectTrigger className="w-[80px] h-10">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="부">부</SelectItem>
-                                            <SelectItem value="모">모</SelectItem>
-                                            <SelectItem value="조부">조부</SelectItem>
-                                            <SelectItem value="조모">조모</SelectItem>
-                                            <SelectItem value="기타">기타</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <Input
-                                        className="flex-1 h-10"
-                                        placeholder="010-0000-0000"
-                                        value={formData.parentPhone}
-                                        onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="memo">특이사항 (Memo)</Label>
-                                <Input
-                                    id="memo"
-                                    placeholder="학생에 대한 특이사항을 기록하세요."
-                                    value={formData.memo}
-                                    onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                                    className="h-20"
-                                />
-                            </div>
+                        <div className="py-4">
+                            {pendingStudents.length === 0 ? (
+                                <p className="text-gray-500 text-center py-8">승인 대기 중인 학생이 없습니다.</p>
+                            ) : (
+                                <ul className="space-y-3">
+                                    {pendingStudents.map((s: any) => (
+                                        <li
+                                            key={s.id}
+                                            className="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-200 bg-gray-50"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                                    <User className="h-5 w-5 text-gray-500" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="font-medium text-gray-900 truncate">{s.name}</p>
+                                                    <p className="text-sm text-gray-500 truncate">
+                                                        {s.schoolName || "학교 미등록"}
+                                                        {s.phone ? ` · ${s.phone}` : ""}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                size="sm"
+                                                onClick={() => handleApprove(s.id)}
+                                                disabled={isLoading}
+                                                className="flex-shrink-0 bg-blue-600 hover:bg-blue-700"
+                                            >
+                                                승인
+                                            </Button>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </div>
                         <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsAddOpen(false)} className="h-10">취소</Button>
-                            <Button onClick={handleCreate} disabled={isLoading} className="h-10 bg-blue-600 hover:bg-blue-700">
-                                {isLoading ? "등록 중..." : "등록완료"}
+                            <Button variant="outline" onClick={() => setIsPendingModalOpen(false)} className="h-10">
+                                닫기
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -481,15 +378,9 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="edit-password">비밀번호 (변경 시 입력)</Label>
-                                <Input id="edit-password" type="password" placeholder="변경하려면 입력하세요" value={editFormData.password} onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })} className="h-10" />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="edit-enrollmentDate">등록일</Label>
-                                <Input id="edit-enrollmentDate" type="date" value={editFormData.enrollmentDate} onChange={(e) => setEditFormData({ ...editFormData, enrollmentDate: e.target.value })} className="h-10" />
-                            </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-enrollmentDate">등록일</Label>
+                            <Input id="edit-enrollmentDate" type="date" value={editFormData.enrollmentDate} onChange={(e) => setEditFormData({ ...editFormData, enrollmentDate: e.target.value })} className="h-10" />
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">

@@ -4,9 +4,10 @@ import { useState, useTransition } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Clock, AlertCircle, X } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, X, PenTool } from "lucide-react";
 import { submitHomework } from "@/actions/student-actions";
 import { useRouter } from "next/navigation";
+import { useReadOnly } from "@/contexts/ReadOnlyContext";
 
 interface StudentHomeworkClientProps {
     assignments: any[];
@@ -24,6 +25,7 @@ function formatDate(dateString: string | Date | null) {
 
 export default function StudentHomeworkClient({ assignments, studentId }: StudentHomeworkClientProps) {
     const router = useRouter();
+    const readOnly = useReadOnly();
     const [isPending, startTransition] = useTransition();
 
     const handleToggleComplete = async (assignmentId: string, currentStatus: string) => {
@@ -62,7 +64,15 @@ export default function StudentHomeworkClient({ assignments, studentId }: Studen
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold">숙제 관리</h1>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                    <PenTool className="w-6 h-6 text-[#5D00E2]" />
+                </div>
+                <div>
+                    <h1 className="text-xl font-bold text-[#2F3438]">숙제 관리</h1>
+                    <p className="text-sm text-[#6C727A] mt-0.5">선생님이 내준 숙제와 제출 현황을 확인하세요.</p>
+                </div>
+            </div>
             <div className="grid grid-cols-1 gap-4">
                 {assignments.map((assignment: any) => {
                     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
@@ -83,32 +93,36 @@ export default function StudentHomeworkClient({ assignments, studentId }: Studen
                                                     <CheckCircle2 className="w-3 h-3 mr-1" />
                                                     제출 완료
                                                 </Badge>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleCancelComplete(assignment.id)}
-                                                    disabled={isPending}
-                                                    className="text-red-600 hover:text-red-700"
-                                                >
-                                                    <X className="w-4 h-4 mr-1" />
-                                                    완료 취소
-                                                </Button>
+                                                {!readOnly && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleCancelComplete(assignment.id)}
+                                                        disabled={isPending}
+                                                        className="text-red-600 hover:text-red-700"
+                                                    >
+                                                        <X className="w-4 h-4 mr-1" />
+                                                        완료 취소
+                                                    </Button>
+                                                )}
                                             </>
                                         ) : assignment.status === 'late-submitted' ? (
                                             <>
                                                 <Badge className="bg-yellow-500 hover:bg-yellow-600">
                                                     지각 제출
                                                 </Badge>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleCancelComplete(assignment.id)}
-                                                    disabled={isPending}
-                                                    className="text-red-600 hover:text-red-700"
-                                                >
-                                                    <X className="w-4 h-4 mr-1" />
-                                                    완료 취소
-                                                </Button>
+                                                {!readOnly && (
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => handleCancelComplete(assignment.id)}
+                                                        disabled={isPending}
+                                                        className="text-red-600 hover:text-red-700"
+                                                    >
+                                                        <X className="w-4 h-4 mr-1" />
+                                                        완료 취소
+                                                    </Button>
+                                                )}
                                             </>
                                         ) : (
                                             <>
@@ -121,16 +135,18 @@ export default function StudentHomeworkClient({ assignments, studentId }: Studen
                                                         마감됨
                                                     </Badge>
                                                 )}
-                                                <Button
-                                                    variant="default"
-                                                    size="sm"
-                                                    onClick={() => handleToggleComplete(assignment.id, assignment.status)}
-                                                    disabled={isPending}
-                                                    className="bg-blue-600 hover:bg-blue-700"
-                                                >
-                                                    <CheckCircle2 className="w-4 h-4 mr-1" />
-                                                    완료하기
-                                                </Button>
+                                                {!readOnly && (
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        onClick={() => handleToggleComplete(assignment.id, assignment.status)}
+                                                        disabled={isPending}
+                                                        className="bg-blue-600 hover:bg-blue-700"
+                                                    >
+                                                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                                                        완료하기
+                                                    </Button>
+                                                )}
                                             </>
                                         )}
                                     </div>

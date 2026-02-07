@@ -282,10 +282,6 @@ export function StudentDetail({
                   <span className="font-medium">{student.grade}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Mail size={14} />
-                  <span>{student.email}</span>
-                </div>
-                <div className="flex items-center gap-2">
                   <Phone size={14} />
                   <span>{student.phone}</span>
                 </div>

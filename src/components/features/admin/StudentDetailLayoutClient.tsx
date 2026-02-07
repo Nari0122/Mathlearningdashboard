@@ -33,10 +33,8 @@ export default function StudentDetailLayoutClient({
     const [editFormData, setEditFormData] = useState({
         name: student.name,
         loginId: student.loginId,
-        password: "",
         grade: student.grade || "고1",
         phone: student.phone || "",
-        email: student.email || "",
         parentPhone: student.parentPhone || "",
         parentRelation: student.parentRelation || "부",
         schoolName: student.schoolName || "",
@@ -72,7 +70,7 @@ export default function StudentDetailLayoutClient({
     ];
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
             {/* Header with Back Button and Student Info */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -98,26 +96,9 @@ export default function StudentDetailLayoutClient({
                             <DialogTitle className="text-2xl font-bold">학생 정보 수정</DialogTitle>
                         </DialogHeader>
                         <div className="grid gap-6 py-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-name">이름</Label>
-                                    <Input id="edit-name" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="h-10" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-id">아이디</Label>
-                                    <Input id="edit-id" value={editFormData.loginId} onChange={(e) => setEditFormData({ ...editFormData, loginId: e.target.value })} className="h-10" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-password">비밀번호 (변경 시 입력)</Label>
-                                    <Input id="edit-password" type="password" placeholder="변경하려면 입력하세요" value={editFormData.password} onChange={(e) => setEditFormData({ ...editFormData, password: e.target.value })} className="h-10" />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="edit-enrollmentDate">등록일</Label>
-                                    <Input id="edit-enrollmentDate" type="date" value={editFormData.enrollmentDate} onChange={(e) => setEditFormData({ ...editFormData, enrollmentDate: e.target.value })} className="h-10" />
-                                </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="edit-name">이름</Label>
+                                <Input id="edit-name" value={editFormData.name} onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })} className="h-10" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
@@ -226,7 +207,7 @@ export default function StudentDetailLayoutClient({
                                 key={tab.href}
                                 href={tab.href}
                                 className={cn(
-                                    "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors",
+                                    "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors",
                                     isActive
                                         ? "border-blue-500 text-blue-600"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -239,8 +220,8 @@ export default function StudentDetailLayoutClient({
                 </nav>
             </div>
 
-            {/* Content */}
-            <div className="py-4">
+            {/* Content - 상단 여백 최소화 (탭과 페이지 제목 사이) */}
+            <div className="pt-2 pb-4">
                 {children}
             </div>
         </div>

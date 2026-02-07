@@ -12,10 +12,8 @@ export async function getStudents() {
 interface CreateStudentData {
     name: string;
     loginId: string;
-    password: string;
     grade: string;
     phone: string;
-    email?: string;
     parentPhone?: string;
     parentRelation?: string;
     enrollmentDate?: string;
@@ -46,13 +44,20 @@ export async function updateStudentStatus(userId: number, isActive: boolean) {
     return result;
 }
 
+/** 카카오/회원가입 학생 승인: PENDING → APPROVED */
+export async function approveStudent(studentId: number) {
+    const result = await studentService.updateStudent(studentId, { approvalStatus: "APPROVED" } as any);
+    if (result.success) {
+        revalidatePath("/admin/students");
+    }
+    return result;
+}
+
 export interface UpdateStudentData {
     name: string;
     loginId: string;
-    password?: string;
     grade: string;
     phone: string;
-    email?: string;
     parentPhone?: string;
     parentRelation?: string;
     enrollmentDate?: string;

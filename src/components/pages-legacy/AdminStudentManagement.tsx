@@ -183,12 +183,6 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
                         <span className="font-medium text-gray-700">ID:</span>
                         <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">{student.loginId}</span>
                       </div>
-                      {student.email && (
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Mail size={14} />
-                          <span>{student.email}</span>
-                        </div>
-                      )}
                       {student.phone && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <Phone size={14} />

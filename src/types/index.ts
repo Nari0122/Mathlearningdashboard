@@ -37,7 +37,6 @@ export interface Student {
     name: string;
     grade: string;
     class?: string;
-    email: string;
     phone: string;
     loginId: string;
     progress: number;
