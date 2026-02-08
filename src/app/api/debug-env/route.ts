@@ -22,10 +22,13 @@ export async function GET() {
     const authRelatedKeys = Object.keys(process.env).filter(
         (k) => k.includes("AUTH") || k.includes("SECRET") || k.includes("NEXTAUTH")
     );
+    const nextAuthUrl = process.env.NEXTAUTH_URL ?? "";
+    const urlOk = nextAuthUrl.startsWith("https://") && !nextAuthUrl.includes("localhost");
     return NextResponse.json({
         NEXTAUTH_SECRET_exists: hasEvalSecret,
         AUTH_SECRET_exists: hasEvalAuthSecret,
         getNextAuthSecret_hasValue: fromGetNextAuthSecret,
         authRelatedEnvKeys: authRelatedKeys,
+        NEXTAUTH_URL_isProduction: urlOk,
     });
 }

@@ -13,6 +13,7 @@ const ERROR_MESSAGES: Record<string, string> = {
     OAuthCreateAccount: "계정 생성에 실패했습니다.",
     Callback: "로그인 처리 중 오류가 발생했습니다.",
     Configuration: "서버 설정에 문제가 있습니다. (NEXTAUTH_SECRET, NEXTAUTH_URL 확인)",
+    AccessDenied: "로그인 접근이 거부되었습니다.",
     Default: "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
 };
 
@@ -21,7 +22,9 @@ const KAKAO_SIGNIN_URL = "/api/auth/signin/kakao?callbackUrl=" + encodeURICompon
 function LoginContent() {
     const searchParams = useSearchParams();
     const errorCode = searchParams.get("error") || undefined;
-    const errorMessage = errorCode ? (ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.Default) : null;
+    const errorMessage = errorCode
+        ? (ERROR_MESSAGES[errorCode] ?? `${ERROR_MESSAGES.Default} (코드: ${errorCode})`)
+        : null;
 
     return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
