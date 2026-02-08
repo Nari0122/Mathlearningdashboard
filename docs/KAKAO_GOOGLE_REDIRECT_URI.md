@@ -75,3 +75,26 @@ http://localhost:3000/api/auth/callback/google
 5. **카카오 Redirect URI 등록**
    - [카카오 디벨로퍼스](https://developers.kakao.com) → 내 애플리케이션 → 카카오 로그인
    - `https://(실제도메인)/api/auth/callback/kakao` 추가
+
+---
+
+## Vercel에서 `NO_SECRET` (Please define a secret in production) 오류 시
+
+**원인**: `NEXTAUTH_SECRET`이 코드에서 `undefined`로 고정됨. Next.js가 빌드 시 `process.env.NEXTAUTH_SECRET`를 인라인하는데, 그 시점에 값이 없으면 `undefined`가 번들에 박힘.
+
+**확인·해결 절차**:
+
+1. **환경(Environment) scope 확인**
+   - Production URL로 접속 중이라면 → `NEXTAUTH_SECRET`이 **Production**에 체크되어 있는지 확인
+   - Preview URL(PR, 브랜치 배포)로 접속 중이라면 → **Preview**에도 `NEXTAUTH_SECRET` 설정 필요
+
+2. **Vercel System Environment Variables 노출 여부**
+   - Project Settings → Environment Variables
+   - **"Automatically expose System Environment Variables"** 체크 여부 확인 (NextAuth 권장)
+
+3. **`AUTH_SECRET` 별칭 시도**
+   - NextAuth는 `NEXTAUTH_SECRET` 외에 `AUTH_SECRET`도 인식함
+   - `AUTH_SECRET` 이름으로 동일한 값을 추가해 보기
+
+4. **빌드 캐시 무시 후 재배포**
+   - Deployments → 최신 배포 ⋮ → **Redeploy** 시 **"Clear Build Cache"** 옵션 체크

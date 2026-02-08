@@ -180,6 +180,6 @@ export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext)
             error: "/auth/error",
         },
         session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
-        secret: process.env.NEXTAUTH_SECRET,
+        // secret: NEXTAUTH_SECRET env를 NextAuth가 자동으로 읽음. 명시적으로 undefined 전달 시 NO_SECRET 오류 발생하므로 생략.
     };
 }

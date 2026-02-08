@@ -1,14 +1,26 @@
 import * as admin from "firebase-admin";
 
+/** Vercel 등에서 복사 시 앞뒤 줄바꿈·공백 제거 (illegal characters 오류 방지) */
+function trimEnv(value: string | undefined): string {
+    return (value ?? "").trim();
+}
+
 if (!admin.apps.length) {
     try {
-        admin.initializeApp({
-            credential: admin.credential.cert({
-                projectId: process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "nari-math-flow",
-                clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-                privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-            }),
-        });
+        const projectId = trimEnv(process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID) || "nari-math-flow";
+        const clientEmail = trimEnv(process.env.FIREBASE_CLIENT_EMAIL);
+        const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
+        const privateKey = privateKeyRaw ? trimEnv(privateKeyRaw.replace(/\\n/g, "\n")) : undefined;
+
+        if (projectId && clientEmail && privateKey) {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId,
+                    clientEmail,
+                    privateKey,
+                }),
+            });
+        }
     } catch (error) {
         console.error("Firebase admin initialization error", error);
     }
