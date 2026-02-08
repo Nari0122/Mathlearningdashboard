@@ -3,6 +3,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -16,8 +17,6 @@ const ERROR_MESSAGES: Record<string, string> = {
     AccessDenied: "로그인 접근이 거부되었습니다.",
     Default: "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
 };
-
-const KAKAO_SIGNIN_URL = "/api/auth/signin/kakao?callbackUrl=" + encodeURIComponent("/api/auth/success");
 
 function LoginContent() {
     const searchParams = useSearchParams();
@@ -53,8 +52,12 @@ function LoginContent() {
                                 <span>{errorMessage}</span>
                             </div>
                         )}
-                        <Button asChild className="w-full h-12 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-medium">
-                            <Link href={KAKAO_SIGNIN_URL}>카카오로 계속하기</Link>
+                        <Button
+                            type="button"
+                            className="w-full h-12 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-medium"
+                            onClick={() => signIn("kakao", { callbackUrl: "/api/auth/success" })}
+                        >
+                            카카오로 로그인하기
                         </Button>
                         <Button asChild variant="outline" className="w-full h-12 font-medium">
                             <Link href="/signup">회원가입</Link>
