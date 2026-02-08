@@ -8,7 +8,7 @@ import { studentService } from "@/services/studentService";
 import { parentService } from "@/services/parentService";
 import { userService } from "@/services/userService";
 
-export { AUTH_SIGNUP_ROLE_COOKIE, AUTH_ADMIN_LOGIN_FLOW_COOKIE, getHomePathByRole };
+export { AUTH_SIGNUP_ROLE_COOKIE, AUTH_ADMIN_LOGIN_FLOW_COOKIE, getHomePathByRole, getNextAuthSecret };
 
 /** signIn에서 반환한 URL을 redirect 콜백에서 사용 */
 let pendingSignInRedirectUrl: string | null = null;
@@ -188,7 +188,18 @@ export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext)
     };
 }
 
-/** 런타임에 env에서 읽음 (빌드 시 인라인 회피). NEXTAUTH_SECRET 또는 AUTH_SECRET 사용 */
+/**
+ * 런타임에 env에서 읽음.
+ * Next.js/webpack이 process.env.X를 빌드 시 정적 치환해, Vercel 런타임 env를 사용 못하는 문제 회피.
+ * require('process').env는 DefinePlugin 치환 대상이 아니어서 런타임 process.env를 그대로 참조함.
+ */
 function getNextAuthSecret(): string | undefined {
-    return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || undefined;
+    try {
+        const proc = typeof require !== "undefined" ? require("process") : process;
+        const env = proc?.env ?? {};
+        const v = env.NEXTAUTH_SECRET || env.AUTH_SECRET;
+        return typeof v === "string" && v.trim() ? v.trim() : undefined;
+    } catch {
+        return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || undefined;
+    }
 }

@@ -80,7 +80,7 @@ http://localhost:3000/api/auth/callback/google
 
 ## Vercel에서 `NO_SECRET` (Please define a secret in production) 오류 시
 
-**원인**: `NEXTAUTH_SECRET`이 코드에서 `undefined`로 고정됨. Next.js가 빌드 시 `process.env.NEXTAUTH_SECRET`를 인라인하는데, 그 시점에 값이 없으면 `undefined`가 번들에 박힘.
+**원인**: `NEXTAUTH_SECRET`이 코드에서 `undefined`로 고정됨. Next.js/webpack이 빌드 시 `process.env.NEXTAUTH_SECRET`를 정적 치환하는데, 그 시점에 값이 없으면 `undefined`가 번들에 박힘. **코드 수정**: `getNextAuthSecret()`에서 `require('process').env`로 런타임 env를 직접 읽어 DefinePlugin 치환을 회피함.
 
 **확인·해결 절차**:
 
