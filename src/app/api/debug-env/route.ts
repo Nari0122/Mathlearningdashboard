@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getNextAuthSecret } from "@/lib/auth";
 
-/** NEXTAUTH_SECRET 디버그용 - 실제 값 노출 없이 존재 여부만 확인 */
+/** NEXTAUTH_SECRET 디버그용 - 실제 값 노출 없이 확인 */
 export async function GET() {
     const hasEvalSecret = (() => {
         try {
@@ -18,9 +18,14 @@ export async function GET() {
         }
     })();
     const fromGetNextAuthSecret = !!getNextAuthSecret();
+    // AUTH/SECRET 관련 env 키 목록 (값 노출 없음) - Vercel에 잘못된 이름으로 저장됐는지 확인
+    const authRelatedKeys = Object.keys(process.env).filter(
+        (k) => k.includes("AUTH") || k.includes("SECRET") || k.includes("NEXTAUTH")
+    );
     return NextResponse.json({
         NEXTAUTH_SECRET_exists: hasEvalSecret,
         AUTH_SECRET_exists: hasEvalAuthSecret,
         getNextAuthSecret_hasValue: fromGetNextAuthSecret,
+        authRelatedEnvKeys: authRelatedKeys,
     });
 }
