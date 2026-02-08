@@ -24,13 +24,17 @@ export function getSignInRedirectUrl(signupRole: string | undefined): string {
 
 export type AuthContext = { adminLoginFlow?: boolean; adminSignupIntent?: boolean };
 
-/** 환경 변수 로드 (Next.js 빌드 시 인라인되므로, 배포 시 반드시 Vercel에 설정 필요) */
-const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID?.trim() ?? "";
-const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET?.trim() ?? "";
+/** 런타임(요청 시점)에 env 읽기 - 빌드 시 인라인으로 비어버리는 것 방지 */
+function getKakaoCredentials() {
+    const id = process.env.KAKAO_CLIENT_ID?.trim() ?? "";
+    const secret = process.env.KAKAO_CLIENT_SECRET?.trim() ?? "";
+    return { id, secret };
+}
 
 export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext): NextAuthOptions {
     const adminLoginFlow = context?.adminLoginFlow ?? false;
     const adminSignupIntent = context?.adminSignupIntent ?? false;
+    const { id: kakaoId, secret: kakaoSecret } = getKakaoCredentials();
 
     const providers: NextAuthOptions["providers"] = [
         GoogleProvider({
@@ -40,11 +44,11 @@ export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext)
     ];
 
     // 카카오: clientId 없으면 프로바이더 제외 (client_id is required 오류 방지)
-    if (KAKAO_CLIENT_ID && KAKAO_CLIENT_SECRET) {
+    if (kakaoId && kakaoSecret) {
         providers.push(
             KakaoProvider({
-                clientId: KAKAO_CLIENT_ID,
-                clientSecret: KAKAO_CLIENT_SECRET,
+                clientId: kakaoId,
+                clientSecret: kakaoSecret,
                 authorization: {
                     params: {
                         scope: "profile_nickname profile_image",
