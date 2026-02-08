@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { getProviders } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
@@ -21,10 +21,15 @@ function LoginContent() {
     const searchParams = useSearchParams();
     const errorCode = searchParams.get("error") || undefined;
     const errorMessage = errorCode ? (ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.Default) : null;
+    const [hasKakao, setHasKakao] = useState<boolean | null>(null);
 
-    const handleKakaoLogin = () => {
-        signIn("kakao", { callbackUrl: "/api/auth/success" });
-    };
+    useEffect(() => {
+        getProviders().then((p) => {
+            setHasKakao(!!p?.kakao);
+        });
+    }, []);
+
+    const kakaoSignInUrl = `/api/auth/signin/kakao?callbackUrl=${encodeURIComponent("/api/auth/success")}`;
 
     return (
         <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -53,13 +58,21 @@ function LoginContent() {
                                 <span>{errorMessage}</span>
                             </div>
                         )}
-                        <Button
-                            type="button"
-                            onClick={handleKakaoLogin}
-                            className="w-full h-12 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-medium"
-                        >
-                            카카오로 계속하기
-                        </Button>
+                        {hasKakao === false && (
+                            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                <span>카카오 로그인이 설정되지 않았습니다. Vercel 환경 변수에 KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET을 추가해주세요.</span>
+                            </div>
+                        )}
+                        {hasKakao !== false ? (
+                            <Button asChild className="w-full h-12 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-medium">
+                                <Link href={kakaoSignInUrl}>카카오로 계속하기</Link>
+                            </Button>
+                        ) : (
+                            <Button disabled className="w-full h-12 bg-gray-200 text-gray-500 font-medium">
+                                카카오로 계속하기 (미설정)
+                            </Button>
+                        )}
                         <Button asChild variant="outline" className="w-full h-12 font-medium">
                             <Link href="/signup">회원가입</Link>
                         </Button>
