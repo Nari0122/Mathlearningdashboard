@@ -81,7 +81,7 @@ export default function MyLearningClient({ initialUnits, studentId }: MyLearning
         setNewUnitGrade("고1");
 
         // Pass grade to addUnit
-        await addUnit(studentId, name, newUnitGrade);
+        await addUnit(String(studentId), name, newUnitGrade);
     };
 
     // Filter logic

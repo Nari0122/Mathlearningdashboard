@@ -1,17 +1,18 @@
-import { getStudent } from "@/services/studentService";
+import { getStudentDetail, getStudentDetailByDocId } from "@/actions/student-actions";
 import StudentDashboardClient from "@/components/features/student/StudentDashboardClient";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 interface PageProps {
-    params: {
-        id: string;
-    }
+    params: Promise<{ id: string }>;
 }
 
 export default async function ParentChildPage({ params }: PageProps) {
-    const student = await getStudent(params.id);
+    const { id } = await params;
+    const student = /^\d+$/.test(id)
+        ? await getStudentDetail(parseInt(id, 10))
+        : await getStudentDetailByDocId(id);
 
     if (!student) {
         return notFound();
@@ -36,7 +37,7 @@ export default async function ParentChildPage({ params }: PageProps) {
                 stats={null}
                 recentAssignments={[]}
                 recentRecords={[]}
-                isReadOnly={true}
+                basePath="/parent/child"
             />
         </div>
     );

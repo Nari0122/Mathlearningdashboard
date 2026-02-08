@@ -58,6 +58,9 @@ export interface UpdateStudentData {
     loginId: string;
     grade: string;
     phone: string;
+    email?: string;
+    isActive?: boolean;
+    password?: string;
     parentPhone?: string;
     parentRelation?: string;
     enrollmentDate?: string;

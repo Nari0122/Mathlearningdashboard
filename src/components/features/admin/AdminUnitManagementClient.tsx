@@ -98,7 +98,7 @@ export default function AdminUnitManagementClient({
   };
 
   const handleAddUnit = async (unitName: string) => {
-    const res = await addUnit(studentId, unitName, "고1");
+    const res = await addUnit(String(studentId), unitName, "고1");
     if (res.success) {
       setIsAddModalOpen(false);
       router.refresh();

@@ -1,4 +1,4 @@
-import { getStudentDetail } from "@/actions/student-actions";
+import { getStudentDetailByDocId } from "@/actions/student-actions";
 import StudentAccountManagementClient from "@/components/features/admin/StudentAccountManagementClient";
 import { notFound } from "next/navigation";
 
@@ -7,8 +7,8 @@ export default async function StudentAccountPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const student = await getStudentDetail(id);
+    const { id: docId } = await params;
+    const student = await getStudentDetailByDocId(docId);
 
     if (!student) {
         notFound();
