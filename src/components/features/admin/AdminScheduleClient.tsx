@@ -21,12 +21,12 @@ const CHANGE_TYPES: { value: ScheduleChangeType; label: string }[] = [
 
 interface AdminScheduleClientProps {
     schedules: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
 const DAYS = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
 
-export default function AdminScheduleClient({ schedules, studentId }: AdminScheduleClientProps) {
+export default function AdminScheduleClient({ schedules, studentDocId }: AdminScheduleClientProps) {
     const router = useRouter();
     const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
     const [isRegularOpen, setIsRegularOpen] = useState(false);
@@ -69,7 +69,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
         if (!date || !startTime || !endTime) return;
 
         startTransition(async () => {
-            const result = await createSchedule(studentId, {
+            const result = await createSchedule(studentDocId, {
                 date,
                 startTime,
                 endTime,
@@ -95,7 +95,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
         if (!regularDay || !regularStart || !regularEnd) return;
 
         startTransition(async () => {
-            const result = await createSchedule(studentId, {
+            const result = await createSchedule(studentDocId, {
                 date: "", // Not used for regular
                 startTime: regularStart,
                 endTime: regularEnd,
@@ -162,7 +162,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
         const snapshot = force ? null : originalData;
 
         startTransition(async () => {
-            const result = await updateSchedule(studentId, currentEditId, dataToUpdate, snapshot, force) as any;
+            const result = await updateSchedule(studentDocId, currentEditId, dataToUpdate, snapshot, force) as any;
 
             if (result.success) {
                 setIsEditSessionOpen(false);
@@ -195,7 +195,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
         const snapshot = force ? null : originalData;
 
         startTransition(async () => {
-            const result = await updateSchedule(studentId, currentEditId, dataToUpdate, snapshot, force) as any;
+            const result = await updateSchedule(studentDocId, currentEditId, dataToUpdate, snapshot, force) as any;
 
             if (result.success) {
                 setIsEditRegularOpen(false);
@@ -246,7 +246,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
     const handleDelete = async (id: string) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
-            await deleteSchedule(id, studentId);
+            await deleteSchedule(id, studentDocId);
             router.refresh();
         });
     };
@@ -272,7 +272,7 @@ export default function AdminScheduleClient({ schedules, studentId }: AdminSched
             return;
         }
         startTransition(async () => {
-            const result = await postponeOrChangeSchedule(studentId, postponeTarget.id, {
+            const result = await postponeOrChangeSchedule(studentDocId, postponeTarget.id, {
                 changeType,
                 reason: changeReason.trim(),
                 newDate: changeType === "취소" ? undefined : newDate,

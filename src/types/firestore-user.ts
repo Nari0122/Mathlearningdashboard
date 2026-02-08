@@ -1,8 +1,12 @@
 /**
- * Firestore users 컬렉션 문서 타입 (NextAuth 소셜/학부모 아이디·비밀번호 통합)
+ * 역할별 Firestore 문서 타입. 실제 사용 컬렉션: students, parents, admins (users 컬렉션 미사용).
+ * 관리자: role = SUPER_ADMIN | ADMIN, status = PENDING | APPROVED (Super Admin 승인 후 이용 가능)
  */
-export type UserRole = "ADMIN" | "PARENT" | "STUDENT";
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "PARENT" | "STUDENT";
 export type UserStatus = "PENDING" | "APPROVED";
+
+/** 관리자 전용 역할 (유저 테이블 role 필드) */
+export type AdminRole = "SUPER_ADMIN" | "ADMIN";
 
 export interface FirestoreUserBase {
     uid: string;
@@ -31,4 +35,15 @@ export interface FirestoreUserStudent extends FirestoreUserBase {
     parentId?: string;
 }
 
-export type FirestoreUser = FirestoreUserParent | FirestoreUserStudent | (FirestoreUserBase & { role: "ADMIN" });
+/** 관리자 유저 (Super Admin / Admin). 가입 시 status=PENDING, Super Admin 승인 후 APPROVED */
+export interface FirestoreUserAdmin extends FirestoreUserBase {
+    role: "SUPER_ADMIN" | "ADMIN";
+    status: UserStatus;
+    phoneNumber: string;
+    passwordHash?: string;
+}
+
+export type FirestoreUser =
+    | FirestoreUserParent
+    | FirestoreUserStudent
+    | FirestoreUserAdmin;

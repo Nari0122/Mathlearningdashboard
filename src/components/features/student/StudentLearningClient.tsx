@@ -21,10 +21,10 @@ import { useReadOnly } from "@/contexts/ReadOnlyContext";
 
 interface StudentLearningClientProps {
     units: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function StudentLearningClient({ units, studentId }: StudentLearningClientProps) {
+export default function StudentLearningClient({ units, studentDocId }: StudentLearningClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
     const [isPending, startTransition] = useTransition();
@@ -123,7 +123,7 @@ export default function StudentLearningClient({ units, studentId }: StudentLearn
                             onErrorChange={(unitId, errorType, delta) => {
                                 if (readOnly) return;
                                 startTransition(async () => {
-                                    await updateUnitError(unitId, studentId, errorType, delta);
+                                    await updateUnitError(unitId, studentDocId, errorType, delta);
                                     router.refresh();
                                 });
                             }}

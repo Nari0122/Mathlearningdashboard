@@ -1,11 +1,17 @@
 import { adminDb } from "@/lib/firebase-admin";
 
-// Internal helper to find student document by numeric ID
-async function getStudentDocRef(studentId: number) {
+// Internal helper: student document ref by Firestore document ID or numeric id (backward compat for student/parent routes)
+async function getStudentDocRef(docIdOrNumericId: string | number) {
     if (!adminDb) return null;
-    const snapshot = await adminDb.collection("students").where("id", "==", studentId).limit(1).get();
-    if (snapshot.empty) return null;
-    return snapshot.docs[0].ref;
+    if (typeof docIdOrNumericId === "string" && docIdOrNumericId) {
+        return adminDb.collection("students").doc(docIdOrNumericId);
+    }
+    if (typeof docIdOrNumericId === "number") {
+        const snapshot = await adminDb.collection("students").where("id", "==", docIdOrNumericId).limit(1).get();
+        if (snapshot.empty) return null;
+        return snapshot.docs[0].ref;
+    }
+    return null;
 }
 
 // Internal helper to find unit document by numeric ID within a student's sub-collection
@@ -46,9 +52,9 @@ function generateSearchKey(data: {
 }
 
 export const learningService = {
-    async getUnits(studentId: number) {
+    async getUnits(docIdOrNumericId: string | number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(docIdOrNumericId);
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("units").orderBy("createdAt", "desc").get();
@@ -69,10 +75,12 @@ export const learningService = {
         }
     },
 
-    async createUnit(studentId: number, data: any) {
+    async createUnit(id: string | number, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             const nextId = await getNextUnitId(studentDocRef);
             await studentDocRef.collection("units").add({
@@ -89,10 +97,12 @@ export const learningService = {
         }
     },
 
-    async updateUnit(studentId: number, unitId: number, data: any) {
+    async updateUnit(id: string | number, unitId: number, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             const unitDocRef = await getUnitDocRef(studentDocRef, unitId);
             if (!unitDocRef) return { success: false, message: "Unit not found" };
@@ -105,10 +115,12 @@ export const learningService = {
         }
     },
 
-    async deleteUnit(studentId: number, unitId: number) {
+    async deleteUnit(id: string | number, unitId: number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             const unitDocRef = await getUnitDocRef(studentDocRef, unitId);
             if (!unitDocRef) return { success: false, message: "Unit not found" };
@@ -121,16 +133,18 @@ export const learningService = {
         }
     },
 
-    async updateUnitError(studentId: number, unitId: number, errorType: 'C' | 'M' | 'R' | 'S', delta: number) {
+    async updateUnitError(id: string | number, unitId: number, errorType: 'C' | 'M' | 'R' | 'S', delta: number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             const unitDocRef = await getUnitDocRef(studentDocRef, unitId);
             if (!unitDocRef) return { success: false, message: "Unit not found" };
 
-            const doc = await unitDocRef.get();
-            const data = doc.data() || {};
+            const unitDoc = await unitDocRef.get();
+            const data = unitDoc.data() || {};
             const errorField = `error${errorType}`;
             const currentCount = data[errorField] || 0;
             const newCount = Math.min(99, Math.max(0, currentCount + delta));
@@ -161,9 +175,9 @@ export const learningService = {
         return null;
     },
 
-    async getLearningRecords(studentId: number) {
+    async getLearningRecords(id: string | number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("learningRecords").orderBy("date", "desc").get();
@@ -174,10 +188,12 @@ export const learningService = {
         }
     },
 
-    async createLearningRecord(studentId: number, data: any) {
+    async createLearningRecord(id: string | number, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("learningRecords").add({
                 ...data,
@@ -191,10 +207,12 @@ export const learningService = {
         }
     },
 
-    async updateLearningRecord(studentId: number, recordId: string, data: any) {
+    async updateLearningRecord(id: string | number, recordId: string, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("learningRecords").doc(recordId).update(data);
             return { success: true };
@@ -204,10 +222,12 @@ export const learningService = {
         }
     },
 
-    async deleteLearningRecord(studentId: number, recordId: string) {
+    async deleteLearningRecord(id: string | number, recordId: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("learningRecords").doc(recordId).delete();
             return { success: true };
@@ -217,9 +237,9 @@ export const learningService = {
         }
     },
 
-    async getSchedules(studentId: number) {
+    async getSchedules(id: string | number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("schedules").orderBy("date", "desc").get();
@@ -230,10 +250,12 @@ export const learningService = {
         }
     },
 
-    async createSchedule(studentId: number, data: any) {
+    async createSchedule(id: string | number, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("schedules").add({
                 ...data,
@@ -246,9 +268,9 @@ export const learningService = {
         }
     },
 
-    async getSchedule(studentId: number, scheduleId: string) {
+    async getSchedule(id: string | number, scheduleId: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return null;
 
             const doc = await studentDocRef.collection("schedules").doc(scheduleId).get();
@@ -260,10 +282,12 @@ export const learningService = {
         }
     },
 
-    async updateSchedule(studentId: number, scheduleId: string, data: any) {
+    async updateSchedule(id: string | number, scheduleId: string, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("schedules").doc(scheduleId).update(data);
             return { success: true };
@@ -273,10 +297,12 @@ export const learningService = {
         }
     },
 
-    async deleteSchedule(studentId: number, scheduleId: string) {
+    async deleteSchedule(id: string | number, scheduleId: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("schedules").doc(scheduleId).delete();
             return { success: true };
@@ -286,9 +312,9 @@ export const learningService = {
         }
     },
 
-    async getAssignments(studentId: number) {
+    async getAssignments(id: string | number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("assignments").orderBy("dueDate", "desc").get();
@@ -299,10 +325,12 @@ export const learningService = {
         }
     },
 
-    async createAssignment(studentId: number, data: any) {
+    async createAssignment(id: string | number, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("assignments").add({
                 ...data,
@@ -315,10 +343,12 @@ export const learningService = {
         }
     },
 
-    async updateAssignment(studentId: number, assignmentId: string, data: any) {
+    async updateAssignment(id: string | number, assignmentId: string, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("assignments").doc(assignmentId).update(data);
             return { success: true };
@@ -328,10 +358,12 @@ export const learningService = {
         }
     },
 
-    async deleteAssignment(studentId: number, assignmentId: string) {
+    async deleteAssignment(id: string | number, assignmentId: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("assignments").doc(assignmentId).delete();
             return { success: true };
@@ -341,9 +373,9 @@ export const learningService = {
         }
     },
 
-    async getExams(studentId: number) {
+    async getExams(id: string | number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("exams").orderBy("date", "desc").get();
@@ -354,10 +386,12 @@ export const learningService = {
         }
     },
 
-    async createExam(studentId: number, data: any) {
+    async createExam(id: string | number, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("exams").add({
                 ...data,
@@ -370,10 +404,12 @@ export const learningService = {
         }
     },
 
-    async updateExam(studentId: number, examId: string, data: any) {
+    async updateExam(id: string | number, examId: string, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("exams").doc(examId).update(data);
             return { success: true };
@@ -383,10 +419,12 @@ export const learningService = {
         }
     },
 
-    async deleteExam(studentId: number, examId: string) {
+    async deleteExam(id: string | number, examId: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("exams").doc(examId).delete();
             return { success: true };
@@ -396,9 +434,9 @@ export const learningService = {
         }
     },
 
-    async getIncorrectNotes(studentId: number) {
+    async getIncorrectNotes(id: string | number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("incorrectNotes").orderBy("createdAt", "desc").get();
@@ -409,10 +447,12 @@ export const learningService = {
         }
     },
 
-    async createIncorrectNote(studentId: number, data: any) {
+    async createIncorrectNote(id: string | number, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             const searchKey = generateSearchKey(data);
 
@@ -430,10 +470,12 @@ export const learningService = {
         }
     },
 
-    async updateIncorrectNote(studentId: number, noteId: string, data: any) {
+    async updateIncorrectNote(id: string | number, noteId: string, data: any) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             // Regenerate searchKey if any relevant field is being updated
             const searchKey = generateSearchKey(data);
@@ -449,10 +491,12 @@ export const learningService = {
         }
     },
 
-    async deleteIncorrectNote(studentId: number, noteId: string) {
+    async deleteIncorrectNote(id: string | number, noteId: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             await studentDocRef.collection("incorrectNotes").doc(noteId).delete();
             return { success: true };
@@ -463,9 +507,9 @@ export const learningService = {
     },
 
     // ========== BookTag Functions ==========
-    async getBookTags(studentId: number) {
+    async getBookTags(id: string | number) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("bookTags").orderBy("lastUsedAt", "desc").get();
@@ -476,10 +520,12 @@ export const learningService = {
         }
     },
 
-    async createBookTag(studentId: number, name: string) {
+    async createBookTag(id: string | number, name: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
 
             // Validate: no spaces
             if (/\s/.test(name)) {
@@ -509,9 +555,9 @@ export const learningService = {
         }
     },
 
-    async updateBookTagLastUsed(studentId: number, tagId: string) {
+    async updateBookTagLastUsed(id: string | number, tagId: string) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return { success: false };
 
             await studentDocRef.collection("bookTags").doc(tagId).update({
@@ -525,9 +571,9 @@ export const learningService = {
     },
 
     // ========== Advanced Search ==========
-    async searchIncorrectNotes(studentId: number, searchKeys: string[]) {
+    async searchIncorrectNotes(id: string | number, searchKeys: string[]) {
         try {
-            const studentDocRef = await getStudentDocRef(studentId);
+            const studentDocRef = await getStudentDocRef(id);
             if (!studentDocRef) return [];
 
             if (searchKeys.length === 0) {

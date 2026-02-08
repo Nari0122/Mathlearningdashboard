@@ -9,19 +9,21 @@ import { ArrowLeft, Settings } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { updateStudent } from "@/actions/student-actions";
+import { getPhoneDigits } from "@/lib/phone";
+import { updateStudentByDocId } from "@/actions/student-actions";
 
 interface StudentDetailLayoutClientProps {
     children: React.ReactNode;
-    studentId: string;
+    studentDocId: string;
     studentName: string;
     student: any;
 }
 
 export default function StudentDetailLayoutClient({
     children,
-    studentId,
+    studentDocId,
     studentName,
     student,
 }: StudentDetailLayoutClientProps) {
@@ -34,8 +36,8 @@ export default function StudentDetailLayoutClient({
         name: student.name,
         loginId: student.loginId,
         grade: student.grade || "고1",
-        phone: student.phone || "",
-        parentPhone: student.parentPhone || "",
+        phone: getPhoneDigits(student.phone || ""),
+        parentPhone: getPhoneDigits(student.parentPhone || ""),
         parentRelation: student.parentRelation || "부",
         schoolName: student.schoolName || "",
         schoolType: student.schoolType || "일반고",
@@ -45,7 +47,7 @@ export default function StudentDetailLayoutClient({
 
     const handleEditSave = async () => {
         setIsLoading(true);
-        const res = await updateStudent(parseInt(studentId), editFormData);
+        const res = await updateStudentByDocId(studentDocId, editFormData);
         setIsLoading(false);
 
         if (res.success) {
@@ -58,15 +60,15 @@ export default function StudentDetailLayoutClient({
     };
 
     const tabs = [
-        { href: `/admin/students/${studentId}`, label: "대시보드", exact: true },
-        { href: `/admin/students/${studentId}/learning`, label: "나의 학습" },
-        { href: `/admin/students/${studentId}/analysis`, label: "오답 분석" },
-        { href: `/admin/students/${studentId}/report`, label: "통계 리포트" },
-        { href: `/admin/students/${studentId}/history`, label: "학습 기록" },
-        { href: `/admin/students/${studentId}/schedule`, label: "수업 일정" },
-        { href: `/admin/students/${studentId}/homework`, label: "숙제 관리" },
-        { href: `/admin/students/${studentId}/exams`, label: "시험 성적" },
-        { href: `/admin/students/${studentId}/incorrect-notes`, label: "오답 노트" },
+        { href: `/admin/students/${studentDocId}`, label: "대시보드", exact: true },
+        { href: `/admin/students/${studentDocId}/learning`, label: "나의 학습" },
+        { href: `/admin/students/${studentDocId}/analysis`, label: "오답 분석" },
+        { href: `/admin/students/${studentDocId}/report`, label: "통계 리포트" },
+        { href: `/admin/students/${studentDocId}/history`, label: "학습 기록" },
+        { href: `/admin/students/${studentDocId}/schedule`, label: "수업 일정" },
+        { href: `/admin/students/${studentDocId}/homework`, label: "숙제 관리" },
+        { href: `/admin/students/${studentDocId}/exams`, label: "시험 성적" },
+        { href: `/admin/students/${studentDocId}/incorrect-notes`, label: "오답 노트" },
     ];
 
     return (
@@ -121,7 +123,7 @@ export default function StudentDetailLayoutClient({
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="edit-phone">연락처</Label>
-                                    <Input id="edit-phone" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })} className="h-10" />
+                                    <PhoneInput id="edit-phone" value={editFormData.phone} onChange={(v) => setEditFormData({ ...editFormData, phone: v })} className="h-10" />
                                 </div>
                             </div>
 
@@ -165,11 +167,10 @@ export default function StudentDetailLayoutClient({
                                             <SelectItem value="기타">기타</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    <Input
+                                    <PhoneInput
                                         className="flex-1 h-10"
-                                        placeholder="010-0000-0000"
                                         value={editFormData.parentPhone}
-                                        onChange={(e) => setEditFormData({ ...editFormData, parentPhone: e.target.value })}
+                                        onChange={(v) => setEditFormData({ ...editFormData, parentPhone: v })}
                                     />
                                 </div>
                             </div>

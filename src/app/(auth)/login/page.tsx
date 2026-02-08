@@ -19,7 +19,7 @@ export default function LoginPage() {
                             <span className="text-3xl font-bold text-white">M</span>
                         </div>
                     </div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">MATHCLINIC LAB</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">강나리 MATH LAB</h1>
                     <p className="text-gray-600">수학 학습 관리 시스템</p>
                 </div>
 
@@ -27,7 +27,7 @@ export default function LoginPage() {
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold text-center">로그인</CardTitle>
                         <CardDescription className="text-center">
-                            소셜 로그인 또는 회원가입을 진행해 주세요
+                            소셜 로그인 또는 회원가입을 진행해 주세요.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
@@ -36,18 +36,14 @@ export default function LoginPage() {
                             onClick={handleKakaoLogin}
                             className="w-full h-12 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919] font-medium"
                         >
-                            카카오로 로그인하기
+                            카카오로 계속하기
                         </Button>
-                        <Button
-                            asChild
-                            variant="outline"
-                            className="w-full h-12 font-medium"
-                        >
+                        <Button asChild variant="outline" className="w-full h-12 font-medium">
                             <Link href="/signup">회원가입</Link>
                         </Button>
                     </CardContent>
                     <CardFooter className="justify-center text-sm text-gray-600">
-                        © 2026 MATHCLINIC LAB
+                        © 2026 강나리 MATH LAB
                     </CardFooter>
                 </Card>
             </div>

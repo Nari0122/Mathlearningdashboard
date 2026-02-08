@@ -2,12 +2,13 @@ import type { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import KakaoProvider from "next-auth/providers/kakao";
 import NaverProvider from "next-auth/providers/naver";
-import { AUTH_SIGNUP_ROLE_COOKIE, getHomePathByRole } from "./auth-constants";
+import { AUTH_SIGNUP_ROLE_COOKIE, AUTH_ADMIN_LOGIN_FLOW_COOKIE, getHomePathByRole } from "./auth-constants";
 import { verifyKakaoIdToken } from "./verify-kakao-id-token";
 import { studentService } from "@/services/studentService";
 import { parentService } from "@/services/parentService";
+import { userService } from "@/services/userService";
 
-export { AUTH_SIGNUP_ROLE_COOKIE, getHomePathByRole };
+export { AUTH_SIGNUP_ROLE_COOKIE, AUTH_ADMIN_LOGIN_FLOW_COOKIE, getHomePathByRole };
 
 /** signIn에서 반환한 URL을 redirect 콜백에서 사용 */
 let pendingSignInRedirectUrl: string | null = null;
@@ -21,7 +22,11 @@ export function getSignInRedirectUrl(signupRole: string | undefined): string {
     return "/signup/complete-student";
 }
 
-export function getAuthOptions(signupRoleCookie?: string): NextAuthOptions {
+export type AuthContext = { adminLoginFlow?: boolean; adminSignupIntent?: boolean };
+
+export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext): NextAuthOptions {
+    const adminLoginFlow = context?.adminLoginFlow ?? false;
+    const adminSignupIntent = context?.adminSignupIntent ?? false;
     return {
         providers: [
             GoogleProvider({
@@ -50,8 +55,13 @@ export function getAuthOptions(signupRoleCookie?: string): NextAuthOptions {
                     const uid = String(account.providerAccountId ?? user.id ?? "");
                     if (!uid) return false;
 
-                    // 카카오: 학생은 추가정보 입력 후 저장하기를 눌러야만 students 문서 생성. 여기서는 문서 유무만 확인 후 리다이렉트.
-                    // ID 토큰 검증 실패 시에도 로그인 진행 (OAuth 코드 교환으로 이미 인증됨). 검증 실패는 로그만 남김.
+                    if (account.provider === "kakao" && adminLoginFlow) {
+                        pendingSignInRedirectUrl = adminSignupIntent
+                            ? "/admin-login/callback?intent=signup"
+                            : "/admin-login/callback";
+                        return true;
+                    }
+
                     if (account.provider === "kakao") {
                         const idToken = (account as { id_token?: string }).id_token;
                         if (idToken) {
@@ -70,13 +80,19 @@ export function getAuthOptions(signupRoleCookie?: string): NextAuthOptions {
                             }
                             return true;
                         }
-                        // 로그인 페이지에서 카카오 로그인 시 학부모 문서 있으면 학부모 대시보드로
+                        // 로그인 페이지에서 카카오 로그인 시 학부모 문서 있으면 학부모 대시보드로 (URL에 uid 포함)
                         const existingParent = await parentService.getParentByUid(uid);
                         if (existingParent) {
-                            pendingSignInRedirectUrl = "/parent/dashboard";
+                            pendingSignInRedirectUrl = `/parent/${uid}/dashboard`;
                             return true;
                         }
-                        pendingSignInRedirectUrl = "/signup/complete-student";
+                        const existingAdmin = await userService.getAdmin(uid);
+                        const adminRole = existingAdmin && (existingAdmin as { role?: string }).role;
+                        if (adminRole === "ADMIN" || adminRole === "SUPER_ADMIN") {
+                            pendingSignInRedirectUrl = "/auth/admin-login-required";
+                            return true;
+                        }
+                        pendingSignInRedirectUrl = "/signup";
                         return true;
                     }
 
@@ -97,10 +113,24 @@ export function getAuthOptions(signupRoleCookie?: string): NextAuthOptions {
                 const uidJwt = (safeToken.sub as string) ?? (account?.providerAccountId as string) ?? user?.id;
                 if (uidJwt && !safeToken.sub) safeToken.sub = uidJwt;
                 const uid = String(safeToken.sub ?? (account?.providerAccountId as string) ?? user?.id ?? "");
-                if (uid) {
-                    safeToken.uid = safeToken.uid ?? uid;
-                    // users 컬렉션 미사용. 소셜 로그인은 항상 추가정보 완료 대기
-                    safeToken.signupPending = true;
+                if (uid) safeToken.uid = safeToken.uid ?? uid;
+                const u = user as unknown as { role?: string; status?: string } | null;
+                if (u?.role) {
+                    safeToken.role = u.role;
+                    safeToken.status = u.status;
+                    safeToken.signupPending = false;
+                }
+                // JWT에 role이 없으면 DB에서 관리자 여부 확인 (middleware는 JWT만 참조하므로 여기서 설정 필요)
+                if (!safeToken.role && uid) {
+                    const dbUser = await userService.getAdmin(uid);
+                    const r = dbUser && (dbUser as { role?: string }).role;
+                    if (r === "ADMIN" || r === "SUPER_ADMIN") {
+                        safeToken.role = r;
+                        safeToken.status = (dbUser as { status?: string }).status;
+                        safeToken.signupPending = false;
+                    } else {
+                        safeToken.signupPending = true;
+                    }
                 }
                 return safeToken;
             },
@@ -111,6 +141,14 @@ export function getAuthOptions(signupRoleCookie?: string): NextAuthOptions {
                     (session.user as { role?: string }).role = token.role as string | undefined;
                     (session.user as { status?: string }).status = token.status as string | undefined;
                     (session.user as { signupPending?: boolean }).signupPending = !!token.signupPending;
+                    if (!token.role && token.uid) {
+                        const dbUser = await userService.getAdmin(String(token.uid));
+                        const r = dbUser && (dbUser as { role?: string }).role;
+                        if (r === "ADMIN" || r === "SUPER_ADMIN") {
+                            (session.user as { role?: string }).role = r;
+                            (session.user as { status?: string }).status = (dbUser as { status?: string }).status;
+                        }
+                    }
                 }
                 return session;
             },
@@ -123,6 +161,7 @@ export function getAuthOptions(signupRoleCookie?: string): NextAuthOptions {
         },
         pages: {
             signIn: "/login",
+            error: "/auth/error",
         },
         session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
         secret: process.env.NEXTAUTH_SECRET,

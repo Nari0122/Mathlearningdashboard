@@ -12,10 +12,10 @@ import { getBookTags } from "@/actions/learning-actions";
 
 interface AdminIncorrectNotesClientProps {
     notes: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function AdminIncorrectNotesClient({ notes, studentId }: AdminIncorrectNotesClientProps) {
+export default function AdminIncorrectNotesClient({ notes, studentDocId }: AdminIncorrectNotesClientProps) {
     // Hierarchy Filter State
     const [filterLevel, setFilterLevel] = useState<string>("all");
     const [filterGrade, setFilterGrade] = useState<string>("all");
@@ -33,11 +33,11 @@ export default function AdminIncorrectNotesClient({ notes, studentId }: AdminInc
     // Load book tags
     useEffect(() => {
         async function loadBookTags() {
-            const tags = await getBookTags(studentId);
+            const tags = await getBookTags(studentDocId);
             setBookTags(tags as { id: string; name: string }[]);
         }
         loadBookTags();
-    }, [studentId]);
+    }, [studentDocId]);
 
     // Reset filter logic
     useEffect(() => { setFilterGrade("all"); setFilterSubject("all"); setFilterUnitName("all"); setFilterDetail("all"); }, [filterLevel]);

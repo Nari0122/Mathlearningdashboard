@@ -3,7 +3,7 @@
 import { learningService } from "@/services/learningService";
 import { revalidatePath } from "next/cache";
 
-export async function createUnit(studentId: number, data: {
+export async function createUnit(docId: string, data: {
     schoolLevel: string;
     grade: string;
     subject: string;
@@ -14,48 +14,43 @@ export async function createUnit(studentId: number, data: {
     selectedDifficulty: string;
     completionStatus?: 'incomplete' | 'in-progress' | 'completed';
 }) {
-    const result = await learningService.createUnit(studentId, data);
+    const result = await learningService.createUnit(docId, data);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/learning`);
+        revalidatePath(`/admin/students/${docId}/learning`);
         revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }
     return result;
 }
 
-export async function createSchedule(studentId: number, data: { date: string; startTime: string; endTime: string; status: string; isRegular: boolean; dayOfWeek?: string; sessionNumber?: number }) {
-    const result = await learningService.createSchedule(studentId, data);
+export async function createSchedule(docId: string, data: { date: string; startTime: string; endTime: string; status: string; isRegular: boolean; dayOfWeek?: string; sessionNumber?: number }) {
+    const result = await learningService.createSchedule(docId, data);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/schedule`);
+        revalidatePath(`/admin/students/${docId}/schedule`);
     }
     return result;
 }
 
-export async function updateSchedule(studentId: number, scheduleId: string, data: any, originalSnapshot?: any, force: boolean = false) {
-    // 1. If force save, skip checks
+export async function updateSchedule(docId: string, scheduleId: string, data: any, originalSnapshot?: any, force: boolean = false) {
     if (force) {
-        const result = await learningService.updateSchedule(studentId, scheduleId, data);
+        const result = await learningService.updateSchedule(docId, scheduleId, data);
         if (result.success) {
-            revalidatePath(`/admin/students/${studentId}/schedule`);
+            revalidatePath(`/admin/students/${docId}/schedule`);
         }
         return result;
     }
 
-    // 2. Fetch current data for conflict check
-    const currentData = await learningService.getSchedule(studentId, scheduleId) as any;
+    const currentData = await learningService.getSchedule(docId, scheduleId) as any;
     if (!currentData) {
         return { success: false, message: "Schedule not found" };
     }
 
-    // 3. Compare with snapshot
-    // If originalSnapshot is provided, check if currentData matches it.
-    // If mismatch, it means someone else changed it.
     if (originalSnapshot) {
         const isConflict =
             currentData.date !== originalSnapshot.date ||
             currentData.startTime !== originalSnapshot.startTime ||
             currentData.endTime !== originalSnapshot.endTime ||
-            currentData.dayOfWeek !== originalSnapshot.dayOfWeek || // for regular
+            currentData.dayOfWeek !== originalSnapshot.dayOfWeek ||
             currentData.isRegular !== originalSnapshot.isRegular;
 
         if (isConflict) {
@@ -68,18 +63,17 @@ export async function updateSchedule(studentId: number, scheduleId: string, data
         }
     }
 
-    // 4. Update
-    const result = await learningService.updateSchedule(studentId, scheduleId, data);
+    const result = await learningService.updateSchedule(docId, scheduleId, data);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/schedule`);
+        revalidatePath(`/admin/students/${docId}/schedule`);
     }
     return result;
 }
 
-export async function deleteSchedule(id: string, studentId: number) {
-    const result = await learningService.deleteSchedule(studentId, id);
+export async function deleteSchedule(id: string, docId: string) {
+    const result = await learningService.deleteSchedule(docId, id);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/schedule`);
+        revalidatePath(`/admin/students/${docId}/schedule`);
     }
     return result;
 }
@@ -88,7 +82,7 @@ export async function deleteSchedule(id: string, studentId: number) {
 export type ScheduleChangeType = "보강" | "연기" | "취소" | "일정변경";
 
 export async function postponeOrChangeSchedule(
-    studentId: number,
+    docId: string,
     originScheduleId: string,
     payload: {
         changeType: ScheduleChangeType;
@@ -98,7 +92,7 @@ export async function postponeOrChangeSchedule(
         newEndTime?: string;
     }
 ) {
-    const origin = await learningService.getSchedule(studentId, originScheduleId) as any;
+    const origin = await learningService.getSchedule(docId, originScheduleId) as any;
     if (!origin || origin.isRegular) {
         return { success: false, message: "해당 일정을 찾을 수 없거나 정규 일정은 변경할 수 없습니다." };
     }
@@ -106,13 +100,13 @@ export async function postponeOrChangeSchedule(
     const { changeType, reason, newDate, newStartTime, newEndTime } = payload;
 
     if (changeType === "취소") {
-        const result = await learningService.updateSchedule(studentId, originScheduleId, {
+        const result = await learningService.updateSchedule(docId, originScheduleId, {
             status: "CANCELLED",
             isModified: true,
             changeType: "취소",
             changeReason: reason || undefined,
         });
-        if (result.success) revalidatePath(`/admin/students/${studentId}/schedule`);
+        if (result.success) revalidatePath(`/admin/students/${docId}/schedule`);
         return result;
     }
 
@@ -121,7 +115,7 @@ export async function postponeOrChangeSchedule(
     }
 
     const originStatus = changeType === "연기" ? "POSTPONED" : "CHANGED";
-    const updateResult = await learningService.updateSchedule(studentId, originScheduleId, {
+    const updateResult = await learningService.updateSchedule(docId, originScheduleId, {
         status: originStatus,
         isModified: true,
         changeType,
@@ -129,7 +123,7 @@ export async function postponeOrChangeSchedule(
     });
     if (!updateResult.success) return updateResult;
 
-    const createResult = await learningService.createSchedule(studentId, {
+    const createResult = await learningService.createSchedule(docId, {
         date: newDate,
         startTime: newStartTime,
         endTime: newEndTime,
@@ -142,59 +136,58 @@ export async function postponeOrChangeSchedule(
     });
     if (!createResult.success) return createResult;
 
-    revalidatePath(`/admin/students/${studentId}/schedule`);
+    revalidatePath(`/admin/students/${docId}/schedule`);
     return { success: true };
 }
 
-export async function createHomework(studentId: number, data: { title: string; dueDate: string; assignedDate: string }) {
-    const result = await learningService.createAssignment(studentId, data);
+export async function createHomework(docId: string, data: { title: string; dueDate: string; assignedDate: string }) {
+    const result = await learningService.createAssignment(docId, data);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/homework`);
+        revalidatePath(`/admin/students/${docId}/homework`);
     }
     return result;
 }
 
-export async function updateHomework(id: number | string, studentId: number, data: { title: string; dueDate: string; status?: string; submittedDate?: string | null }) {
-    const result = await learningService.updateAssignment(studentId, String(id), data);
+export async function updateHomework(id: number | string, docId: string, data: { title: string; dueDate: string; status?: string; submittedDate?: string | null }) {
+    const result = await learningService.updateAssignment(docId, String(id), data);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/homework`);
+        revalidatePath(`/admin/students/${docId}/homework`);
     }
     return result;
 }
 
-export async function deleteHomework(id: string, studentId: number) {
-    const result = await learningService.deleteAssignment(studentId, id);
+export async function deleteHomework(id: string, docId: string) {
+    const result = await learningService.deleteAssignment(docId, id);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/homework`);
+        revalidatePath(`/admin/students/${docId}/homework`);
     }
     return result;
 }
 
-
-export async function updateUnit(id: number, studentId: number, data: any) {
-    const result = await learningService.updateUnit(studentId, id, data);
+export async function updateUnit(id: number, docId: string, data: any) {
+    const result = await learningService.updateUnit(docId, id, data);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/learning`);
+        revalidatePath(`/admin/students/${docId}/learning`);
         revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }
     return result;
 }
 
-export async function deleteUnit(id: number, studentId: number) {
-    const result = await learningService.deleteUnit(studentId, id);
+export async function deleteUnit(id: number, docId: string) {
+    const result = await learningService.deleteUnit(docId, id);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/learning`);
+        revalidatePath(`/admin/students/${docId}/learning`);
         revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }
     return result;
 }
 
-export async function updateUnitError(unitId: number, studentId: number, errorType: 'C' | 'M' | 'R' | 'S', delta: number) {
-    const result = await learningService.updateUnitError(studentId, unitId, errorType, delta);
+export async function updateUnitError(unitId: number, docId: string, errorType: 'C' | 'M' | 'R' | 'S', delta: number) {
+    const result = await learningService.updateUnitError(docId, unitId, errorType, delta);
     if (result.success) {
-        revalidatePath(`/admin/students/${studentId}/learning`);
+        revalidatePath(`/admin/students/${docId}/learning`);
         revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }

@@ -9,10 +9,10 @@ import {
   PenTool,
   LogOut,
   HelpCircle,
-  User,
   ClipboardList,
   BarChart3,
-  BookMarked
+  BookMarked,
+  Link2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -23,37 +23,36 @@ import { useEffect, useState } from "react";
 import { getSystemSettings } from "@/actions/system-actions";
 
 interface StudentSidebarProps {
+  userName?: string;
   className?: string;
 }
 
-export function StudentSidebar({ className }: StudentSidebarProps) {
+export function StudentSidebar({ userName, className }: StudentSidebarProps) {
   const pathname = usePathname();
   const params = useParams();
   const studentId = params?.id as string;
-  const [studentName, setStudentName] = useState<string>("불러오는 중...");
+  const [fallbackName, setFallbackName] = useState<string | null>(null);
   const [settings, setSettings] = useState({ supportEmail: 'support@mathclinic.com', supportPhone: '02-1234-5678' });
+  const displayName = userName?.trim() || fallbackName || "학생";
 
   useEffect(() => {
     getSystemSettings().then(setSettings);
   }, []);
 
   useEffect(() => {
-    if (studentId) {
-      console.log('Fetching student name for ID:', studentId);
-      fetch(`/api/students/${studentId}`)
-        .then(res => {
-          if (!res.ok) throw new Error('Fetch failed');
-          return res.json();
-        })
-        .then(data => {
-          console.log('Fetched student data:', data);
-          if (data && data.name) setStudentName(data.name);
-        })
-        .catch(err => {
-          console.error('Error fetching student name:', err);
-        });
-    }
-  }, [studentId]);
+    if (!studentId || userName) return;
+    fetch(`/api/students/${studentId}`)
+      .then((res) => {
+        if (!res.ok) return res.json().then((body) => Promise.reject(new Error(body?.error || "Fetch failed")));
+        return res.json();
+      })
+      .then((data) => {
+        setFallbackName(data?.name ? String(data.name) : "학생");
+      })
+      .catch(() => {
+        setFallbackName("학생");
+      });
+  }, [studentId, userName]);
 
   if (!studentId) return null;
 
@@ -65,6 +64,7 @@ export function StudentSidebar({ className }: StudentSidebarProps) {
     { icon: ClipboardList, label: "학습 기록", href: `/student/${studentId}/history` },
     { icon: Calendar, label: "수업 일정", href: `/student/${studentId}/schedule` },
     { icon: PenTool, label: "숙제 관리", href: `/student/${studentId}/homework` },
+    { icon: Link2, label: "연동 관리", href: `/student/${studentId}/links` },
   ];
 
   return (
@@ -78,6 +78,12 @@ export function StudentSidebar({ className }: StudentSidebarProps) {
             <h1 className="text-base font-bold text-gray-900 tracking-tight leading-tight">강나리 MATH LAB</h1>
             <p className="text-xs text-gray-500 mt-0.5 font-normal">student</p>
           </div>
+        </div>
+      </div>
+      <div className="p-4 border-b border-gray-200">
+        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+          <p className="text-xs text-gray-500 mb-1">Student</p>
+          <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
         </div>
       </div>
       <div className="p-4 flex-1">
@@ -128,7 +134,7 @@ export function StudentSidebar({ className }: StudentSidebarProps) {
               <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
                 <h3 className="font-bold text-sm mb-2 text-blue-900">내 정보</h3>
                 <div className="space-y-1 text-sm text-blue-800">
-                  <p>이름: {studentName}</p>
+                  <p>이름: {displayName}</p>
                   <p>권한: 학생</p>
                 </div>
               </div>

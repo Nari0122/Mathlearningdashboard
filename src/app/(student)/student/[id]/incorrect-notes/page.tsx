@@ -1,4 +1,6 @@
+import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
+import { getAuthOptions } from "@/lib/auth";
 import { learningService } from "@/services/learningService";
 import StudentIncorrectNotesClient from "@/components/features/student/StudentIncorrectNotesClient";
 
@@ -7,14 +9,14 @@ export default async function StudentIncorrectNotesPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
+    const session = await getServerSession(getAuthOptions(undefined));
+    const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
     const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const studentDocId = id || uid;
+    if (!studentDocId) notFound();
 
-    const notes = await learningService.getIncorrectNotes(studentId);
-    const units = await learningService.getUnits(studentId);
+    const notes = await learningService.getIncorrectNotes(studentDocId);
+    const units = await learningService.getUnits(studentDocId);
 
-    return <StudentIncorrectNotesClient studentId={studentId} notes={notes} units={units} />;
+    return <StudentIncorrectNotesClient studentDocId={studentDocId} notes={notes} units={units} />;
 }

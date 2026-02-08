@@ -17,10 +17,10 @@ interface AdminStudentDashboardClientProps {
     } | null;
     recentAssignments?: any[];
     recentRecords?: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function AdminStudentDashboardClient({ stats, recentAssignments = [], recentRecords = [], studentId }: AdminStudentDashboardClientProps) {
+export default function AdminStudentDashboardClient({ stats, recentAssignments = [], recentRecords = [], studentDocId }: AdminStudentDashboardClientProps) {
     return (
         <div className="space-y-8">
             {/* Student Activity Stats (from Student Page) */}
@@ -34,7 +34,7 @@ export default function AdminStudentDashboardClient({ stats, recentAssignments =
                             <ClipboardList className="h-5 w-5 text-blue-600" />
                             최근 내준 숙제
                         </CardTitle>
-                        <Link href={`/admin/students/${studentId}/homework`} className="text-xs text-muted-foreground flex items-center hover:text-blue-600">
+                        <Link href={`/admin/students/${studentDocId}/homework`} className="text-xs text-muted-foreground flex items-center hover:text-blue-600">
                             상세보기 <ChevronRight className="h-3 w-3" />
                         </Link>
                     </CardHeader>
@@ -85,7 +85,7 @@ export default function AdminStudentDashboardClient({ stats, recentAssignments =
                             <BookOpen className="h-5 w-5 text-purple-600" />
                             최근 학습 기록
                         </CardTitle>
-                        <Link href={`/admin/students/${studentId}/history`} className="text-xs text-muted-foreground flex items-center hover:text-purple-600">
+                        <Link href={`/admin/students/${studentDocId}/history`} className="text-xs text-muted-foreground flex items-center hover:text-purple-600">
                             상세보기 <ChevronRight className="h-3 w-3" />
                         </Link>
                     </CardHeader>

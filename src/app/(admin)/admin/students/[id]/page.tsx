@@ -1,4 +1,4 @@
-import { getStudentDetail } from "@/actions/student-actions";
+import { getStudentDetailByDocId } from "@/actions/student-actions";
 import AdminStudentDashboardClient from "@/components/features/admin/AdminStudentDashboardClient";
 import { notFound } from "next/navigation";
 import { Unit } from "@/types";
@@ -8,29 +8,24 @@ export default async function AdminStudentDashboardPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const student = await getStudentDetail(studentId);
+    const student = await getStudentDetailByDocId(docId);
 
     if (!student) {
         notFound();
     }
 
-    // Fetch dashboard stats (Last Login, Next Class, etc.)
     const { studentService } = await import("@/services/studentService");
     const { learningService } = await import("@/services/learningService");
 
     const [stats, assignments, records] = await Promise.all([
-        studentService.getDashboardStats(studentId),
-        learningService.getAssignments(studentId),
-        learningService.getLearningRecords(studentId)
+        studentService.getDashboardStatsByDocId(docId),
+        learningService.getAssignments(docId),
+        learningService.getLearningRecords(docId)
     ]);
 
-    // Map Prisma Units to Dashboard Units
     const mappedUnits: Unit[] = (student.units || []).map((u: any) => ({
         id: u.id,
         name: u.name,
@@ -56,7 +51,7 @@ export default async function AdminStudentDashboardPage({
             stats={stats}
             recentAssignments={assignments.slice(0, 5)}
             recentRecords={records.slice(0, 5)}
-            studentId={studentId}
+            studentDocId={docId}
         />
     );
 }

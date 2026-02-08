@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import type { NextRequest } from "next/server";
 import type { AuthOptions } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
-import { AUTH_SIGNUP_ROLE_COOKIE } from "@/lib/auth-constants";
+import { AUTH_SIGNUP_ROLE_COOKIE, AUTH_ADMIN_LOGIN_FLOW_COOKIE, AUTH_ADMIN_SIGNUP_INTENT_COOKIE } from "@/lib/auth-constants";
 
 type NextAuthContext = { params: { nextauth: string[] } };
 
@@ -13,8 +13,10 @@ export async function GET(
     let signupRole = request.cookies.get(AUTH_SIGNUP_ROLE_COOKIE)?.value;
     const isCallback = request.nextUrl.pathname.includes("/callback/");
     if (isCallback && !signupRole) signupRole = "STUDENT";
+    const adminLoginFlow = request.cookies.get(AUTH_ADMIN_LOGIN_FLOW_COOKIE)?.value === "1";
+    const adminSignupIntent = request.cookies.get(AUTH_ADMIN_SIGNUP_INTENT_COOKIE)?.value === "1";
 
-    const options: AuthOptions = getAuthOptions(signupRole);
+    const options: AuthOptions = getAuthOptions(signupRole, { adminLoginFlow, adminSignupIntent });
     const p = await context.params;
     const nextAuthContext: NextAuthContext = {
         params: { nextauth: (p.nextauth as string[]) ?? [] },
@@ -29,8 +31,10 @@ export async function POST(
     let signupRole = request.cookies.get(AUTH_SIGNUP_ROLE_COOKIE)?.value;
     const isCallback = request.nextUrl.pathname.includes("/callback/");
     if (isCallback && !signupRole) signupRole = "STUDENT";
+    const adminLoginFlow = request.cookies.get(AUTH_ADMIN_LOGIN_FLOW_COOKIE)?.value === "1";
+    const adminSignupIntent = request.cookies.get(AUTH_ADMIN_SIGNUP_INTENT_COOKIE)?.value === "1";
 
-    const options: AuthOptions = getAuthOptions(signupRole);
+    const options: AuthOptions = getAuthOptions(signupRole, { adminLoginFlow, adminSignupIntent });
     const p = await context.params;
     const nextAuthContext: NextAuthContext = {
         params: { nextauth: (p.nextauth as string[]) ?? [] },

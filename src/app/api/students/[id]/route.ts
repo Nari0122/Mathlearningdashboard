@@ -7,16 +7,10 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        console.log('[API Debug] id from params:', id);
-        const studentId = parseInt(id);
-
-        if (isNaN(studentId)) {
-            console.error('[API Debug] Invalid student ID:', id);
-            return NextResponse.json({ error: "Invalid student ID" }, { status: 400 });
-        }
-
-        const student = await studentService.getStudentDetail(studentId);
-        console.log('[API Debug] Student found:', student ? student.name : 'null');
+        const isNumeric = /^\d+$/.test(id);
+        const student = isNumeric
+            ? await studentService.getStudentDetail(parseInt(id, 10))
+            : await studentService.getStudentDetailByDocId(id);
 
         if (!student) {
             return NextResponse.json({ error: "Student not found" }, { status: 404 });
@@ -24,10 +18,10 @@ export async function GET(
 
         return NextResponse.json({
             name: student.name,
-            grade: student.grade
+            grade: student.grade,
         });
     } catch (error) {
-        console.error("API GET Error:", error);
+        console.error("API GET /api/students/[id] Error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

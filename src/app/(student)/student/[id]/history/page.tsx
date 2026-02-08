@@ -1,5 +1,7 @@
-import { getStudentDetail } from "@/actions/student-actions";
+import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
+import { getAuthOptions } from "@/lib/auth";
+import { learningService } from "@/services/learningService";
 import StudentHistoryClient from "@/components/features/student/StudentHistoryClient";
 
 export default async function StudentLearningHistoryPage({
@@ -7,17 +9,13 @@ export default async function StudentLearningHistoryPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
+    const session = await getServerSession(getAuthOptions(undefined));
+    const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
     const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const studentDocId = id || uid;
+    if (!studentDocId) notFound();
 
-    // Direct fetch for better real-time updates
-    const { learningService } = await import("@/services/learningService");
-    const records = await learningService.getLearningRecords(studentId);
+    const records = await learningService.getLearningRecords(studentDocId);
 
-    return (
-        <StudentHistoryClient records={records} studentId={studentId} />
-    );
+    return <StudentHistoryClient records={records} studentDocId={studentDocId} />;
 }

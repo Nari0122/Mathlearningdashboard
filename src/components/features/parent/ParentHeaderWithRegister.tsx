@@ -13,6 +13,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { linkChildToParent } from "@/actions/parent-actions";
 import { UserPlus } from "lucide-react";
@@ -41,8 +42,8 @@ export function ParentHeaderWithRegister() {
         setLoading(true);
         const result = await linkChildToParent(uid, {
             studentName: form.studentName.trim(),
-            studentPhone: form.studentPhone.trim(),
-            parentPhone: form.parentPhone.trim(),
+            studentPhone: form.studentPhone,
+            parentPhone: form.parentPhone,
         });
         setLoading(false);
         if (result.success) {
@@ -89,23 +90,19 @@ export function ParentHeaderWithRegister() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="studentPhone">학생 전화번호</Label>
-                            <Input
+                            <PhoneInput
                                 id="studentPhone"
-                                type="tel"
                                 value={form.studentPhone}
-                                onChange={(e) => setForm((f) => ({ ...f, studentPhone: e.target.value }))}
-                                placeholder="학생 연락처"
+                                onChange={(v) => setForm((f) => ({ ...f, studentPhone: v }))}
                                 required
                             />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="parentPhone">학부모 전화번호</Label>
-                            <Input
+                            <PhoneInput
                                 id="parentPhone"
-                                type="tel"
                                 value={form.parentPhone}
-                                onChange={(e) => setForm((f) => ({ ...f, parentPhone: e.target.value }))}
-                                placeholder="학부모 연락처 (등록 시 입력한 번호)"
+                                onChange={(v) => setForm((f) => ({ ...f, parentPhone: v }))}
                                 required
                             />
                         </div>

@@ -43,7 +43,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
               <span className="text-3xl font-bold text-white">M</span>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">MATHCLINIC LAB</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">강나리 MATH LAB</h1>
           <p className="text-gray-600">수학 학습 관리 시스템</p>
         </div>
 
@@ -115,7 +115,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
         {/* Footer */}
         <p className="text-center text-gray-600 text-sm mt-6">
-          © 2026 MATHCLINIC LAB. All rights reserved.
+          © 2026 강나리 MATH LAB. All rights reserved.
         </p>
       </div>
     </div>

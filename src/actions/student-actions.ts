@@ -90,19 +90,53 @@ export async function getStudentDetail(userId: number) {
     return await studentService.getStudentDetail(userId);
 }
 
+/** 문서 ID로 학생 상세 조회 (관리자 학생 상세 URL용) */
+export async function getStudentDetailByDocId(docId: string) {
+    return await studentService.getStudentDetailByDocId(docId);
+}
+
+/** 라우트 id(숫자 또는 docId) → Firestore 학생 문서 ID. 연동 관리 등에서 사용 */
+export async function getStudentDocIdFromRouteId(routeId: string): Promise<string | null> {
+    return await studentService.getStudentDocIdFromRouteId(routeId);
+}
+
+export async function updateStudentStatusByDocId(docId: string, isActive: boolean) {
+    const result = await studentService.updateStudentByDocId(docId, { isActive });
+    if (result.success) revalidatePath("/admin/students");
+    return result;
+}
+
+export async function approveStudentByDocId(docId: string) {
+    const result = await studentService.updateStudentByDocId(docId, { approvalStatus: "APPROVED" } as any);
+    if (result.success) revalidatePath("/admin/students");
+    return result;
+}
+
+export async function updateStudentByDocId(docId: string, data: UpdateStudentData) {
+    const result = await studentService.updateStudentByDocId(docId, data);
+    if (result.success) {
+        revalidatePath("/admin/students");
+        revalidatePath(`/admin/students/${docId}`);
+    }
+    return result;
+}
+
+export async function deleteStudentByDocId(docId: string) {
+    const result = await studentService.deleteStudentByDocId(docId);
+    if (result.success) revalidatePath("/admin/students");
+    return result;
+}
+
 export async function getStudentIncorrectNotes(userId: number) {
     // To be implemented in learningService/studentService
     return [];
 }
 
-// Submit homework
-export async function submitHomework(homeworkId: string, studentId: number) {
+// Submit homework (studentDocId = Firestore document ID, e.g. student uid)
+export async function submitHomework(homeworkId: string, studentDocId: string) {
     try {
-        // Import admin service since homework is managed there
         const { learningService } = await import("@/services/learningService");
-
-        // Get homework to check due date
-        const homeworks = await learningService.getAssignments(studentId);
+        const homeworks = await learningService.getAssignments(studentDocId);
         const homework = homeworks.find((h: any) => h.id === homeworkId) as any;
 
         if (!homework) {
@@ -112,9 +146,8 @@ export async function submitHomework(homeworkId: string, studentId: number) {
         const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
         const isLate = today > homework.dueDate;
 
-        // Use updateHomework from admin-actions
         const { updateHomework } = await import("@/actions/admin-actions");
-        const result = await updateHomework(homeworkId, studentId, {
+        const result = await updateHomework(homeworkId, studentDocId, {
             title: homework.title,
             dueDate: homework.dueDate,
             status: isLate ? 'late-submitted' : 'submitted',
@@ -122,7 +155,7 @@ export async function submitHomework(homeworkId: string, studentId: number) {
         });
 
         if (result.success) {
-            revalidatePath(`/student/${studentId}/homework`);
+            revalidatePath(`/student/${studentDocId}/homework`);
         }
 
         return result;

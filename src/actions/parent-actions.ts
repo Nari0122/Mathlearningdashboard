@@ -5,8 +5,8 @@ import { studentService } from "@/services/studentService";
 import { revalidatePath } from "next/cache";
 
 /**
- * 자녀 등록(연동): 학생 이름·학생 전화번호·학부모 전화번호로 students 문서 조회 후
- * 해당 학생 id를 현재 학부모의 studentIds에 추가.
+ * 자녀 등록(연동): 학생 이름·전화·학부모 전화가 일치하면 즉시 학부모의 studentIds에 추가.
+ * 별도 승인 테이블 없이 parents 컬렉션만 사용.
  */
 export async function linkChildToParent(
     parentUid: string,
@@ -27,21 +27,66 @@ export async function linkChildToParent(
         return { success: false, message: "학부모 정보를 찾을 수 없습니다." };
     }
 
-    const existingIds = (parent.studentIds as number[] | undefined) ?? [];
-    if (existingIds.includes(student.id)) {
+    const existingIds = (parent.studentIds as (string | number)[] | undefined) ?? [];
+    if (existingIds.includes(student.docId)) {
         return { success: false, message: "이미 연동된 자녀입니다." };
     }
 
-    const result = await parentService.addStudentIdToParent(parentUid, student.id);
+    const result = await parentService.addStudentDocIdToParent(parentUid, student.docId);
     if (result.success) {
-        revalidatePath("/parent/dashboard");
+        revalidatePath(`/parent/${parentUid}/dashboard`);
     }
     return result;
 }
 
-/** 연동된 자녀 목록 (id, name) */
-export async function getLinkedStudentsForParent(parentUid: string): Promise<{ id: number; name: string }[]> {
+/** 연동된 자녀 목록 (승인 완료된 것만). studentDocId 기준으로만 반환하도록 정규화 */
+export async function getLinkedStudentsForParent(parentUid: string): Promise<{ id: number; name: string; docId: string }[]> {
     const parent = await parentService.getParentByUid(parentUid);
-    const ids = (parent?.studentIds as number[] | undefined) ?? [];
-    return studentService.getStudentsByIds(ids);
+    const ids = (parent?.studentIds as (string | number)[] | undefined) ?? [];
+    if (ids.length === 0) return [];
+    const docIds = ids.filter((x): x is string => typeof x === "string");
+    const numericIds = ids.filter((x): x is number => typeof x === "number");
+    const [byDocId, byNumericId] = await Promise.all([
+        docIds.length > 0 ? studentService.getStudentsByDocIds(docIds) : [],
+        numericIds.length > 0 ? studentService.getStudentsByIds(numericIds) : [],
+    ]);
+    return [...byDocId, ...byNumericId];
+}
+
+/** 학부모 쪽: 보낸 연동 요청 대기 목록. 별도 링크 테이블 미사용으로 항상 빈 배열 반환. */
+export async function getSentPendingRequests(_parentUid: string): Promise<
+    { linkId: string; studentDocId: string; studentName: string; requestedAt: string }[]
+> {
+    return [];
+}
+
+/** 학생 쪽: 나와 연동된 학부모 목록 (studentIds에 포함된 학부모 전체) */
+export async function getConnectedParentsForStudent(studentDocId: string): Promise<{ uid: string; name: string }[]> {
+    if (!studentDocId) return [];
+    return parentService.getParentsLinkedToStudent(studentDocId);
+}
+
+/** 학생 쪽: 나에게 온 학부모 연동 승인 대기 목록. 별도 링크 테이블 미사용으로 항상 빈 배열 반환. */
+export async function getPendingParentRequests(_studentDocId: string): Promise<
+    { linkId: string; parentUid: string; parentName: string; requestedAt: string }[]
+> {
+    return [];
+}
+
+/** 관리자: 전체 학부모 목록 + 각 학부모의 연동된 자녀(학생) 목록. DB parents·students 연동 */
+export async function getParentsWithLinkedStudents(): Promise<
+    { uid: string; name: string; email?: string; linkedStudents: { id: number; name: string; docId: string }[] }[]
+> {
+    const parents = await parentService.getAllParents();
+    const result: { uid: string; name: string; email?: string; linkedStudents: { id: number; name: string; docId: string }[] }[] = [];
+    for (const p of parents) {
+        const linkedStudents = await getLinkedStudentsForParent(p.uid);
+        result.push({
+            uid: p.uid,
+            name: p.name,
+            email: p.email as string | undefined,
+            linkedStudents,
+        });
+    }
+    return result;
 }

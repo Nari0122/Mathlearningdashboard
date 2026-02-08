@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 
 interface StudentHistoryClientProps {
     records: any[];
-    studentId: number;
+    studentDocId?: string;
 }
 
 export default function StudentHistoryClient({ records }: StudentHistoryClientProps) {

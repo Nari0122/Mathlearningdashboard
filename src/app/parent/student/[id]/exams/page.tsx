@@ -1,4 +1,4 @@
-import { getStudentDetail } from "@/actions/student-actions";
+import { getStudentDetailByDocId } from "@/actions/student-actions";
 import { notFound } from "next/navigation";
 import StudentExamsClient from "@/components/features/student/StudentExamsClient";
 import { learningService } from "@/services/learningService";
@@ -8,19 +8,13 @@ export default async function ParentStudentExamsPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const student = await getStudentDetail(studentId);
+    const student = await getStudentDetailByDocId(docId);
+    if (!student) notFound();
 
-    if (!student) {
-        notFound();
-    }
+    const exams = await learningService.getExams(docId);
 
-    const exams = await learningService.getExams(studentId);
-
-    return <StudentExamsClient exams={exams} studentId={studentId} />;
+    return <StudentExamsClient exams={exams} studentDocId={docId} />;
 }

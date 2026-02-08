@@ -12,10 +12,10 @@ import { useRouter } from "next/navigation";
 
 interface AdminHistoryClientProps {
     records: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function AdminHistoryClient({ records, studentId }: AdminHistoryClientProps) {
+export default function AdminHistoryClient({ records, studentDocId }: AdminHistoryClientProps) {
     const router = useRouter();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -36,7 +36,7 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
         if (!date || !progress) return;
 
         startTransition(async () => {
-            const result = await createLearningRecord(studentId, {
+            const result = await createLearningRecord(studentDocId, {
                 date,
                 progress,
                 comment,
@@ -69,7 +69,7 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
         if (!currentEditId || !editDate || !editProgress) return;
 
         startTransition(async () => {
-            const result = await updateLearningRecord(String(currentEditId), studentId, {
+            const result = await updateLearningRecord(String(currentEditId), studentDocId, {
                 date: editDate,
                 progress: editProgress,
                 comment: editComment,
@@ -88,7 +88,7 @@ export default function AdminHistoryClient({ records, studentId }: AdminHistoryC
     const handleDelete = async (id: number) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
-            const result = await deleteLearningRecord(String(id), studentId);
+            const result = await deleteLearningRecord(String(id), studentDocId);
             if (result.success) {
                 router.refresh();
             } else {

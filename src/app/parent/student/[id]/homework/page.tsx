@@ -7,13 +7,10 @@ export default async function ParentStudentHomeworkPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const assignments = await learningService.getAssignments(studentId);
+    const assignments = await learningService.getAssignments(docId);
 
-    return <StudentHomeworkClient assignments={assignments} studentId={studentId} />;
+    return <StudentHomeworkClient assignments={assignments} studentDocId={docId} />;
 }

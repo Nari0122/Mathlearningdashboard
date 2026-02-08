@@ -7,13 +7,10 @@ export default async function ParentStudentHistoryPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const records = await learningService.getLearningRecords(studentId);
+    const records = await learningService.getLearningRecords(docId);
 
-    return <StudentHistoryClient records={records} studentId={studentId} />;
+    return <StudentHistoryClient records={records} studentDocId={docId} />;
 }

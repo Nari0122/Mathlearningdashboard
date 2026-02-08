@@ -1,4 +1,4 @@
-import { getStudentDetail } from "@/actions/student-actions";
+import { getStudentDetailByDocId } from "@/actions/student-actions";
 import { notFound } from "next/navigation";
 import AdminScheduleClient from "@/components/features/admin/AdminScheduleClient";
 
@@ -7,23 +7,16 @@ export default async function AdminSchedulePage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const student = await getStudentDetail(studentId);
+    const student = await getStudentDetailByDocId(docId);
+    if (!student) notFound();
 
-    if (!student) {
-        notFound();
-    }
-
-    // Use services
     const { learningService } = await import("@/services/learningService");
-    const schedules = await learningService.getSchedules(studentId);
+    const schedules = await learningService.getSchedules(docId);
 
     return (
-        <AdminScheduleClient schedules={schedules} studentId={studentId} />
+        <AdminScheduleClient schedules={schedules} studentDocId={docId} />
     );
 }

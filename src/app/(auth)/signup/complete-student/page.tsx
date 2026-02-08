@@ -120,12 +120,12 @@ export default function CompleteStudentPage() {
             <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
                 <Card className="w-full max-w-md">
                     <CardHeader>
-                        <CardTitle>이미 가입된 유저입니다</CardTitle>
+                        <CardTitle>이미 가입된 계정입니다</CardTitle>
                         <p className="text-sm text-gray-600">{alreadyRegistered.message}</p>
                     </CardHeader>
                     <CardContent>
                         <Button asChild className="w-full">
-                            <Link href={alreadyRegistered.redirect}>해당 화면으로 이동</Link>
+                            <Link href={alreadyRegistered.redirect}>로그인 페이지로 이동</Link>
                         </Button>
                     </CardContent>
                 </Card>

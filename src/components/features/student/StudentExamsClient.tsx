@@ -13,10 +13,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 interface StudentExamsClientProps {
     exams: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function StudentExamsClient({ exams, studentId }: StudentExamsClientProps) {
+export default function StudentExamsClient({ exams, studentDocId }: StudentExamsClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
     const [isAddOpen, setIsAddOpen] = useState(false);
@@ -38,7 +38,7 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
         if (!examType || !date || !score) return;
 
         startTransition(async () => {
-            const result = await createExam(studentId, {
+            const result = await createExam(studentDocId, {
                 examType,
                 subject,
                 date,
@@ -70,7 +70,7 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
         if (!currentEditId || !editScore || !editDate) return;
 
         startTransition(async () => {
-            const result = await updateExam(currentEditId, studentId, {
+            const result = await updateExam(currentEditId, studentDocId, {
                 examType: editExamType,
                 subject: editSubject,
                 score: parseInt(editScore),
@@ -89,7 +89,7 @@ export default function StudentExamsClient({ exams, studentId }: StudentExamsCli
     const handleDelete = async (id: string) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
-            const result = await deleteExam(id, studentId);
+            const result = await deleteExam(id, studentDocId);
             if (result.success) {
                 router.refresh();
             } else {

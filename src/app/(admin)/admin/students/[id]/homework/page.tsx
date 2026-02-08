@@ -1,4 +1,4 @@
-import { getStudentDetail } from "@/actions/student-actions";
+import { getStudentDetailByDocId } from "@/actions/student-actions";
 import { notFound } from "next/navigation";
 import AdminHomeworkClient from "@/components/features/admin/AdminHomeworkClient";
 
@@ -7,23 +7,16 @@ export default async function AdminHomeworkPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const student = await getStudentDetail(studentId);
+    const student = await getStudentDetailByDocId(docId);
+    if (!student) notFound();
 
-    if (!student) {
-        notFound();
-    }
-
-    // Use services
     const { learningService } = await import("@/services/learningService");
-    const homeworks = await learningService.getAssignments(studentId);
+    const homeworks = await learningService.getAssignments(docId);
 
     return (
-        <AdminHomeworkClient homeworks={homeworks} studentId={studentId} />
+        <AdminHomeworkClient homeworks={homeworks} studentDocId={docId} />
     );
 }

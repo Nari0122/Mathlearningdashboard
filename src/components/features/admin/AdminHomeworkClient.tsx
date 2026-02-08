@@ -12,10 +12,10 @@ import { useRouter } from "next/navigation";
 
 interface AdminHomeworkClientProps {
     homeworks: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomeworkClientProps) {
+export default function AdminHomeworkClient({ homeworks, studentDocId }: AdminHomeworkClientProps) {
     const router = useRouter();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -33,7 +33,7 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
         if (!title || !dueDate || !assignedDate) return;
 
         startTransition(async () => {
-            const result = await createHomework(studentId, {
+            const result = await createHomework(studentDocId, {
                 title,
                 dueDate,
                 assignedDate // Use user input
@@ -62,7 +62,7 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
         if (!currentEditId || !editTitle || !editDueDate) return;
 
         startTransition(async () => {
-            const result = await updateHomework(currentEditId, studentId, {
+            const result = await updateHomework(currentEditId, studentDocId, {
                 title: editTitle,
                 dueDate: editDueDate
             });
@@ -79,7 +79,7 @@ export default function AdminHomeworkClient({ homeworks, studentId }: AdminHomew
     const handleDelete = async (id: string) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
-            const result = await deleteHomework(id, studentId);
+            const result = await deleteHomework(id, studentDocId);
             if (result.success) {
                 router.refresh();
             } else {

@@ -11,7 +11,8 @@ import { useReadOnly } from "@/contexts/ReadOnlyContext";
 
 interface StudentHomeworkClientProps {
     assignments: any[];
-    studentId: number;
+    /** Firestore 학생 문서 ID (학부모/학생 공통) */
+    studentDocId: string;
 }
 
 function formatDate(dateString: string | Date | null) {
@@ -23,14 +24,14 @@ function formatDate(dateString: string | Date | null) {
     return `${year}. ${month}. ${day}.`;
 }
 
-export default function StudentHomeworkClient({ assignments, studentId }: StudentHomeworkClientProps) {
+export default function StudentHomeworkClient({ assignments, studentDocId }: StudentHomeworkClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
     const [isPending, startTransition] = useTransition();
 
     const handleToggleComplete = async (assignmentId: string, currentStatus: string) => {
         startTransition(async () => {
-            const result = await submitHomework(assignmentId, studentId);
+            const result = await submitHomework(assignmentId, studentDocId);
             if (result.success) {
                 router.refresh();
             } else {
@@ -46,7 +47,7 @@ export default function StudentHomeworkClient({ assignments, studentId }: Studen
             const assignment = assignments.find((a: any) => a.id === assignmentId);
 
             if (assignment) {
-                const result = await updateHomework(assignmentId, studentId, {
+                const result = await updateHomework(assignmentId, studentDocId, {
                     title: assignment.title,
                     dueDate: assignment.dueDate,
                     status: 'pending',

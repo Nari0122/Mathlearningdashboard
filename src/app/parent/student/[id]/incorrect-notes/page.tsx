@@ -7,14 +7,11 @@ export default async function ParentStudentIncorrectNotesPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const notes = await learningService.getIncorrectNotes(studentId);
-    const units = await learningService.getUnits(studentId);
+    const notes = await learningService.getIncorrectNotes(docId);
+    const units = await learningService.getUnits(docId);
 
-    return <StudentIncorrectNotesClient studentId={studentId} notes={notes} units={units} />;
+    return <StudentIncorrectNotesClient studentDocId={docId} notes={notes} units={units} />;
 }

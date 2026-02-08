@@ -4,16 +4,15 @@ import ReportClient from "@/components/features/admin/ReportClient";
 export const dynamic = 'force-dynamic';
 
 export default async function ReportPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
+    const { id: docId } = await params;
+    if (!docId) return null;
 
-    // Use services instead of direct DB access
     const { studentService } = await import("@/services/studentService");
     const { learningService } = await import("@/services/learningService");
 
-    const student = await studentService.getStudentDetail(studentId);
-    const unitsData = await learningService.getUnits(studentId);
-    const learningRecords = await learningService.getLearningRecords(studentId);
+    const student = await studentService.getStudentDetailByDocId(docId);
+    const unitsData = await learningService.getUnits(docId);
+    const learningRecords = await learningService.getLearningRecords(docId);
 
     // Map explicit types to avoid runtime errors
     const units: Unit[] = unitsData.map((u: any) => ({

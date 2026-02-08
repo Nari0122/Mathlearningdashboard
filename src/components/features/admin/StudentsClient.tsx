@@ -14,9 +14,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { updateStudent, updateStudentStatus, deleteStudent, approveStudent } from "@/actions/student-actions";
+import { updateStudentByDocId, updateStudentStatusByDocId, deleteStudentByDocId, approveStudentByDocId } from "@/actions/student-actions";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PhoneInput } from "@/components/ui/phone-input";
+import { getPhoneDigits, formatPhoneDisplay } from "@/lib/phone";
 import { Edit } from "lucide-react";
 
 interface StudentsClientProps {
@@ -34,7 +36,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
 
     // Edit Student State
     const [isEditOpen, setIsEditOpen] = useState(false);
-    const [editingId, setEditingId] = useState<number | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [editFormData, setEditFormData] = useState({
         name: "",
         loginId: "",
@@ -73,9 +75,9 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         ? Math.round(approvedStudents.reduce((acc, s) => acc + (s.progress || 0), 0) / totalStudents)
         : 0;
 
-    const handleApprove = async (studentId: number) => {
+    const handleApprove = async (docId: string) => {
         setIsLoading(true);
-        const res = await approveStudent(studentId);
+        const res = await approveStudentByDocId(docId);
         setIsLoading(false);
         if (res.success) {
             router.refresh();
@@ -85,13 +87,13 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     };
 
     const handleEditClick = (student: any) => {
-        setEditingId(student.id);
+        setEditingId(student.docId);
         setEditFormData({
             name: student.name,
             loginId: student.loginId,
             grade: student.grade,
-            phone: student.phone,
-            parentPhone: student.parentPhone || "",
+            phone: getPhoneDigits(student.phone || ""),
+            parentPhone: getPhoneDigits(student.parentPhone || ""),
             parentRelation: student.parentRelation || "부",
             schoolName: student.schoolName || "",
             schoolType: student.schoolType || "일반고",
@@ -104,7 +106,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     const handleEditSave = async () => {
         if (!editingId) return;
         setIsLoading(true);
-        const res = await updateStudent(editingId, editFormData);
+        const res = await updateStudentByDocId(editingId, editFormData);
         setIsLoading(false);
 
         if (res.success) {
@@ -117,7 +119,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         }
     };
 
-    const handleToggleStatus = async (studentId: number, currentStatus: boolean) => {
+    const handleToggleStatus = async (docId: string, currentStatus: boolean) => {
         const confirmMessage = currentStatus
             ? "학생 계정을 비활성화하시겠습니까?\n\n• 로그인이 제한됩니다\n• 기존 학습 데이터는 삭제되지 않습니다\n• 관리자 페이지에서 계속 조회 가능합니다\n• 추후 재활성화가 가능합니다"
             : "학생 계정을 활성화하시겠습니까?\n\n• 기존 ID/PW로 즉시 로그인 가능합니다\n• 모든 학습 데이터가 그대로 유지됩니다";
@@ -126,7 +128,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
             return;
         }
 
-        const res = await updateStudentStatus(studentId, !currentStatus);
+        const res = await updateStudentStatusByDocId(docId, !currentStatus);
         if (res.success) {
             router.refresh();
         } else {
@@ -150,7 +152,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         }
 
         setIsLoading(true);
-        const res = await deleteStudent(editingId);
+        const res = await deleteStudentByDocId(editingId);
         setIsLoading(false);
 
         if (res.success) {
@@ -261,7 +263,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                 <ul className="space-y-3">
                                     {pendingStudents.map((s: any) => (
                                         <li
-                                            key={s.id}
+                                            key={s.docId}
                                             className="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-200 bg-gray-50"
                                         >
                                             <div className="flex items-center gap-3 min-w-0">
@@ -272,13 +274,13 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                                     <p className="font-medium text-gray-900 truncate">{s.name}</p>
                                                     <p className="text-sm text-gray-500 truncate">
                                                         {s.schoolName || "학교 미등록"}
-                                                        {s.phone ? ` · ${s.phone}` : ""}
+                                                        {s.phone ? ` · ${formatPhoneDisplay(s.phone)}` : ""}
                                                     </p>
                                                 </div>
                                             </div>
                                             <Button
                                                 size="sm"
-                                                onClick={() => handleApprove(s.id)}
+                                                onClick={() => handleApprove(s.docId)}
                                                 disabled={isLoading}
                                                 className="flex-shrink-0 bg-blue-600 hover:bg-blue-700"
                                             >
@@ -302,9 +304,9 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredStudents.length > 0 ? filteredStudents.map((student) => (
                     <div
-                        key={student.id}
+                        key={student.docId}
                         className="group relative bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 cursor-pointer overflow-hidden"
-                        onClick={() => window.location.href = `/admin/students/${student.id}`}
+                        onClick={() => window.location.href = `/admin/students/${student.docId}`}
                     >
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-purple-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
 
@@ -323,7 +325,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                         <div className="space-y-4">
                             <div className="flex items-center gap-2 text-sm text-gray-500">
                                 <Phone size={14} />
-                                <span>{student.phone || "연락처 없음"}</span>
+                                <span>{student.phone ? formatPhoneDisplay(student.phone) : "연락처 없음"}</span>
                             </div>
                         </div>
 
@@ -333,7 +335,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                 className={`cursor-pointer hover:opacity-80 transition-opacity ${!student.isActive ? 'bg-gray-500' : ''}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleToggleStatus(student.id, student.isActive);
+                                    handleToggleStatus(student.docId, student.isActive);
                                 }}
                             >
                                 {student.isActive ? "활성화" : "비활성화"}
@@ -403,7 +405,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="edit-phone">연락처</Label>
-                                <Input id="edit-phone" value={editFormData.phone} onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })} className="h-10" />
+                                <PhoneInput id="edit-phone" value={editFormData.phone} onChange={(v) => setEditFormData({ ...editFormData, phone: v })} className="h-10" />
                             </div>
                         </div>
 
@@ -447,11 +449,10 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                         <SelectItem value="기타">기타</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <Input
+                                <PhoneInput
                                     className="flex-1 h-10"
-                                    placeholder="010-0000-0000"
                                     value={editFormData.parentPhone}
-                                    onChange={(e) => setEditFormData({ ...editFormData, parentPhone: e.target.value })}
+                                    onChange={(v) => setEditFormData({ ...editFormData, parentPhone: v })}
                                 />
                             </div>
                         </div>

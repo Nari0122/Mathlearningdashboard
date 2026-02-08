@@ -5,9 +5,9 @@ import { revalidatePath } from "next/cache";
 
 // --- Units ---
 
-export async function getUnits(userId: number) {
+export async function getUnits(docId: string) {
     try {
-        const units = await learningService.getUnits(userId);
+        const units = await learningService.getUnits(docId);
 
         return units.map((u: any) => ({
             id: u.id,
@@ -33,9 +33,9 @@ export async function getUnits(userId: number) {
     }
 }
 
-export async function addUnit(userId: number, name: string, grade: string) {
+export async function addUnit(docId: string, name: string, grade: string) {
     try {
-        const result = await learningService.createUnit(userId, {
+        const result = await learningService.createUnit(docId, {
             name,
             grade,
             status: "MID",

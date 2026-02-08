@@ -25,7 +25,7 @@ export const studentService = {
             const snapshot = await adminDb.collection("students").orderBy("createdAt", "desc").get();
             return snapshot.docs.map(doc => {
                 const data = doc.data();
-                return { ...data, createdAt: data.createdAt };
+                return { ...data, docId: doc.id, createdAt: data.createdAt };
             });
         } catch (error) {
             console.error("Firestore getStudents error:", error);
@@ -87,17 +87,39 @@ export const studentService = {
         }
     },
 
-    /** 여러 학생 id에 대한 id·이름 목록 (자녀 목록 등) */
-    async getStudentsByIds(ids: number[]): Promise<{ id: number; name: string }[]> {
+    /** 여러 학생 id에 대한 id·이름·docId 목록 (자녀 목록 등) */
+    async getStudentsByIds(ids: number[]): Promise<{ id: number; name: string; docId: string }[]> {
         if (ids.length === 0 || !adminDb) return [];
         try {
             const snapshot = await adminDb.collection("students").where("id", "in", ids.slice(0, 30)).get();
             return snapshot.docs.map(d => {
                 const d_ = d.data();
-                return { id: d_.id as number, name: (d_.name as string) || "" };
+                return { id: d_.id as number, name: (d_.name as string) || "", docId: d.id };
             });
         } catch (error) {
             console.error("Firestore getStudentsByIds error:", error);
+            return [];
+        }
+    },
+
+    /** 여러 학생 문서 ID에 대한 id·이름·docId 목록 (학부모 자녀 목록 등) */
+    async getStudentsByDocIds(docIds: string[]): Promise<{ id: number; name: string; docId: string }[]> {
+        if (docIds.length === 0 || !adminDb) return [];
+        const result: { id: number; name: string; docId: string }[] = [];
+        try {
+            for (const docId of docIds.slice(0, 30)) {
+                const doc = await adminDb.collection("students").doc(docId).get();
+                if (!doc.exists) continue;
+                const d = doc.data()!;
+                result.push({
+                    id: d.id as number,
+                    name: (d.name as string) || "",
+                    docId: doc.id,
+                });
+            }
+            return result;
+        } catch (error) {
+            console.error("Firestore getStudentsByDocIds error:", error);
             return [];
         }
     },
@@ -125,20 +147,54 @@ export const studentService = {
         }
     },
 
-    async createStudent(data: any): Promise<{ success: true; id: number } | { success: false; message: string }> {
+    /** 라우트 id(숫자 또는 docId)를 Firestore 문서 ID(docId)로 변환 */
+    async getStudentDocIdFromRouteId(routeId: string): Promise<string | null> {
+        if (!adminDb || !routeId) return null;
+        if (/^\d+$/.test(routeId)) {
+            const snapshot = await adminDb.collection("students").where("id", "==", parseInt(routeId, 10)).limit(1).get();
+            return snapshot.empty ? null : snapshot.docs[0].id;
+        }
+        const doc = await adminDb.collection("students").doc(routeId).get();
+        return doc.exists ? doc.id : null;
+    },
+
+    /** 문서 ID로 학생 상세 조회 (URL·라우트용) */
+    async getStudentDetailByDocId(docId: string) {
+        if (!adminDb || !docId) return null;
+        try {
+            const docRef = adminDb.collection("students").doc(docId);
+            const doc = await docRef.get();
+            if (!doc.exists) return null;
+
+            const studentData = doc.data() as Student;
+            const unitsSnapshot = await docRef.collection("units").orderBy("createdAt", "desc").get();
+            const units = unitsSnapshot.docs.map(u => ({ ...u.data() }));
+
+            return {
+                ...studentData,
+                docId: doc.id,
+                units
+            };
+        } catch (error) {
+            console.error("Firestore getStudentDetailByDocId error:", error);
+            return null;
+        }
+    },
+
+    async createStudent(data: any): Promise<{ success: true; id: number; docId: string } | { success: false; message: string }> {
         if (!adminDb) return { success: false, message: "Database not available" };
         try {
             const nextId = await getNextNumericId("students");
             const approvalStatus = data.approvalStatus ?? "APPROVED"; // 카카오/회원가입은 "PENDING" 전달
             const { approvalStatus: _, ...rest } = data;
-            await adminDb.collection("students").add({
+            const ref = await adminDb.collection("students").add({
                 ...rest,
                 id: nextId,
                 createdAt: new Date().toISOString(),
                 isActive: true,
                 approvalStatus,
             });
-            return { success: true, id: nextId };
+            return { success: true, id: nextId, docId: ref.id };
         } catch (error) {
             console.error("Firestore createStudent error:", error);
             return { success: false, message: "Failed to create student" };
@@ -172,6 +228,34 @@ export const studentService = {
         } catch (error) {
             console.error("Firestore deleteStudent error:", error);
             return { success: false, message: "Failed to delete student" };
+        }
+    },
+
+    async updateStudentByDocId(docId: string, data: any) {
+        if (!adminDb || !docId) return { success: false, message: "Database not available" };
+        try {
+            const docRef = adminDb.collection("students").doc(docId);
+            const doc = await docRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
+            await docRef.update(data);
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore updateStudentByDocId error:", error);
+            return { success: false, message: "Failed to update student" };
+        }
+    },
+
+    async deleteStudentByDocId(docId: string) {
+        if (!adminDb || !docId) return { success: false, message: "Student not found" };
+        try {
+            const docRef = adminDb.collection("students").doc(docId);
+            const doc = await docRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
+            await docRef.delete();
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore deleteStudentByDocId error:", error);
+            return { success: false, message: "Student not found" };
         }
     },
 
@@ -233,5 +317,54 @@ export const studentService = {
                 persistenceRate: 100,
             };
         }
-    }
+    },
+
+    async getDashboardStatsByDocId(docId: string) {
+        if (!adminDb || !docId) {
+            return { recentLogin: null, nextClass: null, monthlyLoginCount: 0, persistenceRate: 100 };
+        }
+        try {
+            const docRef = adminDb.collection("students").doc(docId);
+            const studentDoc = await docRef.get();
+            if (!studentDoc.exists) return null;
+
+            const studentData = studentDoc.data() as any;
+            const loginHistory = studentData.loginHistory || [];
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+
+            const monthlyLogins = loginHistory.filter((isoString: string) => {
+                const date = new Date(isoString);
+                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+            });
+
+            const todayStr = now.toISOString().split("T")[0];
+            const schedulesSnapshot = await docRef.collection("schedules")
+                .where("date", ">=", todayStr)
+                .orderBy("date", "asc")
+                .limit(5)
+                .get();
+
+            let nextClass = null;
+            if (!schedulesSnapshot.empty) {
+                const schedules = schedulesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                (schedules as any[]).sort((a, b) => {
+                    if (a.date === b.date) return (a.startTime || "").localeCompare(b.startTime || "");
+                    return 0;
+                });
+                nextClass = schedules[0];
+            }
+
+            return {
+                recentLogin: studentData.lastLogin || null,
+                nextClass,
+                monthlyLoginCount: monthlyLogins.length,
+                persistenceRate: studentData.persistenceRate || 100,
+            };
+        } catch (error) {
+            console.error("Firestore getDashboardStatsByDocId error:", error);
+            return { recentLogin: null, nextClass: null, monthlyLoginCount: 0, persistenceRate: 100 };
+        }
+    },
 };

@@ -17,10 +17,10 @@ import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, SchoolLevel, isMiddleSchool 
 
 interface AdminLearningClientProps {
     initialUnits: Unit[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function AdminLearningClient({ initialUnits, studentId }: AdminLearningClientProps) {
+export default function AdminLearningClient({ initialUnits, studentDocId }: AdminLearningClientProps) {
     const router = useRouter();
 
     // 5-Step Cascading Selection State for Adding Units
@@ -94,7 +94,7 @@ export default function AdminLearningClient({ initialUnits, studentId }: AdminLe
         }
 
         startTransition(async () => {
-            const result = await createUnit(studentId, {
+            const result = await createUnit(studentDocId, {
                 schoolLevel: selectedLevel,
                 grade: selectedGrade,
                 subject: selectedSubject,
@@ -124,28 +124,28 @@ export default function AdminLearningClient({ initialUnits, studentId }: AdminLe
         const unit = initialUnits.find(u => u.id === unitId);
         if (!unit) return;
         startTransition(async () => {
-            await updateUnit(unitId, studentId, { ...unit, selectedDifficulty: difficulty });
+            await updateUnit(unitId, studentDocId, { ...unit, selectedDifficulty: difficulty });
             router.refresh();
         });
     };
     const handleDelete = async (unitId: number) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
-            const result = await deleteUnit(unitId, studentId);
+            const result = await deleteUnit(unitId, studentDocId);
             if (result.success) router.refresh();
             else alert("삭제 실패");
         });
     };
     const handleErrorChange = async (unitId: number, errorType: 'C' | 'M' | 'R' | 'S', delta: number) => {
         startTransition(async () => {
-            const result = await updateUnitError(unitId, studentId, errorType, delta);
+            const result = await updateUnitError(unitId, studentDocId, errorType, delta);
             if (result.success) router.refresh();
             else alert("수정 실패");
         });
     };
     const handleCompletionStatusChange = async (unitId: number, status: 'incomplete' | 'in-progress' | 'completed') => {
         startTransition(async () => {
-            const result = await updateUnit(unitId, studentId, { completionStatus: status });
+            const result = await updateUnit(unitId, studentDocId, { completionStatus: status });
             if (result.success) router.refresh();
             else alert("수정 실패");
         });
@@ -154,7 +154,7 @@ export default function AdminLearningClient({ initialUnits, studentId }: AdminLe
         const unit = initialUnits.find(u => u.id === unitId);
         if (!unit) return;
         startTransition(async () => {
-            await updateUnit(unitId, studentId, { ...unit, status: status });
+            await updateUnit(unitId, studentDocId, { ...unit, status: status });
             router.refresh();
         });
     };

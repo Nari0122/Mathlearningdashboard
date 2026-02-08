@@ -13,13 +13,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 interface AdminExamsClientProps {
     exams: any[];
-    studentId: number;
+    studentDocId: string;
 }
 
 const EXAM_TYPES = ["중간고사", "기말고사", "모의고사", "단원평가", "기타"];
 const SUBJECTS = ["수학", "영어", "국어", "과학", "사회", "공통수학1", "공통수학2", "미적분", "확률과통계", "기하"];
 
-export default function AdminExamsClient({ exams, studentId }: AdminExamsClientProps) {
+export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClientProps) {
     const router = useRouter();
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -40,7 +40,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
         if (!examType || !date || !score) return;
 
         startTransition(async () => {
-            const result = await createExam(studentId, {
+            const result = await createExam(studentDocId, {
                 examType,
                 subject,
                 date,
@@ -71,7 +71,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
         if (!currentEditId || !editScore || !editDate) return;
 
         startTransition(async () => {
-            const result = await updateExam(currentEditId, studentId, {
+            const result = await updateExam(currentEditId, studentDocId, {
                 examType: editExamType,
                 subject: editSubject,
                 score: parseInt(editScore),
@@ -90,7 +90,7 @@ export default function AdminExamsClient({ exams, studentId }: AdminExamsClientP
     const handleDelete = async (id: string) => {
         if (!confirm("정말 삭제하시겠습니까?")) return;
         startTransition(async () => {
-            const result = await deleteExam(id, studentId);
+            const result = await deleteExam(id, studentDocId);
             if (result.success) {
                 router.refresh();
             } else {

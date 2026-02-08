@@ -1,4 +1,3 @@
-import { getStudentDetail } from "@/actions/student-actions";
 import AdminLearningClient from "@/components/features/admin/AdminLearningClient";
 import { notFound } from "next/navigation";
 import { Unit } from "@/types";
@@ -8,17 +7,12 @@ export default async function AdminLearningPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    // Direct fetch for better real-time updates
     const { learningService } = await import("@/services/learningService");
-    const unitsData = await learningService.getUnits(studentId);
+    const unitsData = await learningService.getUnits(docId);
 
-    // Map to Dashboard Units
     const mappedUnits: Unit[] = (unitsData || []).map((u: any) => ({
         id: u.id,
         name: u.name,
@@ -39,6 +33,6 @@ export default async function AdminLearningPage({
     }));
 
     return (
-        <AdminLearningClient initialUnits={mappedUnits} studentId={studentId} />
+        <AdminLearningClient initialUnits={mappedUnits} studentDocId={docId} />
     );
 }

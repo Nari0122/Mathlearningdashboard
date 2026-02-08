@@ -17,15 +17,17 @@ import { useParams, usePathname } from "next/navigation";
 
 interface ParentStudentSidebarProps {
     studentName: string;
+    /** URL 식별용. 있으면 /parent/[uid]/student 링크 사용 */
+    parentUid?: string;
     className?: string;
 }
 
-const BASE = "/parent/student";
-
-export function ParentStudentSidebar({ studentName, className }: ParentStudentSidebarProps) {
+export function ParentStudentSidebar({ studentName, parentUid, className }: ParentStudentSidebarProps) {
     const pathname = usePathname();
     const params = useParams();
     const studentId = params?.id as string;
+    const uid = parentUid ?? (params?.uid as string);
+    const BASE = uid ? `/parent/${uid}/student` : "/parent/student";
 
     if (!studentId) return null;
 
@@ -81,7 +83,7 @@ export function ParentStudentSidebar({ studentName, className }: ParentStudentSi
             </div>
 
             <div className="mt-auto p-4 border-t border-gray-200">
-                <Link href="/parent/dashboard">
+                <Link href={uid ? `/parent/${uid}/dashboard` : "/parent"}>
                     <Button variant="ghost" className="w-full justify-start gap-3 text-gray-500 hover:text-gray-900">
                         <ArrowLeft className="w-5 h-5" />
                         자녀 목록으로

@@ -4,7 +4,7 @@ import { parentService } from "@/services/parentService";
 import { studentService } from "@/services/studentService";
 import { userService } from "@/services/userService";
 
-/** 이미 가입된 uid인지 확인 (students, parents, users(관리자)). 중복 회원가입 방지용 */
+/** 이미 가입된 uid인지 확인 (students, parents, admins). 중복 회원가입 방지용 */
 export async function checkExistingUserByUid(uid: string): Promise<{
     kind: "student" | "parent" | "admin" | null;
     redirect: string;
@@ -12,17 +12,16 @@ export async function checkExistingUserByUid(uid: string): Promise<{
 }> {
     const existingStudent = await studentService.getStudentByUid(uid);
     if (existingStudent) {
-        const status = (existingStudent as { approvalStatus?: string }).approvalStatus;
-        const redirect = status === "PENDING" ? "/pending-approval" : `/student/${existingStudent.id}`;
-        return { kind: "student", redirect, message: "이미 가입된 유저입니다. 학생으로 등록되어 있습니다." };
+        return { kind: "student", redirect: "/login", message: "이미 가입된 계정입니다. 로그인해 주세요." };
     }
     const existingParent = await parentService.getParentByUid(uid);
     if (existingParent) {
-        return { kind: "parent", redirect: "/parent/dashboard", message: "이미 가입된 유저입니다. 학부모로 등록되어 있습니다." };
+        return { kind: "parent", redirect: "/login", message: "이미 가입된 계정입니다. 로그인해 주세요." };
     }
-    const existingUser = await userService.getUser(uid);
-    if (existingUser && (existingUser as { role?: string }).role === "ADMIN") {
-        return { kind: "admin", redirect: "/login", message: "이미 가입된 유저입니다. 관리자는 로그인 화면에서 로그인해 주세요." };
+    const existingUser = await userService.getAdmin(uid);
+    const userRole = (existingUser as { role?: string })?.role;
+    if (existingUser && (userRole === "ADMIN" || userRole === "SUPER_ADMIN")) {
+        return { kind: "admin", redirect: "/login", message: "이미 가입된 계정입니다. 로그인해 주세요." };
     }
     return { kind: null, redirect: "", message: "" };
 }
@@ -35,13 +34,13 @@ export async function registerParent(data: {
 }): Promise<{ success: true; redirect: string } | { success: false; message: string }> {
     const existing = await parentService.getParentByUid(data.uid);
     if (existing) {
-        return { success: true, redirect: "/parent/dashboard" };
+        return { success: true, redirect: `/parent/${data.uid}/dashboard` };
     }
     const result = await parentService.createParent(data);
     if (!result.success) {
         return result;
     }
-    return { success: true, redirect: "/parent/dashboard" };
+    return { success: true, redirect: `/parent/${data.uid}/dashboard` };
 }
 
 /** 학생 완료: doc ID = uid(카카오 uid). 추가정보 저장 시에만 students 문서 생성 */

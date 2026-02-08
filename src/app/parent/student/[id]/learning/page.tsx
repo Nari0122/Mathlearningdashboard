@@ -7,13 +7,10 @@ export default async function ParentStudentLearningPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const units = await learningService.getUnits(studentId);
+    const units = await learningService.getUnits(docId);
 
     const mappedUnits = units.map((u: any) => ({
         ...u,
@@ -25,5 +22,5 @@ export default async function ParentStudentLearningPage({
         }
     }));
 
-    return <StudentLearningClient units={mappedUnits} studentId={studentId} />;
+    return <StudentLearningClient units={mappedUnits} studentDocId={docId} />;
 }

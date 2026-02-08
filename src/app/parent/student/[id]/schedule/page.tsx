@@ -7,13 +7,10 @@ export default async function ParentStudentSchedulePage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const { id: docId } = await params;
+    if (!docId) notFound();
 
-    const schedules = await learningService.getSchedules(studentId);
+    const schedules = await learningService.getSchedules(docId);
 
     return <StudentScheduleClient schedules={schedules} />;
 }

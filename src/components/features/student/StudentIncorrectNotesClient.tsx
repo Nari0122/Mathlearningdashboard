@@ -35,12 +35,12 @@ interface Attachment {
 }
 
 interface StudentIncorrectNotesClientProps {
-    studentId: number;
+    studentDocId: string;
     notes: any[];
     units: any[];
 }
 
-export default function StudentIncorrectNotesClient({ studentId, notes, units }: StudentIncorrectNotesClientProps) {
+export default function StudentIncorrectNotesClient({ studentDocId, notes, units }: StudentIncorrectNotesClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -198,11 +198,11 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
     // Fetch book tags on mount
     useEffect(() => {
         const fetchTags = async () => {
-            const tags = await getBookTags(studentId);
+            const tags = await getBookTags(studentDocId);
             setBookTags(tags as { id: string; name: string }[]);
         };
         fetchTags();
-    }, [studentId]);
+    }, [studentDocId]);
 
     const handleOpenAdd = () => {
         setModalMode('add');
@@ -333,12 +333,12 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
             );
             const unitIdToUse = matchingUnit ? matchingUnit.id : 0;
 
-            result = await createIncorrectNote(studentId, {
+            result = await createIncorrectNote(studentDocId, {
                 ...payload,
                 unitId: unitIdToUse,
             });
         } else {
-            result = await updateIncorrectNote(studentId, editingNoteId!, payload);
+            result = await updateIncorrectNote(studentDocId, editingNoteId!, payload);
         }
 
         setIsLoading(false);
@@ -356,7 +356,7 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
         if (!confirm("정말 이 오답노트를 삭제하시겠습니까?")) return;
 
         setIsLoading(true);
-        const result = await deleteIncorrectNote(studentId, noteId);
+        const result = await deleteIncorrectNote(studentDocId, noteId);
         setIsLoading(false);
 
         if (result.success) {
@@ -404,8 +404,8 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                 }
 
                 // 2. Upload to Firebase Storage
-                // Path: students/{studentId}/wrongNotes/{wrongNoteId}/attachments/{fileId}_{filename}
-                const storagePath = `students/${studentId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
+                // Path: students/{studentDocId}/wrongNotes/{wrongNoteId}/attachments/{fileId}_{filename}
+                const storagePath = `students/${studentDocId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
                 const storageRef = ref(storage, storagePath);
 
                 const uploadTask = uploadBytesResumable(storageRef, uploadFile);
@@ -627,11 +627,11 @@ export default function StudentIncorrectNotesClient({ studentId, notes, units }:
                                                         <div
                                                             className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm text-green-700 border-t"
                                                             onMouseDown={async () => {
-                                                                const result = await createBookTag(studentId, bookTagInput);
+                                                                const result = await createBookTag(studentDocId, bookTagInput);
                                                                 if (result.success && result.tagId) {
                                                                     setSelectedBookTagId(result.tagId);
                                                                     // Refresh tags
-                                                                    const newTags = await getBookTags(studentId);
+                                                                    const newTags = await getBookTags(studentDocId);
                                                                     setBookTags(newTags as { id: string; name: string }[]);
                                                                 }
                                                                 setShowBookTagSuggestions(false);

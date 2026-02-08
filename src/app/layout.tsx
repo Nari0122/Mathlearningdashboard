@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MATHCLINIC LAB",
+  title: "강나리 MATH LAB",
   description: "수학 학습 관리 시스템",
 };
 

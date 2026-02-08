@@ -11,6 +11,11 @@ import { AUTH_SIGNUP_ROLE_COOKIE } from "@/lib/auth-constants";
 const ROLE = ["STUDENT", "PARENT"] as const;
 type Role = (typeof ROLE)[number];
 
+/** 계정 연동 버튼 설정 (NextAuth provider id와 UI 라벨) */
+const SIGNUP_PROVIDERS = [
+    { id: "kakao", label: "카카오로 계속하기", className: "bg-[#FEE500] hover:bg-[#FDD835] text-[#191919]" },
+] as const;
+
 function setSignupRoleCookie(role: string) {
     document.cookie = `${AUTH_SIGNUP_ROLE_COOKIE}=${role}; path=/; max-age=600; SameSite=Lax`;
 }
@@ -19,21 +24,21 @@ function SignupAuthContent() {
     const searchParams = useSearchParams();
     const roleParam = searchParams?.get("role") ?? null;
     const role: Role = ROLE.includes(roleParam as Role) ? (roleParam as Role) : "STUDENT";
-    const [isLoading, setIsLoading] = useState<string | null>(null);
+    const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
 
     useEffect(() => {
         setSignupRoleCookie(role);
     }, [role]);
 
+    const callbackUrl = role === "PARENT" ? "/signup/complete-parent" : "/signup/complete-student";
+
     const handleProviderSignIn = useCallback(
-        (provider: string) => {
+        (providerId: string) => {
             setSignupRoleCookie(role);
-            setIsLoading(provider);
-            const callbackUrl =
-                role === "PARENT" ? "/signup/complete-parent" : "/signup/complete-student";
-            signIn(provider, { callbackUrl });
+            setLoadingProvider(providerId);
+            signIn(providerId, { callbackUrl });
         },
-        [role]
+        [role, callbackUrl]
     );
 
     return (
@@ -57,32 +62,18 @@ function SignupAuthContent() {
                         <CardDescription>아래 서비스 중 하나로 계속하세요.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full h-11"
-                            disabled={!!isLoading}
-                            onClick={() => handleProviderSignIn("google")}
-                        >
-                            {isLoading === "google" ? "연결 중..." : "Google로 계속하기"}
-                        </Button>
-                        <Button
-                            type="button"
-                            className="w-full h-11 bg-[#FEE500] hover:bg-[#FDD835] text-[#191919]"
-                            disabled={!!isLoading}
-                            onClick={() => handleProviderSignIn("kakao")}
-                        >
-                            {isLoading === "kakao" ? "연결 중..." : "카카오로 계속하기"}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full h-11"
-                            disabled={!!isLoading}
-                            onClick={() => handleProviderSignIn("naver")}
-                        >
-                            {isLoading === "naver" ? "연결 중..." : "네이버로 계속하기"}
-                        </Button>
+                        {SIGNUP_PROVIDERS.map(({ id, label, className }) => (
+                            <Button
+                                key={id}
+                                type="button"
+                                variant={className ? undefined : "outline"}
+                                className={`w-full h-11 ${className ?? ""}`}
+                                disabled={!!loadingProvider}
+                                onClick={() => handleProviderSignIn(id)}
+                            >
+                                {loadingProvider === id ? "연결 중..." : label}
+                            </Button>
+                        ))}
                     </CardContent>
                 </Card>
 

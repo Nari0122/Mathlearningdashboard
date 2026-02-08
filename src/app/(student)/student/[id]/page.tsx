@@ -1,4 +1,4 @@
-import { getStudentDetail } from "@/actions/student-actions";
+import { getStudentDetail, getStudentDetailByDocId } from "@/actions/student-actions";
 import StudentDashboardClient from "@/components/features/student/StudentDashboardClient";
 import { notFound } from "next/navigation";
 import { Unit } from "@/types";
@@ -9,26 +9,24 @@ export default async function StudentDashboardPage({
     params: Promise<{ id: string }>;
 }) {
     const { id } = await params;
-    const studentId = parseInt(id);
-    if (isNaN(studentId)) {
-        notFound();
-    }
+    const isNumeric = /^\d+$/.test(id);
+    const student = isNumeric
+        ? await getStudentDetail(parseInt(id, 10))
+        : await getStudentDetailByDocId(id);
 
-    const student = await getStudentDetail(studentId);
+    if (!student) notFound();
 
-    // Fetch dashboard stats
     const { studentService } = await import("@/services/studentService");
     const { learningService } = await import("@/services/learningService");
 
+    const idParam = isNumeric ? parseInt(id, 10) : id;
     const [stats, assignments, records] = await Promise.all([
-        studentService.getDashboardStats(studentId),
-        learningService.getAssignments(studentId),
-        learningService.getLearningRecords(studentId)
+        isNumeric
+            ? studentService.getDashboardStats(parseInt(id, 10))
+            : studentService.getDashboardStatsByDocId(id),
+        learningService.getAssignments(idParam),
+        learningService.getLearningRecords(idParam),
     ]);
-
-    if (!student) {
-        notFound();
-    }
 
     // Map Prisma Units to Dashboard Units
     const mappedUnits: Unit[] = (student.units || []).map((u: any) => ({

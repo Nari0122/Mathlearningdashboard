@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Users, HelpCircle, LogOut, Edit2, Check, X } from "lucide-react";
+import { Users, HelpCircle, LogOut, Edit2, Check, X, ShieldCheck, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
@@ -13,13 +13,17 @@ import { Input } from "@/components/ui/input";
 
 interface AdminSidebarProps {
     userName?: string;
+    /** 서버에서 조회한 Firestore 역할. 있으면 세션보다 우선해 메뉴·라벨에 사용 */
+    isSuperAdmin?: boolean;
     className?: string;
 }
 
-export function AdminSidebar({ userName = "관리자", className }: AdminSidebarProps) {
+export function AdminSidebar({ userName, isSuperAdmin: isSuperAdminFromServer, className }: AdminSidebarProps) {
     const pathname = usePathname();
     const { data: session } = useSession();
-    const displayName = session?.user?.name ?? userName;
+    const role = (session?.user as { role?: string })?.role;
+    const isSuperAdmin = isSuperAdminFromServer ?? (role === "SUPER_ADMIN");
+    const displayName = userName?.trim() || session?.user?.name || "관리자";
     const [settings, setSettings] = useState({ supportEmail: 'support@mathclinic.com', supportPhone: '02-1234-5678' });
     const [isEditing, setIsEditing] = useState(false);
     const [editValues, setEditValues] = useState({ supportEmail: '', supportPhone: '' });
@@ -52,9 +56,11 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
         setEditValues(settings);
     };
 
-    const menuItems = [
+    const menuItems: { href: string; label: string; icon: typeof Users; superAdminOnly?: boolean }[] = [
         { href: "/admin/students", label: "학생 관리", icon: Users },
-    ];
+        { href: "/admin/parents", label: "학부모 관리", icon: UserCircle },
+        { href: "/admin/admins", label: "관리자 관리", icon: ShieldCheck, superAdminOnly: true },
+    ].filter((item) => !item.superAdminOnly || isSuperAdmin);
 
     return (
         <aside className={cn("w-64 bg-white border-r border-gray-200 flex flex-col h-full shadow-sm", className)}>
@@ -66,21 +72,21 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
                     </div>
                     <div className="min-w-0">
                         <h1 className="text-base font-bold text-gray-900 tracking-tight leading-tight">강나리 MATH LAB</h1>
-                        <p className="text-xs text-gray-500 mt-0.5 font-normal">admin</p>
+                        <p className="text-xs text-gray-500 mt-0.5 font-normal">{isSuperAdmin ? "Super Admin" : "Admin"}</p>
                     </div>
                 </div>
             </div>
 
-            {/* User Info */}
+            {/* User Info: 역할·이름 (서버에서 넘긴 Firestore 기준) */}
             <div className="p-4 border-b border-gray-200">
                 <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">admin</p>
+                    <p className="text-xs text-gray-500 mb-1">{isSuperAdmin ? "Super Admin" : "Admin"}</p>
                     <p className="text-sm font-semibold text-gray-900 truncate">{displayName}</p>
                 </div>
             </div>
 
             {/* Menu Items */}
-            <nav className="flex-1 p-4 overflow-y-auto">
+            <nav className="flex-1 min-h-0 p-4 overflow-y-auto">
                 <ul className="space-y-1">
                     {menuItems.map((item) => {
                         const Icon = item.icon;
@@ -106,7 +112,7 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
             </nav>
 
             {/* Bottom Actions */}
-            <div className="p-4 border-t border-gray-200 space-y-2">
+            <div className="p-4 border-t border-gray-200 space-y-2 shrink-0">
                 <Link
                     href="/login"
                     className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-red-600 rounded-lg transition-colors"
@@ -133,7 +139,7 @@ export function AdminSidebar({ userName = "관리자", className }: AdminSidebar
                                 <h3 className="font-bold text-sm mb-2 text-gray-900">내 계정 정보</h3>
                                 <div className="space-y-1 text-sm text-gray-600">
                                     <p>이름: {displayName}</p>
-                                    <p>권한: 관리자</p>
+                                    <p>권한: {isSuperAdmin ? "Super Admin (관리자 관리 가능)" : "Admin"}</p>
                                 </div>
                             </div>
 

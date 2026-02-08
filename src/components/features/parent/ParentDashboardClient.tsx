@@ -15,21 +15,32 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
 import { linkChildToParent } from "@/actions/parent-actions";
-import { GraduationCap, UserPlus, User, ChevronRight } from "lucide-react";
+import { GraduationCap, UserPlus, User, ChevronRight, Clock } from "lucide-react";
 
-interface ParentDashboardClientProps {
-    linkedStudents: { id: number; name: string }[];
-    parentName: string;
+export interface SentPendingRequest {
+    linkId: string;
+    studentDocId: string;
+    studentName: string;
+    requestedAt: string;
 }
 
-export function ParentDashboardClient({ linkedStudents, parentName }: ParentDashboardClientProps) {
+interface ParentDashboardClientProps {
+    parentUid: string;
+    linkedStudents: { id: number; name: string; docId: string }[];
+    parentName: string;
+    sentPendingRequests: SentPendingRequest[];
+}
+
+export function ParentDashboardClient({ parentUid, linkedStudents, parentName, sentPendingRequests }: ParentDashboardClientProps) {
     const router = useRouter();
     const { data: session } = useSession();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [form, setForm] = useState({
         studentName: "",
         studentPhone: "",
@@ -48,13 +59,16 @@ export function ParentDashboardClient({ linkedStudents, parentName }: ParentDash
         setLoading(true);
         const result = await linkChildToParent(uid, {
             studentName: form.studentName.trim(),
-            studentPhone: form.studentPhone.trim(),
-            parentPhone: form.parentPhone.trim(),
+            studentPhone: form.studentPhone,
+            parentPhone: form.parentPhone,
         });
         setLoading(false);
         if (result.success) {
             setForm({ studentName: "", studentPhone: "", parentPhone: "" });
             setOpen(false);
+            setError(null);
+            setSuccessMessage("자녀에게 연동 요청이 전달되었습니다. 학생이 승인하면 목록에 표시됩니다.");
+            setTimeout(() => setSuccessMessage(null), 5000);
             router.refresh();
         } else {
             setError(result.message ?? "연동에 실패했습니다.");
@@ -74,7 +88,7 @@ export function ParentDashboardClient({ linkedStudents, parentName }: ParentDash
                     <DialogTitle>자녀 등록</DialogTitle>
                 </DialogHeader>
                 <p className="text-sm text-gray-600">
-                    학생 이름, 학생 전화번호, 학부모 전화번호가 모두 일치하는 경우에만 연동됩니다.
+                    학생 이름, 학생 전화번호, 학부모 전화번호가 모두 일치하는 경우에만 요청이 전달됩니다. 학생이 승인하면 연동됩니다.
                 </p>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (
@@ -94,23 +108,19 @@ export function ParentDashboardClient({ linkedStudents, parentName }: ParentDash
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="studentPhone">학생 전화번호</Label>
-                        <Input
+                        <PhoneInput
                             id="studentPhone"
-                            type="tel"
                             value={form.studentPhone}
-                            onChange={(e) => setForm((f) => ({ ...f, studentPhone: e.target.value }))}
-                            placeholder="학생 연락처"
+                            onChange={(v) => setForm((f) => ({ ...f, studentPhone: v }))}
                             required
                         />
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="parentPhone">학부모 전화번호</Label>
-                        <Input
+                        <PhoneInput
                             id="parentPhone"
-                            type="tel"
                             value={form.parentPhone}
-                            onChange={(e) => setForm((f) => ({ ...f, parentPhone: e.target.value }))}
-                            placeholder="학부모 연락처 (등록 시 입력한 번호)"
+                            onChange={(v) => setForm((f) => ({ ...f, parentPhone: v }))}
                             required
                         />
                     </div>
@@ -129,6 +139,11 @@ export function ParentDashboardClient({ linkedStudents, parentName }: ParentDash
 
     return (
         <div className="space-y-6">
+            {successMessage && (
+                <div className="rounded-lg bg-green-50 border border-green-200 text-green-800 px-4 py-3 text-sm">
+                    {successMessage}
+                </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="min-w-0">
                     <h2 className="text-2xl font-bold text-gray-900">자녀 목록</h2>
@@ -141,12 +156,8 @@ export function ParentDashboardClient({ linkedStudents, parentName }: ParentDash
 
             {linkedStudents.length === 0 ? (
                 <Card>
-                    <CardContent className="p-0">
-                        <div className="flex items-start justify-between gap-4 p-4 pb-0">
-                            <div className="flex-1 min-w-0" />
-                            {RegisterButton}
-                        </div>
-                        <div className="flex flex-col items-center justify-center py-12 px-4">
+                    <CardContent className="py-12">
+                        <div className="flex flex-col items-center justify-center px-4">
                             <GraduationCap className="h-12 w-12 text-gray-400 mb-4" />
                             <p className="text-gray-600 mb-2">연동된 자녀가 없습니다.</p>
                             <p className="text-sm text-gray-500 text-center max-w-sm">
@@ -158,7 +169,7 @@ export function ParentDashboardClient({ linkedStudents, parentName }: ParentDash
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {linkedStudents.map((student) => (
-                        <Link key={student.id} href={`/parent/student/${student.id}`}>
+                        <Link key={student.docId} href={`/parent/${parentUid}/student/${student.docId}`}>
                             <div className="group relative bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 cursor-pointer overflow-hidden">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-purple-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
 
@@ -185,6 +196,43 @@ export function ParentDashboardClient({ linkedStudents, parentName }: ParentDash
                     ))}
                 </div>
             )}
+
+            {/* 보낸 등록 요청 (승인 대기 중) */}
+            <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">보낸 등록 요청</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                    자녀에게 연동 요청을 보낸 목록입니다. 학생이 승인하면 위 자녀 목록에 표시됩니다.
+                </p>
+                {sentPendingRequests.length === 0 ? (
+                    <Card>
+                        <CardContent className="py-8 text-center">
+                            <Clock className="h-10 w-10 text-gray-300 mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">대기 중인 등록 요청이 없습니다.</p>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="space-y-2">
+                        {sentPendingRequests.map((req) => (
+                            <Card key={req.linkId}>
+                                <CardContent className="py-4 flex items-center justify-between gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <Clock className="h-5 w-5 text-amber-500 shrink-0" />
+                                        <div>
+                                            <p className="font-medium text-gray-900">
+                                                <strong>{req.studentName}</strong>(학생)에게 자녀 등록 요청을 보냈습니다.
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                승인 대기 중 · {req.requestedAt ? new Date(req.requestedAt).toLocaleDateString("ko-KR") : ""}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded">승인 대기</span>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
