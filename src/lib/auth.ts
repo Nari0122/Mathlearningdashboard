@@ -189,15 +189,9 @@ export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext)
 }
 
 /**
- * 런타임에 env에서 읽음.
- * Next.js/webpack이 process.env.X를 빌드 시 정적 치환해, Vercel 런타임 env를 사용 못하는 문제 회피.
- * eval()의 문자열은 치환 대상이 아니어서 런타임에 실제 process.env를 참조함.
+ * next.config env로 빌드 시 인라인됨. (Vercel 런타임엔 env 미주입 확인됨)
  */
 function getNextAuthSecret(): string | undefined {
-    try {
-        const v = eval("process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET") as string | undefined;
-        return typeof v === "string" && v.trim() ? v.trim() : undefined;
-    } catch {
-        return undefined;
-    }
+    const v = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    return typeof v === "string" && v.trim() ? v.trim() : undefined;
 }
