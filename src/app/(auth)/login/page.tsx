@@ -1,11 +1,27 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
 
-export default function LoginPage() {
+const ERROR_MESSAGES: Record<string, string> = {
+    OAuthSignin: "카카오 로그인 시작에 실패했습니다. (KAKAO_CLIENT_ID, Redirect URI 확인)",
+    OAuthCallback: "카카오 로그인 처리에 실패했습니다. Redirect URI가 카카오 디벨로퍼스에 등록되어 있는지 확인해주세요.",
+    OAuthCreateAccount: "계정 생성에 실패했습니다.",
+    Callback: "로그인 처리 중 오류가 발생했습니다.",
+    Configuration: "서버 설정에 문제가 있습니다. (NEXTAUTH_SECRET, NEXTAUTH_URL 확인)",
+    Default: "로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+};
+
+function LoginContent() {
+    const searchParams = useSearchParams();
+    const errorCode = searchParams.get("error") || undefined;
+    const errorMessage = errorCode ? (ERROR_MESSAGES[errorCode] ?? ERROR_MESSAGES.Default) : null;
+
     const handleKakaoLogin = () => {
         signIn("kakao", { callbackUrl: "/api/auth/success" });
     };
@@ -31,6 +47,12 @@ export default function LoginPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3">
+                        {errorMessage && (
+                            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+                                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                <span>{errorMessage}</span>
+                            </div>
+                        )}
                         <Button
                             type="button"
                             onClick={handleKakaoLogin}
@@ -48,5 +70,13 @@ export default function LoginPage() {
                 </Card>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-gray-100 flex items-center justify-center">로딩 중...</div>}>
+            <LoginContent />
+        </Suspense>
     );
 }
