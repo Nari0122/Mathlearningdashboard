@@ -24,30 +24,46 @@ export function getSignInRedirectUrl(signupRole: string | undefined): string {
 
 export type AuthContext = { adminLoginFlow?: boolean; adminSignupIntent?: boolean };
 
+/** 환경 변수 로드 (Next.js 빌드 시 인라인되므로, 배포 시 반드시 Vercel에 설정 필요) */
+const KAKAO_CLIENT_ID = process.env.KAKAO_CLIENT_ID?.trim() ?? "";
+const KAKAO_CLIENT_SECRET = process.env.KAKAO_CLIENT_SECRET?.trim() ?? "";
+
 export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext): NextAuthOptions {
     const adminLoginFlow = context?.adminLoginFlow ?? false;
     const adminSignupIntent = context?.adminSignupIntent ?? false;
-    return {
-        providers: [
-            GoogleProvider({
-                clientId: process.env.GOOGLE_CLIENT_ID ?? "",
-                clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-            }),
+
+    const providers: NextAuthOptions["providers"] = [
+        GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+        }),
+    ];
+
+    // 카카오: clientId 없으면 프로바이더 제외 (client_id is required 오류 방지)
+    if (KAKAO_CLIENT_ID && KAKAO_CLIENT_SECRET) {
+        providers.push(
             KakaoProvider({
-                clientId: process.env.KAKAO_CLIENT_ID ?? "",
-                clientSecret: process.env.KAKAO_CLIENT_SECRET ?? "",
+                clientId: KAKAO_CLIENT_ID,
+                clientSecret: KAKAO_CLIENT_SECRET,
                 authorization: {
                     params: {
                         scope: "profile_nickname profile_image",
                         prompt: "login",
                     },
                 },
-            }),
-            NaverProvider({
-                clientId: process.env.NAVER_CLIENT_ID ?? "",
-                clientSecret: process.env.NAVER_CLIENT_SECRET ?? "",
-            }),
-        ],
+            })
+        );
+    }
+
+    providers.push(
+        NaverProvider({
+            clientId: process.env.NAVER_CLIENT_ID ?? "",
+            clientSecret: process.env.NAVER_CLIENT_SECRET ?? "",
+        })
+    );
+
+    return {
+        providers,
         callbacks: {
             async signIn({ user, account }) {
                 try {

@@ -45,3 +45,33 @@ http://localhost:3000/api/auth/callback/google
 - 구글: `https://your-domain.com/api/auth/callback/google`
 
 위 두 주소를 각각 카카오/구글 콘솔에 추가하면 됩니다.
+
+---
+
+## Vercel에서 `client_id is required` 오류 시
+
+**원인**: `KAKAO_CLIENT_ID`가 Vercel 런타임에 비어 있음 (빌드 시 환경 변수 미주입)
+
+**확인·해결 절차**:
+
+1. **올바른 프로젝트에 설정**
+   - `math-dashboard-next.vercel.app`과 `mathlearningdashboard.vercel.app`은 서로 다른 프로젝트일 수 있음
+   - 접속하는 도메인과 같은 Vercel 프로젝트의 Environment Variables를 수정
+
+2. **필수 환경 변수 (Production용)**
+   - `NEXTAUTH_URL` = 실제 배포 URL (예: `https://mathlearningdashboard.vercel.app`)
+   - `KAKAO_CLIENT_ID` = 카카오 REST API 키 (비어 있으면 안 됨)
+   - `KAKAO_CLIENT_SECRET` = 카카오 보안 설정 시크릿
+   - `NEXTAUTH_SECRET` = 임의의 긴 문자열
+
+3. **변수 이름·값 점검**
+   - `KAKAO_CLIENT_ID` (대소문자 정확히)
+   - 값 앞뒤 공백 없음
+   - 복사 시 줄바꿈 포함되지 않았는지 확인
+
+4. **환경 변수 수정 후 재배포**
+   - Vercel 대시보드 → Deployments → 최신 배포 오른쪽 ⋮ → **Redeploy**
+
+5. **카카오 Redirect URI 등록**
+   - [카카오 디벨로퍼스](https://developers.kakao.com) → 내 애플리케이션 → 카카오 로그인
+   - `https://(실제도메인)/api/auth/callback/kakao` 추가
