@@ -1,0 +1,158 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =========================================================
+    // 도움 함수
+    // =========================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // 경로의 마지막 세그먼트(ID) 추출
+    function getLastSegment(path) {
+      let segments = path.split('/');
+      return segments[segments.size() - 1];
+    }
+
+    // 관리자 여부: admins 컬렉션에 문서가 있고 role이 ADMIN 또는 SUPER_ADMIN
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role in ['ADMIN', 'SUPER_ADMIN'];
+    }
+
+    // 대상 ID가 현재 사용자와 같은지 (경로 세그먼트 또는 문자열 비교)
+    function isOwner(userId) {
+      let target = getLastSegment(string(userId));
+      let me = getLastSegment(string(request.auth.uid));
+      return isAuthenticated() && target == me;
+    }
+
+    // 저장된 데이터의 주인이 나인지
+    function isResourceOwner() {
+      return isOwner(resource.data.userId);
+    }
+
+    // 요청 데이터의 주인이 나인지
+    function isRequestOwner() {
+      return isOwner(request.resource.data.userId);
+    }
+
+    // =========================================================
+    // 1. 관리자 (admins) – 문서 ID = 카카오 uid
+    // - 읽기: 본인 문서(로그인 확인) 또는 다른 관리자
+    // - 생성/수정/삭제: 서버(Admin SDK) 또는 콘솔. 클라이언트는 관리자만 수정 가능
+    // =========================================================
+    match /admins/{adminId} {
+      allow read: if isAuthenticated() && (adminId == request.auth.uid || isAdmin());
+      allow create: if isAdmin();  // 최초 관리자는 콘솔/스크립트로 생성
+      allow update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // 2. 학부모 (parents) – 문서 ID = 학부모 uid
+    // - 본인 문서: 읽기/수정(studentIds 연동 등)
+    // - 관리자: 전체 읽기/수정
+    // =========================================================
+    match /parents/{parentId} {
+      allow read, update: if isAuthenticated() && (parentId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();  // 로그인 후 서버에서 생성 가능
+      allow delete: if isAdmin();
+    }
+
+    // =========================================================
+    // 3. 회원 정보 (users – 사용 시) / 학생 프로필
+    // =========================================================
+    match /users/{userId} {
+      allow create: if true;
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    match /studentProfiles/{profileId} {
+      allow create, update, delete: if isAdmin();
+      allow read: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    // =========================================================
+    // 4. 학생 (students) 및 하위 컬렉션
+    // - 문서 ID = 카카오 uid 또는 자동 생성 ID
+    // =========================================================
+    match /students/{studentId} {
+      allow create: if isAdmin();
+      allow read, update, delete: if isAuthenticated() && (isOwner(studentId) || isAdmin());
+
+      match /{subcollection=**} {
+        allow read: if isAuthenticated() && (isOwner(studentId) || isAdmin());
+        allow create, update, delete: if isAuthenticated() && (isOwner(studentId) || isAdmin());
+      }
+    }
+
+    // =========================================================
+    // 5. 최상위 학습 콘텐츠 (units, homeworks – 사용 시)
+    // =========================================================
+    match /units/{unitId} {
+      allow create, delete: if isAdmin();
+      allow read, update: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    match /homeworks/{homeworkId} {
+      allow create, delete: if isAdmin();
+      allow read, update: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    // =========================================================
+    // 6. 시험·시간표 (최상위 사용 시)
+    // =========================================================
+    match /exams/{examId} {
+      allow create, read, update, delete: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    match /schedules/{scheduleId} {
+      allow create, update, delete: if isAdmin();
+      allow read: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    // =========================================================
+    // 7. 학습 기록 (learningRecords)
+    // =========================================================
+    match /learningRecords/{recordId} {
+      allow create, update, delete: if isAdmin();
+      allow read: if isAuthenticated() && (isResourceOwner() || isAdmin());
+    }
+
+    // =========================================================
+    // 8. 오답노트 (incorrectNotes) 및 첨부
+    // =========================================================
+    match /incorrectNotes/{noteId} {
+      allow create: if isAuthenticated() && (isRequestOwner() || isAdmin());
+      allow read, update, delete: if isAuthenticated() && (isResourceOwner() || isAdmin());
+      match /attachments/{attachmentId} {
+        allow read, create: if isAuthenticated();
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // =========================================================
+    // 9. 시스템 설정 및 첨부파일
+    // =========================================================
+    match /systemSettings/{settingId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /attachments/{attachmentId} {
+      allow read, create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // =========================================================
+    // 기본 차단 (나머지 경로)
+    // =========================================================
+    match /{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
