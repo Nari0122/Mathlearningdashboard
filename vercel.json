@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd math-dashboard-next && npm install",
+  "buildCommand": "cd math-dashboard-next && npm run build",
+  "outputDirectory": "math-dashboard-next/.next",
+  "framework": "nextjs"
+}
