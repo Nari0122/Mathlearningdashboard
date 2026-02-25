@@ -71,6 +71,7 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
         setLoading(true);
         const res = await updateStudent(student.id, {
             name: formData.name,
+            loginId: student.docId || student.loginId || "",
             grade: formData.grade,
             phone: formData.phone,
             email: formData.email,
