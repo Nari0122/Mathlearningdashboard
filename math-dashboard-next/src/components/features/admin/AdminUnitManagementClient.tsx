@@ -19,7 +19,7 @@ import {
 
 interface AdminUnitManagementClientProps {
   initialUnits: Unit[];
-  studentId: number | string;
+  studentId: string;
 }
 
 export default function AdminUnitManagementClient({

@@ -33,7 +33,7 @@ export interface Unit {
 }
 
 export interface Student {
-    id: number;
+    docId: string;
     name: string;
     grade: string;
     class?: string;
@@ -43,4 +43,5 @@ export interface Student {
     statusSummary: string;
     lastUpdated: string;
     isActive: boolean;
+    createdAt?: string;
 }

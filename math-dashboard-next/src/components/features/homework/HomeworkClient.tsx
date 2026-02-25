@@ -19,10 +19,10 @@ type Homework = {
 
 interface HomeworkClientProps {
     initialHomeworks: Homework[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function HomeworkClient({ initialHomeworks, studentId }: HomeworkClientProps) {
+export default function HomeworkClient({ initialHomeworks, studentDocId }: HomeworkClientProps) {
     const [homeworks, setHomeworks] = useState<Homework[]>(initialHomeworks);
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
@@ -38,7 +38,7 @@ export default function HomeworkClient({ initialHomeworks, studentId }: Homework
                 hw.id === id ? { ...hw, status: newStatus } : hw
             ));
 
-            await updateHomeworkStatus(studentId, id, newStatus);
+            await updateHomeworkStatus(studentDocId, id, newStatus);
         } catch (error) {
             console.error("Failed to update status", error);
             // Revert on error

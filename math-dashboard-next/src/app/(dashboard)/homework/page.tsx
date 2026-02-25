@@ -20,7 +20,7 @@ export default async function HomeworkPage() {
     return (
         <HomeworkClient
             initialHomeworks={homeworks}
-            studentId={studentUser.id as number}
+            studentDocId={uid}
         />
     );
 }

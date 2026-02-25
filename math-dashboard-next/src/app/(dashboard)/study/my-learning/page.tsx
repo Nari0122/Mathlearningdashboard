@@ -16,5 +16,5 @@ export default async function MyLearningPage() {
     if (!studentUser) redirect("/signup");
 
     const units = await getUnits(uid);
-    return <MyLearningClient initialUnits={units} studentId={studentUser.id as number} />;
+    return <MyLearningClient initialUnits={units} studentDocId={uid} />;
 }

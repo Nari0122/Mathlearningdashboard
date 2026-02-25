@@ -5,7 +5,7 @@ import { Student } from '../types';
 interface AddStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (student: Omit<Student, 'id' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'> & { tempPassword: string }) => void;
+  onAdd: (student: Omit<Student, 'docId' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'> & { tempPassword: string }) => void;
 }
 
 export function AddStudentModal({ isOpen, onClose, onAdd }: AddStudentModalProps) {

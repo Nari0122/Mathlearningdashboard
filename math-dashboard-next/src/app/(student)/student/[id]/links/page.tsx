@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { getStudentDocIdFromRouteId } from "@/actions/student-actions";
 import { getPendingParentRequests, getConnectedParentsForStudent } from "@/actions/parent-actions";
 import { StudentLinksClient } from "@/components/features/student/StudentLinksClient";
 
@@ -10,8 +9,7 @@ export default async function StudentLinksPage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id: routeId } = await params;
-    const studentDocId = await getStudentDocIdFromRouteId(routeId);
+    const { id: studentDocId } = await params;
     if (!studentDocId) notFound();
 
     const [pendingRequests, connectedParents] = await Promise.all([

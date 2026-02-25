@@ -6,7 +6,7 @@ interface StudentAccountManagementProps {
   student: Student;
   onBack: () => void;
   onSave: (updatedStudent: Student, newPassword?: string) => void;
-  onDelete?: (studentId: number) => void;
+  onDelete?: (studentDocId: string) => void;
 }
 
 export function StudentAccountManagement({ student, onBack, onSave, onDelete }: StudentAccountManagementProps) {
@@ -50,7 +50,7 @@ export function StudentAccountManagement({ student, onBack, onSave, onDelete }: 
 
   const handleDelete = () => {
     if (onDelete) {
-      onDelete(student.id);
+      onDelete(student.docId);
     }
   };
 

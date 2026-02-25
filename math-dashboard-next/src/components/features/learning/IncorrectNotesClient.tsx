@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { addIncorrectNote, deleteNote } from "@/actions/note-actions";
 
-export default function IncorrectNotesClient({ notes, units, userId }: { notes: any[], units: any[], userId: number }) {
+export default function IncorrectNotesClient({ notes, units, studentDocId }: { notes: any[], units: any[], studentDocId: string }) {
     // Add Note State
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [formData, setFormData] = useState({ unitId: "", problemName: "", errorType: "C", memo: "" });
@@ -56,7 +56,7 @@ export default function IncorrectNotesClient({ notes, units, userId }: { notes: 
             }
         }
 
-        await addIncorrectNote(userId, parseInt(formData.unitId), formData.problemName, formData.errorType, formData.memo, questionImg);
+        await addIncorrectNote(studentDocId, parseInt(formData.unitId), formData.problemName, formData.errorType, formData.memo, questionImg);
         setIsAddOpen(false);
         setFormData({ unitId: "", problemName: "", errorType: "C", memo: "" });
         setSelectedFile(null);
@@ -69,7 +69,7 @@ export default function IncorrectNotesClient({ notes, units, userId }: { notes: 
 
     const handleConfirmDelete = async () => {
         if (noteToDelete) {
-            await deleteNote(userId, noteToDelete);
+            await deleteNote(studentDocId, noteToDelete);
         }
         setIsDeleteConfirmOpen(false);
         setNoteToDelete(null);

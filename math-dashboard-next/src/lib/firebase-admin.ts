@@ -11,6 +11,7 @@ if (!admin.apps.length) {
         const clientEmail = trimEnv(process.env.FIREBASE_CLIENT_EMAIL);
         const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
         const privateKey = privateKeyRaw ? trimEnv(privateKeyRaw.replace(/\\n/g, "\n")) : undefined;
+        const storageBucket = trimEnv(process.env.FIREBASE_STORAGE_BUCKET) || `${projectId}.appspot.com`;
 
         if (projectId && clientEmail && privateKey) {
             admin.initializeApp({
@@ -19,6 +20,7 @@ if (!admin.apps.length) {
                     clientEmail,
                     privateKey,
                 }),
+                storageBucket,
             });
         }
     } catch (error) {
@@ -28,4 +30,18 @@ if (!admin.apps.length) {
 
 /** 초기화 성공 시에만 Firestore 인스턴스. 실패 시 null (서버 예외 방지) */
 export const adminDb: admin.firestore.Firestore | null = admin.apps.length > 0 ? admin.firestore() : null;
+
+let _bucket: ReturnType<ReturnType<typeof admin.storage>["bucket"]> | null | undefined;
+export function getAdminBucket() {
+    if (_bucket !== undefined) return _bucket;
+    if (!admin.apps.length) { _bucket = null; return null; }
+    try {
+        _bucket = admin.storage().bucket();
+        return _bucket;
+    } catch {
+        _bucket = null;
+        return null;
+    }
+}
+
 export { admin };

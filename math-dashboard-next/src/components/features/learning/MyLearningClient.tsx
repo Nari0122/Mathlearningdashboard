@@ -23,10 +23,10 @@ import { PageHeader } from "@/components/shared/PageHeader";
 
 interface MyLearningClientProps {
     initialUnits: Unit[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function MyLearningClient({ initialUnits, studentId }: MyLearningClientProps) {
+export default function MyLearningClient({ initialUnits, studentDocId }: MyLearningClientProps) {
     const [units, setUnits] = useState<Unit[]>(initialUnits);
     const [activeTab, setActiveTab] = useState("all");
     const [isAddUnitOpen, setIsAddUnitOpen] = useState(false);
@@ -82,7 +82,7 @@ export default function MyLearningClient({ initialUnits, studentId }: MyLearning
         setNewUnitGrade("고1");
 
         // Pass grade to addUnit
-        await addUnit(String(studentId), name, newUnitGrade);
+        await addUnit(studentDocId, name, newUnitGrade);
     };
 
     // Filter logic

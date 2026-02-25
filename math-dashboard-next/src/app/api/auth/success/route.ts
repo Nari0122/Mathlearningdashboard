@@ -30,7 +30,7 @@ export async function GET() {
         const existingStudent = await studentService.getStudentByUid(uid);
         if (existingStudent) {
             const studentStatus = (existingStudent as { approvalStatus?: string }).approvalStatus;
-            const path = studentStatus === "PENDING" ? "/pending-approval" : `/student/${existingStudent.id}`;
+            const path = studentStatus === "PENDING" ? "/pending-approval" : `/student/${uid}`;
             // 안전망: 여기로 들어온 학생 로그인도 접속 로그 기록
             await studentService.recordStudentLoginByUid(String(uid));
             return NextResponse.redirect(new URL(path, baseUrl));

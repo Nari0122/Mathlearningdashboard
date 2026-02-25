@@ -5,15 +5,15 @@ import { AddStudentModal } from '../AddStudentModal';
 
 interface AdminStudentManagementProps {
   students: Student[];
-  onStudentSelect?: (studentId: number) => void;
-  onStudentManage?: (studentId: number) => void;
-  onAddStudent: (student: Omit<Student, 'id' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'> & { tempPassword: string }) => void;
-  onDeleteStudent?: (studentId: number) => void;
+  onStudentSelect?: (studentDocId: string) => void;
+  onStudentManage?: (studentDocId: string) => void;
+  onAddStudent: (student: Omit<Student, 'docId' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'> & { tempPassword: string }) => void;
+  onDeleteStudent?: (studentDocId: string) => void;
 }
 
 export function AdminStudentManagement({ students, onStudentSelect, onStudentManage, onAddStudent, onDeleteStudent }: AdminStudentManagementProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [gradeFilter, setGradeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
@@ -29,7 +29,7 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
     return matchesSearch && matchesGrade && matchesStatus;
   });
 
-  const handleAddStudent = (studentData: Omit<Student, 'id' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'> & { tempPassword: string }) => {
+  const handleAddStudent = (studentData: Omit<Student, 'docId' | 'progress' | 'statusSummary' | 'lastUpdated' | 'isActive'> & { tempPassword: string }) => {
     onAddStudent(studentData);
     setIsAddModalOpen(false);
   };
@@ -150,7 +150,7 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
           <div className="grid grid-cols-2 gap-6">
             {filteredStudents.map((student) => (
               <div
-                key={student.id}
+                key={student.docId}
                 className={`bg-white border rounded-xl p-6 hover:shadow-md transition-shadow ${student.isActive ? 'border-gray-200' : 'border-gray-300 bg-gray-50'
                   }`}
               >
@@ -213,21 +213,21 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
 
                     <div className="flex gap-2">
                       <button
-                        onClick={() => onStudentSelect && onStudentSelect(student.id)}
+                        onClick={() => onStudentSelect && onStudentSelect(student.docId)}
                         className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled={!student.isActive}
                       >
                         관리
                       </button>
                       <button
-                        onClick={() => onStudentManage && onStudentManage(student.id)}
+                        onClick={() => onStudentManage && onStudentManage(student.docId)}
                         className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
                       >
                         수정
                       </button>
                       {onDeleteStudent && (
                         <button
-                          onClick={() => setDeleteConfirmId(student.id)}
+                          onClick={() => setDeleteConfirmId(student.docId)}
                           className={`flex-1 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${student.isActive
                             ? 'bg-red-600 text-white hover:bg-red-700'
                             : 'bg-gray-400 text-white hover:bg-gray-500'
@@ -282,7 +282,7 @@ export function AdminStudentManagement({ students, onStudentSelect, onStudentMan
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmId !== null && (() => {
-        const targetStudent = students.find(s => s.id === deleteConfirmId);
+        const targetStudent = students.find(s => s.docId === deleteConfirmId);
         const isActive = targetStudent?.isActive ?? true;
 
         return (

@@ -11,8 +11,8 @@ export default async function StudentLearningPage({
 }) {
     const session = await getServerSession(getAuthOptions(undefined));
     const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
-    const { id } = await params;
-    const studentDocId = id || uid;
+    const { id: docId } = await params;
+    const studentDocId = docId || uid;
     if (!studentDocId) notFound();
 
     const units = await learningService.getUnits(studentDocId);

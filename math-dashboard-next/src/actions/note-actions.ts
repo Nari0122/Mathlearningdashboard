@@ -3,17 +3,17 @@
 import { learningService } from "@/services/learningService";
 import { revalidatePath } from "next/cache";
 
-export async function getIncorrectNotes(userId: number) {
+export async function getIncorrectNotes(docId: string) {
     try {
-        return await learningService.getIncorrectNotes(userId);
+        return await learningService.getIncorrectNotes(docId);
     } catch (error) {
         return [];
     }
 }
 
-export async function addIncorrectNote(userId: number, unitId: number, problemName: string, errorType: string, memo: string, questionImg?: string) {
+export async function addIncorrectNote(docId: string, unitId: number, problemName: string, errorType: string, memo: string, questionImg?: string) {
     try {
-        await learningService.createIncorrectNote(userId, {
+        await learningService.createIncorrectNote(docId, {
             unitId,
             problemName,
             errorType,
@@ -28,9 +28,9 @@ export async function addIncorrectNote(userId: number, unitId: number, problemNa
     }
 }
 
-export async function resolveNote(userId: number, noteId: string, isResolved: boolean) {
+export async function resolveNote(docId: string, noteId: string, isResolved: boolean) {
     try {
-        await learningService.updateIncorrectNote(userId, noteId, { isResolved });
+        await learningService.updateIncorrectNote(docId, noteId, { isResolved });
         revalidatePath("/study/incorrect-notes");
         return { success: true };
     } catch (error) {
@@ -38,9 +38,9 @@ export async function resolveNote(userId: number, noteId: string, isResolved: bo
     }
 }
 
-export async function deleteNote(userId: number, noteId: string) {
+export async function deleteNote(docId: string, noteId: string) {
     try {
-        await learningService.deleteIncorrectNote(userId, noteId);
+        await learningService.deleteIncorrectNote(docId, noteId);
         revalidatePath("/study/incorrect-notes");
         return { success: true };
     } catch (error) {

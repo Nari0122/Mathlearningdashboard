@@ -19,10 +19,10 @@ import {
 
 interface DashboardClientProps {
     initialUnits: Unit[];
-    studentId: number;
+    studentDocId: string;
 }
 
-export default function DashboardClient({ initialUnits, studentId }: DashboardClientProps) {
+export default function DashboardClient({ initialUnits, studentDocId }: DashboardClientProps) {
     // Keep local state for optimistic updates, or just rely on router refresh.
     // For smoother UX, we can use local state initialized from props.
     // However, since we use revalidatePath in actions, Next.js will update props.

@@ -104,7 +104,7 @@ export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext)
                             if (status === "PENDING") {
                                 pendingSignInRedirectUrl = "/pending-approval";
                             } else {
-                                pendingSignInRedirectUrl = `/student/${existingStudent.id}`;
+                                pendingSignInRedirectUrl = `/student/${uid}`;
                             }
                             return true;
                         }

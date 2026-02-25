@@ -1,32 +1,27 @@
 import { adminDb, admin } from "@/lib/firebase-admin";
 import { Student } from "@/types";
 
-// Internal helper to find Firestore document ID by numeric ID field
-async function getDocRefByNumericId(collection: string, numericId: number) {
-    if (!adminDb) return null;
-    const snapshot = await adminDb.collection(collection).where("id", "==", numericId).limit(1).get();
-    if (snapshot.empty) return null;
-    return snapshot.docs[0].ref;
-}
-
-// Internal helper to get next available numeric ID
-async function getNextNumericId(collection: string) {
-    if (!adminDb) return 1;
-    const snapshot = await adminDb.collection(collection).orderBy("id", "desc").limit(1).get();
-    if (snapshot.empty) return 1;
-    const data = snapshot.docs[0].data();
-    return (data.id || 0) + 1;
-}
-
 export const studentService = {
     async getStudents() {
         if (!adminDb) return [];
         try {
-            const snapshot = await adminDb.collection("students").orderBy("createdAt", "desc").get();
-            return snapshot.docs.map(doc => {
+            let snapshot;
+            try {
+                snapshot = await adminDb.collection("students").orderBy("createdAt", "desc").get();
+            } catch {
+                snapshot = await adminDb.collection("students").get();
+            }
+            const results = snapshot.docs.map(doc => {
                 const data = doc.data();
-                return { ...data, docId: doc.id, createdAt: data.createdAt };
+                return { ...data, docId: doc.id, createdAt: data.createdAt ?? null };
             });
+            results.sort((a, b) => {
+                if (!a.createdAt && !b.createdAt) return 0;
+                if (!a.createdAt) return 1;
+                if (!b.createdAt) return -1;
+                return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+            return results;
         } catch (error) {
             console.error("Firestore getStudents error:", error);
             return [];
@@ -38,25 +33,23 @@ export const studentService = {
         try {
             const snapshot = await adminDb.collection("students").where("status", "==", "active").limit(1).get();
             if (snapshot.empty) {
-                // Fallback to any student if no active ones
                 const fallback = await adminDb.collection("students").limit(1).get();
                 if (fallback.empty) return null;
-                return fallback.docs[0].data() as any;
+                return { ...fallback.docs[0].data(), docId: fallback.docs[0].id } as any;
             }
-            return snapshot.docs[0].data() as any;
+            return { ...snapshot.docs[0].data(), docId: snapshot.docs[0].id } as any;
         } catch (error) {
             console.error("Firestore getFirstStudent error:", error);
             return null;
         }
     },
 
-    /** 카카오 로그인: doc ID = 카카오 uid. 문서 존재 여부·approvalStatus·accountStatus 확인용 */
-    async getStudentByUid(uid: string): Promise<{ id: number; docId?: string; accountStatus?: string; [key: string]: unknown } | null> {
+    async getStudentByUid(uid: string): Promise<{ docId: string; accountStatus?: string; [key: string]: unknown } | null> {
         if (!adminDb) return null;
         try {
             const doc = await adminDb.collection("students").doc(uid).get();
             if (!doc.exists) return null;
-            const data = doc.data() as { id: number; accountStatus?: string; [key: string]: unknown };
+            const data = doc.data() as { accountStatus?: string; [key: string]: unknown };
             return { ...data, docId: doc.id, accountStatus: data.accountStatus ?? "ACTIVE" };
         } catch (error) {
             console.error("Firestore getStudentByUid error:", error);
@@ -64,7 +57,6 @@ export const studentService = {
         }
     },
 
-    /** 학생 계정 상태 변경 (ACTIVE / INACTIVE). 비활성화 시 로그인 차단, 데이터는 보존 */
     async updateStudentAccountStatusByDocId(docId: string, accountStatus: "ACTIVE" | "INACTIVE") {
         if (!adminDb || !docId) return { success: false, message: "Database not available" };
         try {
@@ -79,57 +71,37 @@ export const studentService = {
         }
     },
 
-    /** 카카오 회원가입 완료: doc ID = uid(카카오 uid), 추가정보 제출 시에만 호출 */
     async createStudentWithDocId(
         uid: string,
         data: Record<string, unknown>
-    ): Promise<{ success: true; id: number } | { success: false; message: string }> {
+    ): Promise<{ success: true; docId: string } | { success: false; message: string }> {
         if (!adminDb) return { success: false, message: "Database not available" };
         try {
-            const nextId = await getNextNumericId("students");
             const approvalStatus = (data.approvalStatus as string) ?? "PENDING";
             const { approvalStatus: _, ...rest } = data;
             await adminDb.collection("students").doc(uid).set({
                 ...rest,
-                id: nextId,
                 createdAt: new Date().toISOString(),
                 isActive: true,
                 approvalStatus,
                 accountStatus: "ACTIVE",
             });
-            return { success: true, id: nextId };
+            return { success: true, docId: uid };
         } catch (error) {
             console.error("Firestore createStudentWithDocId error:", error);
             return { success: false, message: "Failed to create student" };
         }
     },
 
-    /** 여러 학생 id에 대한 id·이름·docId 목록 (자녀 목록 등) */
-    async getStudentsByIds(ids: number[]): Promise<{ id: number; name: string; docId: string }[]> {
-        if (ids.length === 0 || !adminDb) return [];
-        try {
-            const snapshot = await adminDb.collection("students").where("id", "in", ids.slice(0, 30)).get();
-            return snapshot.docs.map(d => {
-                const d_ = d.data();
-                return { id: d_.id as number, name: (d_.name as string) || "", docId: d.id };
-            });
-        } catch (error) {
-            console.error("Firestore getStudentsByIds error:", error);
-            return [];
-        }
-    },
-
-    /** 여러 학생 문서 ID에 대한 id·이름·docId 목록 (학부모 자녀 목록 등) */
-    async getStudentsByDocIds(docIds: string[]): Promise<{ id: number; name: string; docId: string }[]> {
+    async getStudentsByDocIds(docIds: string[]): Promise<{ name: string; docId: string }[]> {
         if (docIds.length === 0 || !adminDb) return [];
-        const result: { id: number; name: string; docId: string }[] = [];
+        const result: { name: string; docId: string }[] = [];
         try {
             for (const docId of docIds.slice(0, 30)) {
                 const doc = await adminDb.collection("students").doc(docId).get();
                 if (!doc.exists) continue;
                 const d = doc.data()!;
                 result.push({
-                    id: d.id as number,
                     name: (d.name as string) || "",
                     docId: doc.id,
                 });
@@ -141,56 +113,10 @@ export const studentService = {
         }
     },
 
-    async getStudentDetail(id: number) {
-        if (!adminDb) return null;
-        try {
-            const snapshot = await adminDb.collection("students").where("id", "==", id).limit(1).get();
-            if (snapshot.empty) return null;
-
-            const doc = snapshot.docs[0];
-            const studentData = doc.data() as Student;
-
-            // Fetch sub-collections for detail view using document reference
-            const unitsSnapshot = await doc.ref.collection("units").orderBy("createdAt", "desc").get();
-            const units = unitsSnapshot.docs.map(u => ({ ...u.data() }));
-
-            return {
-                ...studentData,
-                units
-            };
-        } catch (error) {
-            console.error("Firestore getStudentDetail error:", error);
-            return null;
-        }
-    },
-
-    /** 라우트 id(숫자 또는 docId)를 Firestore 문서 ID(docId)로 변환 */
-    async getStudentDocIdFromRouteId(routeId: string): Promise<string | null> {
-        if (!adminDb || !routeId) return null;
-        if (/^\d+$/.test(routeId)) {
-            const snapshot = await adminDb.collection("students").where("id", "==", parseInt(routeId, 10)).limit(1).get();
-            return snapshot.empty ? null : snapshot.docs[0].id;
-        }
-        const doc = await adminDb.collection("students").doc(routeId).get();
-        return doc.exists ? doc.id : null;
-    },
-
-    /** 문서 ID 또는 숫자 id(문자열)로 학생 상세 조회 (URL·라우트용). 문서 ID를 먼저 시도하고, 없으면 id 필드로 조회 */
     async getStudentDetailByDocId(docId: string) {
         if (!adminDb || !docId) return null;
         try {
-            let docRef: FirebaseFirestore.DocumentReference;
-            const byDocId = adminDb.collection("students").doc(docId);
-            const docByDocId = await byDocId.get();
-            if (docByDocId.exists) {
-                docRef = byDocId;
-            } else if (/^\d+$/.test(docId)) {
-                const snapshot = await adminDb.collection("students").where("id", "==", parseInt(docId, 10)).limit(1).get();
-                if (snapshot.empty) return null;
-                docRef = snapshot.docs[0].ref;
-            } else {
-                return null;
-            }
+            const docRef = adminDb.collection("students").doc(docId);
             const doc = await docRef.get();
             if (!doc.exists) return null;
 
@@ -209,54 +135,22 @@ export const studentService = {
         }
     },
 
-    async createStudent(data: any): Promise<{ success: true; id: number; docId: string } | { success: false; message: string }> {
+    async createStudent(data: any): Promise<{ success: true; docId: string } | { success: false; message: string }> {
         if (!adminDb) return { success: false, message: "Database not available" };
         try {
-            const nextId = await getNextNumericId("students");
-            const approvalStatus = data.approvalStatus ?? "APPROVED"; // 카카오/회원가입은 "PENDING" 전달
+            const approvalStatus = data.approvalStatus ?? "APPROVED";
             const { approvalStatus: _, ...rest } = data;
             const ref = await adminDb.collection("students").add({
                 ...rest,
-                id: nextId,
                 createdAt: new Date().toISOString(),
                 isActive: true,
                 approvalStatus,
                 accountStatus: "ACTIVE",
             });
-            return { success: true, id: nextId, docId: ref.id };
+            return { success: true, docId: ref.id };
         } catch (error) {
             console.error("Firestore createStudent error:", error);
             return { success: false, message: "Failed to create student" };
-        }
-    },
-
-    async updateStudent(id: number, data: any) {
-        if (!adminDb) return { success: false, message: "Database not available" };
-        try {
-            const docRef = await getDocRefByNumericId("students", id);
-            if (!docRef) return { success: false, message: "Student not found" };
-
-            await docRef.update(data);
-            return { success: true };
-        } catch (error) {
-            console.error("Firestore updateStudent error:", error);
-            return { success: false, message: "Failed to update student" };
-        }
-    },
-
-    async deleteStudent(id: number) {
-        if (!adminDb) return { success: false, message: "Student not found" };
-        try {
-            const docRef = await getDocRefByNumericId("students", id);
-            if (!docRef) return { success: false, message: "Student not found" };
-
-            // Note: In a production app, we might want to delete sub-collections too.
-            // For now, we delete the main document as per the simple requirement.
-            await docRef.delete();
-            return { success: true };
-        } catch (error) {
-            console.error("Firestore deleteStudent error:", error);
-            return { success: false, message: "Failed to delete student" };
         }
     },
 
@@ -299,80 +193,6 @@ export const studentService = {
         } catch (error) {
             console.error("Firestore deleteStudentByDocId error:", error);
             return { success: false, message: "삭제 중 오류가 발생했습니다." };
-        }
-    },
-
-    async getDashboardStats(studentId: number) {
-        if (!adminDb) {
-            return { recentLogin: null, nextClass: null, monthlyLoginCount: 0, persistenceRate: 100 };
-        }
-        try {
-            const snapshot = await adminDb.collection("students").where("id", "==", studentId).limit(1).get();
-            if (snapshot.empty) return null;
-
-            const studentDoc = snapshot.docs[0];
-            const studentData = studentDoc.data();
-
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-            // 이번 달 로그인 횟수: loginLogs 서브컬렉션에서 집계
-            const logsSnapshot = await studentDoc.ref
-                .collection("loginLogs")
-                .where("loggedInAt", ">=", startOfMonth)
-                .get();
-            const monthlyLoginCount = logsSnapshot.size;
-
-            // 최근 로그인 시각: lastLogin 필드가 있으면 우선 사용, 없으면 loginLogs에서 최신 1개
-            let recentLogin: string | null = studentData.lastLogin || null;
-            if (!recentLogin) {
-                const latestLogSnap = await studentDoc.ref
-                    .collection("loginLogs")
-                    .orderBy("loggedInAt", "desc")
-                    .limit(1)
-                    .get();
-                if (!latestLogSnap.empty) {
-                    recentLogin = (latestLogSnap.docs[0].data().loggedInAt as string) ?? null;
-                }
-            }
-
-            const todayStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
-            const nowKST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-            const nowTimeStr = `${String(nowKST.getHours()).padStart(2, "0")}:${String(nowKST.getMinutes()).padStart(2, "0")}`;
-
-            const schedulesSnapshot = await studentDoc.ref.collection("schedules")
-                .where("date", ">=", todayStr)
-                .orderBy("date", "asc")
-                .limit(10)
-                .get();
-
-            let nextClass = null;
-            if (!schedulesSnapshot.empty) {
-                const schedules = schedulesSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
-                schedules.sort((a, b) => {
-                    if (a.date === b.date) return (a.startTime || "").localeCompare(b.startTime || "");
-                    return 0;
-                });
-                nextClass = schedules.find((s) => {
-                    if (s.date > todayStr) return true;
-                    return (s.endTime || "23:59") > nowTimeStr;
-                }) ?? null;
-            }
-
-            return {
-                recentLogin,
-                nextClass: nextClass,
-                monthlyLoginCount,
-                persistenceRate: studentData.persistenceRate || 100,
-            };
-        } catch (error) {
-            console.error("Firestore getDashboardStats error:", error);
-            return {
-                recentLogin: null,
-                nextClass: null,
-                monthlyLoginCount: 0,
-                persistenceRate: 100,
-            };
         }
     },
 
@@ -442,12 +262,6 @@ export const studentService = {
         }
     },
 
-    /**
-     * 학생 로그인 성공 시 호출: 최근 접속 시간 및 월별 접속 통계용 로그 기록
-     * - students/{uid} 문서의 lastLogin 필드를 업데이트
-     * - loginHistory 배열에 ISO 문자열(로그인 시각) 추가
-     * - 선택: loginLogs 서브컬렉션에 개별 로그인 문서 적재
-     */
     async recordStudentLoginByUid(uid: string) {
         if (!adminDb || !uid) return;
         try {
@@ -458,7 +272,6 @@ export const studentService = {
             const now = new Date().toISOString();
             const data = snap.data() || {};
 
-            // loginHistory는 최근 50개까지만 유지 (메모리·문서 크기 보호)
             const history: string[] = Array.isArray(data.loginHistory) ? data.loginHistory : [];
             const updatedHistory = [...history, now].slice(-50);
 

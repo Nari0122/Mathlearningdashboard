@@ -2,9 +2,6 @@
 import { studentService } from "@/services/studentService";
 import { revalidatePath } from "next/cache";
 
-/*
- * Get all students (User role = 'student')
- */
 export async function getStudents() {
     return await studentService.getStudents();
 }
@@ -24,7 +21,6 @@ interface CreateStudentData {
 }
 
 export async function createStudent(data: CreateStudentData) {
-    // Ensure username mirrors loginId if not provided
     const payload = {
         ...data,
         username: data.username || data.loginId
@@ -36,20 +32,9 @@ export async function createStudent(data: CreateStudentData) {
     return result;
 }
 
-export async function updateStudentStatus(userId: number, isActive: boolean) {
-    const result = await studentService.updateStudent(userId, { isActive });
-    if (result.success) {
-        revalidatePath("/admin/students");
-    }
-    return result;
-}
-
-/** 카카오/회원가입 학생 승인: PENDING → APPROVED */
-export async function approveStudent(studentId: number) {
-    const result = await studentService.updateStudent(studentId, { approvalStatus: "APPROVED" } as any);
-    if (result.success) {
-        revalidatePath("/admin/students");
-    }
+export async function approveStudentByDocId(docId: string) {
+    const result = await studentService.updateStudentByDocId(docId, { approvalStatus: "APPROVED" } as any);
+    if (result.success) revalidatePath("/admin/students");
     return result;
 }
 
@@ -70,51 +55,6 @@ export interface UpdateStudentData {
     username?: string;
 }
 
-export async function updateStudent(userId: number, data: UpdateStudentData) {
-    const result = await studentService.updateStudent(userId, data);
-    if (result.success) {
-        revalidatePath("/admin/students");
-    }
-    return result;
-}
-
-export async function deleteStudent(userId: number) {
-    // Structural Admin Check (Placeholder - should be replaced with real session auth)
-    // const session = await getSession(); if (!session || session.role !== 'admin') return { success: false, message: 'Unauthorized' };
-
-    const result = await studentService.deleteStudent(userId);
-    if (result.success) {
-        revalidatePath("/admin/students");
-    }
-    return result;
-}
-
-export async function getStudentDetail(userId: number) {
-    return await studentService.getStudentDetail(userId);
-}
-
-/** 문서 ID로 학생 상세 조회 (관리자 학생 상세 URL용) */
-export async function getStudentDetailByDocId(docId: string) {
-    return await studentService.getStudentDetailByDocId(docId);
-}
-
-/** 라우트 id(숫자 또는 docId) → Firestore 학생 문서 ID. 연동 관리 등에서 사용 */
-export async function getStudentDocIdFromRouteId(routeId: string): Promise<string | null> {
-    return await studentService.getStudentDocIdFromRouteId(routeId);
-}
-
-export async function updateStudentStatusByDocId(docId: string, isActive: boolean) {
-    const result = await studentService.updateStudentByDocId(docId, { isActive });
-    if (result.success) revalidatePath("/admin/students");
-    return result;
-}
-
-export async function approveStudentByDocId(docId: string) {
-    const result = await studentService.updateStudentByDocId(docId, { approvalStatus: "APPROVED" } as any);
-    if (result.success) revalidatePath("/admin/students");
-    return result;
-}
-
 export async function updateStudentByDocId(docId: string, data: UpdateStudentData) {
     const result = await studentService.updateStudentByDocId(docId, data);
     if (result.success) {
@@ -130,12 +70,16 @@ export async function deleteStudentByDocId(docId: string) {
     return result;
 }
 
-export async function getStudentIncorrectNotes(userId: number) {
-    // To be implemented in learningService/studentService
-    return [];
+export async function getStudentDetailByDocId(docId: string) {
+    return await studentService.getStudentDetailByDocId(docId);
 }
 
-// Submit homework (studentDocId = Firestore document ID, e.g. student uid)
+export async function updateStudentStatusByDocId(docId: string, isActive: boolean) {
+    const result = await studentService.updateStudentByDocId(docId, { isActive });
+    if (result.success) revalidatePath("/admin/students");
+    return result;
+}
+
 export async function submitHomework(homeworkId: string, studentDocId: string) {
     try {
         const { learningService } = await import("@/services/learningService");
@@ -163,7 +107,6 @@ export async function submitHomework(homeworkId: string, studentDocId: string) {
             title: homework.title,
             dueDate: homework.dueDate,
             status: isLate ? 'late-submitted' : 'submitted',
-            // 한국 시간 기준 ISO 문자열로 저장 (날짜 + 시각)
             submittedDate: nowInSeoul.toISOString()
         });
 

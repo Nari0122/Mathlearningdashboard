@@ -5,12 +5,12 @@ import { getPhoneDigits } from "@/lib/phone";
 const PARENTS_COLLECTION = "parents";
 
 export const parentService = {
-    async getParentByUid(uid: string): Promise<{ uid: string; studentIds?: (string | number)[]; [key: string]: unknown } | null> {
+    async getParentByUid(uid: string): Promise<{ uid: string; studentIds?: string[]; [key: string]: unknown } | null> {
         if (!adminDb) return null;
         try {
             const doc = await adminDb.collection(PARENTS_COLLECTION).doc(uid).get();
             if (!doc.exists) return null;
-            return doc.data() as { uid: string; studentIds?: (string | number)[]; [key: string]: unknown };
+            return doc.data() as { uid: string; studentIds?: string[]; [key: string]: unknown };
         } catch (error) {
             console.error("[parentService.getParentByUid]", error);
             return null;
@@ -25,7 +25,7 @@ export const parentService = {
         name: string,
         studentPhone: string,
         parentPhone: string
-    ): Promise<{ id: number; docId: string; name: string; [key: string]: unknown } | null> {
+    ): Promise<{ docId: string; name: string; [key: string]: unknown } | null> {
         if (!adminDb) return null;
         try {
             const studentDigits = getPhoneDigits(studentPhone);
@@ -35,7 +35,7 @@ export const parentService = {
                 .where("name", "==", name.trim())
                 .get();
             for (const doc of snapshot.docs) {
-                const data = doc.data() as { phone?: string; parentPhone?: string; id: number; name: string; [key: string]: unknown };
+                const data = doc.data() as { phone?: string; parentPhone?: string; name: string; [key: string]: unknown };
                 if (
                     getPhoneDigits(data.phone ?? "") === studentDigits &&
                     getPhoneDigits(data.parentPhone ?? "") === parentDigits
@@ -300,7 +300,7 @@ export const parentService = {
     },
 
     /** 관리자: 전체 학부모 목록 (uid, name, studentIds 등) */
-    async getAllParents(): Promise<{ uid: string; name: string; studentIds: (string | number)[]; [key: string]: unknown }[]> {
+    async getAllParents(): Promise<{ uid: string; name: string; studentIds: string[]; [key: string]: unknown }[]> {
         if (!adminDb) return [];
         try {
             const snapshot = await adminDb.collection(PARENTS_COLLECTION).get();
@@ -310,8 +310,8 @@ export const parentService = {
                     ...d,
                     uid: doc.id,
                     name: (d.name as string) || "",
-                    studentIds: (d.studentIds as (string | number)[]) || [],
-                } as { uid: string; name: string; studentIds: (string | number)[]; createdAt?: string; [key: string]: unknown };
+                    studentIds: (d.studentIds as string[]) || [],
+                } as { uid: string; name: string; studentIds: string[]; createdAt?: string; [key: string]: unknown };
             });
             list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
             return list;

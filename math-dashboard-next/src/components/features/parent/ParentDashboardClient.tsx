@@ -39,7 +39,7 @@ export interface SentPendingRequest {
 
 interface ParentDashboardClientProps {
     parentUid: string;
-    linkedStudents: { id: number; name: string; docId: string }[];
+    linkedStudents: { name: string; docId: string }[];
     parentName: string;
     sentPendingRequests: SentPendingRequest[];
 }

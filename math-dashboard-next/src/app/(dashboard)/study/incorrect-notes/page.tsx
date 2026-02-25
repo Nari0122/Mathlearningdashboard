@@ -16,7 +16,7 @@ export default async function IncorrectNotesPage() {
     const studentUser = await studentService.getStudentByUid(uid);
     if (!studentUser) redirect("/signup");
 
-    const notes = await getIncorrectNotes(studentUser.id as number);
+    const notes = await getIncorrectNotes(uid);
     const units = await getUnits(uid);
-    return <IncorrectNotesClient notes={notes} units={units} userId={studentUser.id as number} />;
+    return <IncorrectNotesClient notes={notes} units={units} studentDocId={uid} />;
 }

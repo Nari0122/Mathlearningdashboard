@@ -1,7 +1,6 @@
 import { getServerSession } from "next-auth";
 import { notFound } from "next/navigation";
 import { getAuthOptions } from "@/lib/auth";
-import { getStudentDocIdFromRouteId } from "@/actions/student-actions";
 import { learningService } from "@/services/learningService";
 import StudentHomeworkClient from "@/components/features/student/StudentHomeworkClient";
 
@@ -13,10 +12,7 @@ export default async function StudentHomeworkPage({
     const session = await getServerSession(getAuthOptions(undefined));
     const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
     const { id } = await params;
-    const routeId = id || uid;
-    if (!routeId) notFound();
-
-    const studentDocId = await getStudentDocIdFromRouteId(routeId);
+    const studentDocId = id || uid;
     if (!studentDocId) notFound();
 
     const assignments = await learningService.getAssignments(studentDocId);

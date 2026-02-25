@@ -6,11 +6,8 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params;
-        const isNumeric = /^\d+$/.test(id);
-        const student = isNumeric
-            ? await studentService.getStudentDetail(parseInt(id, 10))
-            : await studentService.getStudentDetailByDocId(id);
+        const { id: docId } = await params;
+        const student = await studentService.getStudentDetailByDocId(docId);
 
         if (!student) {
             return NextResponse.json({ error: "Student not found" }, { status: 404 });

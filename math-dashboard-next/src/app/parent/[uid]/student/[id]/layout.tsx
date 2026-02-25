@@ -24,13 +24,11 @@ export default async function ParentStudentLayout({
 
     if (!docId) notFound();
 
-    const studentIds = (parent.studentIds as (string | number)[] | undefined) ?? [];
+    const studentIds = (parent.studentIds as string[] | undefined) ?? [];
     const student = await getStudentDetailByDocId(docId);
     if (!student) notFound();
 
-    const hasAccess =
-        studentIds.includes(docId) ||
-        (typeof student.id === "number" && studentIds.includes(student.id));
+    const hasAccess = studentIds.includes(docId);
     if (!hasAccess) notFound();
 
     return (

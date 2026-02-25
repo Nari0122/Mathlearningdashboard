@@ -17,5 +17,5 @@ export default async function DashboardPage() {
 
     const units = await getUnits(uid);
 
-    return <DashboardClient initialUnits={units} studentId={studentUser.id as number} />;
+    return <DashboardClient initialUnits={units} studentDocId={uid} />;
 }

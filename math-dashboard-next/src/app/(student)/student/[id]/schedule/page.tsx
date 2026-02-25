@@ -6,8 +6,7 @@ export default async function StudentSchedulePage({
 }: {
     params: Promise<{ id: string }>;
 }) {
-    const { id } = await params;
-    const idParam = /^\d+$/.test(id) ? parseInt(id, 10) : id;
-    const schedules = await learningService.getSchedules(idParam);
+    const { id: docId } = await params;
+    const schedules = await learningService.getSchedules(docId);
     return <StudentScheduleClient schedules={schedules} />;
 }

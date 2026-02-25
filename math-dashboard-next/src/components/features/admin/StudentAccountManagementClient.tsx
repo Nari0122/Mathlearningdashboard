@@ -3,7 +3,7 @@
 import { User, Mail, Phone, Key, Save, Check, Copy, Trash2, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { updateStudent, deleteStudent, deleteStudentByDocId } from "@/actions/student-actions";
+import { deleteStudentByDocId, updateStudentByDocId } from "@/actions/student-actions";
 import { updateStudentAccountStatusAdmin } from "@/actions/account-actions";
 
 /** getStudentDetail로 받은 학생 객체를 계정 관리 폼용으로 정규화 */
@@ -68,8 +68,13 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
     };
 
     const handleSave = async () => {
+        const docIdToUse = studentDocId ?? (rawStudent as { docId?: string })?.docId;
+        if (!docIdToUse) {
+            alert("학생 문서 ID를 찾을 수 없습니다.");
+            return;
+        }
         setLoading(true);
-        const res = await updateStudent(student.id, {
+        const res = await updateStudentByDocId(docIdToUse, {
             name: formData.name,
             loginId: student.kakaoUid || student.loginId || "",
             grade: formData.grade,
@@ -95,9 +100,11 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
 
     const handleDelete = async () => {
         const docIdToDelete = studentDocId ?? (rawStudent as { docId?: string })?.docId;
-        const res = docIdToDelete
-            ? await deleteStudentByDocId(docIdToDelete)
-            : await deleteStudent(student.id);
+        if (!docIdToDelete) {
+            alert("학생 문서 ID를 찾을 수 없습니다.");
+            return;
+        }
+        const res = await deleteStudentByDocId(docIdToDelete);
         if (res.success) {
             router.push("/admin/students");
             router.refresh();

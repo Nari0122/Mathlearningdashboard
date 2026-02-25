@@ -29,7 +29,7 @@ export async function linkChildToParent(
         return { success: false, message: "학부모 정보를 찾을 수 없습니다." };
     }
 
-    const existingIds = (parent.studentIds as (string | number)[] | undefined) ?? [];
+    const existingIds = (parent.studentIds as string[] | undefined) ?? [];
     if (existingIds.includes(student.docId)) {
         return { success: false, message: "이미 연동된 자녀입니다." };
     }
@@ -48,18 +48,11 @@ export async function linkChildToParent(
     return result;
 }
 
-/** 연동된 자녀 목록 (승인 완료된 것만). studentDocId 기준으로만 반환하도록 정규화 */
-export async function getLinkedStudentsForParent(parentUid: string): Promise<{ id: number; name: string; docId: string }[]> {
+export async function getLinkedStudentsForParent(parentUid: string): Promise<{ name: string; docId: string }[]> {
     const parent = await parentService.getParentByUid(parentUid);
-    const ids = (parent?.studentIds as (string | number)[] | undefined) ?? [];
-    if (ids.length === 0) return [];
-    const docIds = ids.filter((x): x is string => typeof x === "string");
-    const numericIds = ids.filter((x): x is number => typeof x === "number");
-    const [byDocId, byNumericId] = await Promise.all([
-        docIds.length > 0 ? studentService.getStudentsByDocIds(docIds) : [],
-        numericIds.length > 0 ? studentService.getStudentsByIds(numericIds) : [],
-    ]);
-    return [...byDocId, ...byNumericId];
+    const docIds = (parent?.studentIds as string[] | undefined) ?? [];
+    if (docIds.length === 0) return [];
+    return studentService.getStudentsByDocIds(docIds);
 }
 
 /** 학부모 쪽: 보낸 연동 요청 대기 목록. */
@@ -214,12 +207,11 @@ export async function withdrawParentAccount(
     return result;
 }
 
-/** 관리자: 전체 학부모 목록 + 각 학부모의 연동된 자녀(학생) 목록. DB parents·students 연동 */
 export async function getParentsWithLinkedStudents(): Promise<
-    { uid: string; name: string; email?: string; linkedStudents: { id: number; name: string; docId: string }[] }[]
+    { uid: string; name: string; email?: string; linkedStudents: { name: string; docId: string }[] }[]
 > {
     const parents = await parentService.getAllParents();
-    const result: { uid: string; name: string; email?: string; linkedStudents: { id: number; name: string; docId: string }[] }[] = [];
+    const result: { uid: string; name: string; email?: string; linkedStudents: { name: string; docId: string }[] }[] = [];
     for (const p of parents) {
         const linkedStudents = await getLinkedStudentsForParent(p.uid);
         result.push({

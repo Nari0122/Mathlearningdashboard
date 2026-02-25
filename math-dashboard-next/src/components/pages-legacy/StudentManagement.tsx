@@ -1,7 +1,7 @@
 import { Users, Plus, Search, Mail, Phone } from 'lucide-react';
 
 interface Student {
-  id: number;
+  docId: string;
   name: string;
   grade: string;
   email: string;
@@ -10,15 +10,15 @@ interface Student {
 }
 
 interface StudentManagementProps {
-  onStudentSelect?: (studentId: number) => void;
+  onStudentSelect?: (studentDocId: string) => void;
 }
 
 export function StudentManagement({ onStudentSelect }: StudentManagementProps) {
   const students: Student[] = [
-    { id: 1, name: '김민수', grade: '고1', email: 'minsu@example.com', phone: '010-1111-2222', progress: 85 },
-    { id: 2, name: '이서연', grade: '고2', email: 'seoyeon@example.com', phone: '010-3333-4444', progress: 72 },
-    { id: 3, name: '박지훈', grade: '고1', email: 'jihoon@example.com', phone: '010-5555-6666', progress: 90 },
-    { id: 4, name: '최유진', grade: '고3', email: 'yujin@example.com', phone: '010-7777-8888', progress: 68 },
+    { docId: "mock_1", name: '김민수', grade: '고1', email: 'minsu@example.com', phone: '010-1111-2222', progress: 85 },
+    { docId: "mock_2", name: '이서연', grade: '고2', email: 'seoyeon@example.com', phone: '010-3333-4444', progress: 72 },
+    { docId: "mock_3", name: '박지훈', grade: '고1', email: 'jihoon@example.com', phone: '010-5555-6666', progress: 90 },
+    { docId: "mock_4", name: '최유진', grade: '고3', email: 'yujin@example.com', phone: '010-7777-8888', progress: 68 },
   ];
 
   return (
@@ -53,7 +53,7 @@ export function StudentManagement({ onStudentSelect }: StudentManagementProps) {
       {/* Students Grid */}
       <div className="grid grid-cols-2 gap-6">
         {students.map((student) => (
-          <div key={student.id} className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow">
+          <div key={student.docId} className="bg-white rounded-2xl shadow-sm p-6 hover:shadow-md transition-shadow">
             <div className="flex items-start gap-4">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center flex-shrink-0">
                 <span className="text-2xl font-bold text-white">{student.name[0]}</span>
@@ -92,7 +92,7 @@ export function StudentManagement({ onStudentSelect }: StudentManagementProps) {
 
                 <div className="mt-4 flex gap-2">
                   <button 
-                    onClick={() => onStudentSelect && onStudentSelect(student.id)}
+                    onClick={() => onStudentSelect && onStudentSelect(student.docId)}
                     className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
                   >
                     상세보기
