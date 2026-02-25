@@ -19,6 +19,7 @@ import {
     updateUnitError,
     updateCompletionStatus
 } from "@/actions/unit-actions";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface MyLearningClientProps {
     initialUnits: Unit[];
@@ -100,79 +101,77 @@ export default function MyLearningClient({ initialUnits, studentId }: MyLearning
     });
 
     return (
-        <div className="p-8 space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">나의 학습 관리</h1>
-                    <p className="text-gray-500 mt-1">단원별 학습 진도를 관리하고 오답을 체크하세요.</p>
-                </div>
+        <div className="p-8 space-y-6 text-sm leading-relaxed">
+            <PageHeader
+                title="나의 학습 관리"
+                description="단원별 학습 진도를 관리하고 오답을 체크하세요."
+                actions={
+                    <>
+                        <Select value={selectedGrade} onValueChange={setSelectedGrade}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="학년 선택" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">전체 학년</SelectItem>
+                                <SelectItem value="중1">중1</SelectItem>
+                                <SelectItem value="중2">중2</SelectItem>
+                                <SelectItem value="중3">중3</SelectItem>
+                                <SelectItem value="고1">고1</SelectItem>
+                                <SelectItem value="고2">고2</SelectItem>
+                                <SelectItem value="고3">고3</SelectItem>
+                            </SelectContent>
+                        </Select>
 
-                <div className="flex gap-4">
-                    {/* Grade Filter */}
-                    <Select value={selectedGrade} onValueChange={setSelectedGrade}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="학년 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">전체 학년</SelectItem>
-                            <SelectItem value="중1">중1</SelectItem>
-                            <SelectItem value="중2">중2</SelectItem>
-                            <SelectItem value="중3">중3</SelectItem>
-                            <SelectItem value="고1">고1</SelectItem>
-                            <SelectItem value="고2">고2</SelectItem>
-                            <SelectItem value="고3">고3</SelectItem>
-                        </SelectContent>
-                    </Select>
-
-                    <Dialog open={isAddUnitOpen} onOpenChange={setIsAddUnitOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" />
-                                단원 추가
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>새 단원 추가</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label className="text-right">학년</Label>
-                                    <Select value={newUnitGrade} onValueChange={setNewUnitGrade}>
-                                        <SelectTrigger className="col-span-3">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="중1">중1</SelectItem>
-                                            <SelectItem value="중2">중2</SelectItem>
-                                            <SelectItem value="중3">중3</SelectItem>
-                                            <SelectItem value="고1">고1</SelectItem>
-                                            <SelectItem value="고2">고2</SelectItem>
-                                            <SelectItem value="고3">고3</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                        <Dialog open={isAddUnitOpen} onOpenChange={setIsAddUnitOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    단원 추가
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>새 단원 추가</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label className="text-right">학년</Label>
+                                        <Select value={newUnitGrade} onValueChange={setNewUnitGrade}>
+                                            <SelectTrigger className="col-span-3">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="중1">중1</SelectItem>
+                                                <SelectItem value="중2">중2</SelectItem>
+                                                <SelectItem value="중3">중3</SelectItem>
+                                                <SelectItem value="고1">고1</SelectItem>
+                                                <SelectItem value="고2">고2</SelectItem>
+                                                <SelectItem value="고3">고3</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="name" className="text-right">
+                                            단원명
+                                        </Label>
+                                        <Input
+                                            id="name"
+                                            value={newUnitName}
+                                            onChange={(e) => setNewUnitName(e.target.value)}
+                                            placeholder="예: 지수와 로그"
+                                            className="col-span-3"
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAddUnit()}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="name" className="text-right">
-                                        단원명
-                                    </Label>
-                                    <Input
-                                        id="name"
-                                        value={newUnitName}
-                                        onChange={(e) => setNewUnitName(e.target.value)}
-                                        placeholder="예: 지수와 로그"
-                                        className="col-span-3"
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddUnit()}
-                                    />
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button onClick={handleAddUnit}>추가하기</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-            </div>
+                                <DialogFooter>
+                                    <Button onClick={handleAddUnit}>추가하기</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </>
+                }
+            />
 
             <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList>

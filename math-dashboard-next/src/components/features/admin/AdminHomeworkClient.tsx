@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Trash } from "lucide-react";
+import { Plus, Pencil, Trash, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -10,6 +10,18 @@ import { Label } from "@/components/ui/label";
 import { createHomework, updateHomework, deleteHomework } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
 import { isSubmissionLocked } from "@/lib/submissionDeadline";
+import { PageHeader } from "@/components/shared/PageHeader";
+
+function formatDateTime(dateString: string | Date | null) {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}. ${month}. ${day}. ${hours}:${minutes}`;
+}
 
 interface AdminHomeworkClientProps {
     homeworks: any[];
@@ -94,14 +106,24 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">숙제 관리</h2>
-                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                    <DialogTrigger asChild>
-                        <Button><Plus className="mr-2 h-4 w-4" /> 숙제 부여</Button>
-                    </DialogTrigger>
-                    <DialogContent>
+        <div className="space-y-6 text-sm leading-relaxed">
+            <PageHeader
+                title="숙제 관리"
+                description="학생에게 부여된 숙제를 관리하고 마감 상태를 확인할 수 있습니다."
+                icon={
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                        <PenTool className="w-6 h-6 text-[#5D00E2]" />
+                    </div>
+                }
+                actions={
+                    <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" />
+                                숙제 부여
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
                         <DialogHeader><DialogTitle>새 숙제 부여</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -147,11 +169,13 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                }
+            />
 
-                {/* Edit Dialog */}
-                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                    <DialogContent>
-                        <DialogHeader><DialogTitle>숙제 수정</DialogTitle></DialogHeader>
+            {/* Edit Dialog */}
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent>
+                    <DialogHeader><DialogTitle>숙제 수정</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <Label htmlFor="edit-title" className="text-right">숙제명</Label>
@@ -185,18 +209,17 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <table className="w-full text-left text-sm">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                <table className="w-full min-w-[700px] text-left text-sm">
                     <thead className="bg-gray-50 border-b">
                         <tr>
-                            <th className="p-4 font-medium text-gray-500">숙제명</th>
-                            <th className="p-4 font-medium text-gray-500">상태</th>
-                            <th className="p-4 font-medium text-gray-500">부여일</th>
-                            <th className="p-4 font-medium text-gray-500">마감일</th>
-                            <th className="p-4 font-medium text-gray-500">제출일</th>
-                            <th className="p-4 font-medium text-gray-500 text-right">관리</th>
+                            <th className="p-4 font-medium text-gray-500 whitespace-nowrap">숙제명</th>
+                            <th className="p-4 font-medium text-gray-500 whitespace-nowrap">상태</th>
+                            <th className="p-4 font-medium text-gray-500 whitespace-nowrap">부여일</th>
+                            <th className="p-4 font-medium text-gray-500 whitespace-nowrap">마감일</th>
+                            <th className="p-4 font-medium text-gray-500 whitespace-nowrap">제출일</th>
+                            <th className="p-4 font-medium text-gray-500 text-right whitespace-nowrap">관리</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -215,8 +238,8 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
 
                                 return (
                                     <tr key={hw.id} className="border-b last:border-0 hover:bg-gray-50">
-                                        <td className="p-4 font-medium">{hw.title}</td>
-                                        <td className="p-4">
+                                        <td className="p-4 font-medium whitespace-nowrap">{hw.title}</td>
+                                        <td className="p-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
                                                 <Badge variant={
                                                     hw.status === 'submitted' ? 'default' :
@@ -235,12 +258,12 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="p-4 text-gray-500">{hw.assignedDate || "-"}</td>
-                                        <td className={`p-4 ${pastDeadline ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                        <td className="p-4 text-gray-500 whitespace-nowrap">{hw.assignedDate || "-"}</td>
+                                        <td className={`p-4 whitespace-nowrap ${pastDeadline ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
                                             {hw.dueDate}
                                         </td>
-                                        <td className="p-4 text-gray-500">{hw.submittedDate || "-"}</td>
-                                        <td className="p-4 text-right flex justify-end gap-2">
+                                        <td className="p-4 text-gray-500 whitespace-nowrap">{hw.submittedDate ? formatDateTime(hw.submittedDate) : "-"}</td>
+                                        <td className="p-4 text-right whitespace-nowrap">
                                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(hw)}>
                                                 수정
                                             </Button>

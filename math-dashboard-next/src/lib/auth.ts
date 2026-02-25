@@ -92,6 +92,9 @@ export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext)
                         }
                         const existingStudent = await studentService.getStudentByUid(uid);
                         if (existingStudent) {
+                            // 학생 카카오 로그인 성공 → 접속 로그 기록
+                            await studentService.recordStudentLoginByUid(uid);
+
                             const accountStatus = (existingStudent as { accountStatus?: string }).accountStatus ?? "ACTIVE";
                             if (accountStatus === "INACTIVE") {
                                 pendingSignInRedirectUrl = "/login?error=account_inactive";

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronRight, ClipboardList, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
+import { isSubmissionLocked } from "@/lib/submissionDeadline";
 
 interface AdminStudentDashboardClientProps {
     initialUnits: any[];
@@ -43,7 +44,21 @@ export default function AdminStudentDashboardClient({ stats, recentAssignments =
                             {recentAssignments.length > 0 ? (
                                 recentAssignments.map((a) => {
                                     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
-                                    const isOverdue = today > a.dueDate && a.status !== 'submitted' && a.status !== 'late-submitted';
+                                    const notSubmitted = a.status !== 'submitted' && a.status !== 'late-submitted';
+                                    const pastDeadline =
+                                        a.status === "expired" ||
+                                        a.status === "overdue" ||
+                                        (notSubmitted && (today > a.dueDate || isSubmissionLocked(a)));
+                                    const statusLabel =
+                                        a.status === 'submitted'
+                                            ? '제출 완료'
+                                            : a.status === 'late-submitted'
+                                                ? '지각 제출'
+                                                : a.status === 'expired'
+                                                    ? '기한 만료'
+                                                    : a.status === 'overdue' || pastDeadline
+                                                        ? '미완료'
+                                                        : '미제출';
 
                                     return (
                                         <div key={a.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -53,18 +68,28 @@ export default function AdminStudentDashboardClient({ stats, recentAssignments =
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Badge
-                                                    variant={a.status === 'submitted' ? "default" : a.status === 'late-submitted' ? "destructive" : "outline"}
+                                                    variant={
+                                                        a.status === 'submitted'
+                                                            ? "default"
+                                                            : a.status === 'late-submitted'
+                                                                ? "destructive"
+                                                                : "outline"
+                                                    }
                                                     className={
-                                                        a.status === 'submitted' ? "bg-green-600" :
-                                                            a.status === 'late-submitted' ? "bg-yellow-500 hover:bg-yellow-600" : ""
+                                                        a.status === 'submitted'
+                                                            ? "bg-green-600"
+                                                            : a.status === 'late-submitted'
+                                                                ? "bg-yellow-500 hover:bg-yellow-600"
+                                                                : pastDeadline
+                                                                    ? "bg-red-600 hover:bg-red-700 text-white"
+                                                                    : ""
                                                     }
                                                 >
-                                                    {a.status === 'submitted' ? '완료' :
-                                                        a.status === 'late-submitted' ? '지각제출' : '미완료'}
+                                                    {statusLabel}
                                                 </Badge>
-                                                {isOverdue && (
+                                                {pastDeadline && (
                                                     <Badge variant="destructive" className="bg-red-600">
-                                                        마감됨
+                                                        제출기한 지남
                                                     </Badge>
                                                 )}
                                             </div>

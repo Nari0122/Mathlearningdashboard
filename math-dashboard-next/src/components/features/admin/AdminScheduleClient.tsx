@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { createSchedule, deleteSchedule, updateSchedule, postponeOrChangeSchedule, type ScheduleChangeType } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 const CHANGE_TYPES: { value: ScheduleChangeType; label: string }[] = [
     { value: "보강", label: "보강" },
@@ -297,16 +298,26 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
         .sort((a: any, b: any) => (b.date || "").localeCompare(a.date || "") || (b.startTime || "").localeCompare(a.startTime || ""));
 
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">수업 일정 관리</h2>
-                <div className="space-x-2">
-                    <Dialog open={isRegularOpen} onOpenChange={setIsRegularOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline"><Clock className="mr-2 h-4 w-4" />정규 일정 설정</Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader><DialogTitle>정규 수업 일정 추가</DialogTitle></DialogHeader>
+        <div className="space-y-8 text-sm leading-relaxed">
+            <PageHeader
+                title="수업 일정 관리"
+                description="정규 수업과 개별 수업 일정을 등록·수정·연기할 수 있습니다."
+                icon={
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                        <Clock className="w-6 h-6 text-[#5D00E2]" />
+                    </div>
+                }
+                actions={
+                    <div className="space-x-2">
+                        <Dialog open={isRegularOpen} onOpenChange={setIsRegularOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline">
+                                    <Clock className="mr-2 h-4 w-4" />
+                                    정규 일정 설정
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader><DialogTitle>정규 수업 일정 추가</DialogTitle></DialogHeader>
                             <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
                                     <Label htmlFor="day" className="text-right">요일</Label>
@@ -336,7 +347,9 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
 
                     <Dialog open={isAddSessionOpen} onOpenChange={setIsAddSessionOpen}>
                         <DialogTrigger asChild>
-                            <Button><Plus className="mr-2 h-4 w-4" /> 수업 추가</Button>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> 수업 추가
+                            </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader><DialogTitle>새 수업 추가 (단건)</DialogTitle></DialogHeader>
@@ -373,8 +386,9 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
-                </div>
-            </div>
+                    </div>
+                }
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="md:col-span-1">

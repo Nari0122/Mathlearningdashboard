@@ -1,4 +1,4 @@
-import { adminDb } from "@/lib/firebase-admin";
+import { adminDb, admin } from "@/lib/firebase-admin";
 import { Student } from "@/types";
 
 // Internal helper to find Firestore document ID by numeric ID field
@@ -280,11 +280,25 @@ export const studentService = {
             const docRef = adminDb.collection("students").doc(docId);
             const doc = await docRef.get();
             if (!doc.exists) return { success: false, message: "Student not found" };
+
+            const subCollections = [
+                "units", "assignments", "incorrectNotes", "learningRecords",
+                "schedules", "exams", "bookTags", "loginLogs",
+            ];
+
+            for (const sub of subCollections) {
+                const snap = await docRef.collection(sub).get();
+                if (snap.empty) continue;
+                const batch = adminDb.batch();
+                snap.docs.forEach((d) => batch.delete(d.ref));
+                await batch.commit();
+            }
+
             await docRef.delete();
             return { success: true };
         } catch (error) {
             console.error("Firestore deleteStudentByDocId error:", error);
-            return { success: false, message: "Student not found" };
+            return { success: false, message: "삭제 중 오류가 발생했습니다." };
         }
     },
 
@@ -299,42 +313,56 @@ export const studentService = {
             const studentDoc = snapshot.docs[0];
             const studentData = studentDoc.data();
 
-            // Calculate monthly login count from loginHistory
-            const loginHistory = studentData.loginHistory || [];
             const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-            const monthlyLogins = loginHistory.filter((isoString: string) => {
-                const date = new Date(isoString);
-                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-            });
+            // 이번 달 로그인 횟수: loginLogs 서브컬렉션에서 집계
+            const logsSnapshot = await studentDoc.ref
+                .collection("loginLogs")
+                .where("loggedInAt", ">=", startOfMonth)
+                .get();
+            const monthlyLoginCount = logsSnapshot.size;
 
-            // Fetch next class from schedules sub-collection
-            const todayStr = now.toISOString().split('T')[0];
+            // 최근 로그인 시각: lastLogin 필드가 있으면 우선 사용, 없으면 loginLogs에서 최신 1개
+            let recentLogin: string | null = studentData.lastLogin || null;
+            if (!recentLogin) {
+                const latestLogSnap = await studentDoc.ref
+                    .collection("loginLogs")
+                    .orderBy("loggedInAt", "desc")
+                    .limit(1)
+                    .get();
+                if (!latestLogSnap.empty) {
+                    recentLogin = (latestLogSnap.docs[0].data().loggedInAt as string) ?? null;
+                }
+            }
+
+            const todayStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+            const nowKST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+            const nowTimeStr = `${String(nowKST.getHours()).padStart(2, "0")}:${String(nowKST.getMinutes()).padStart(2, "0")}`;
+
             const schedulesSnapshot = await studentDoc.ref.collection("schedules")
                 .where("date", ">=", todayStr)
                 .orderBy("date", "asc")
-                .limit(5)
+                .limit(10)
                 .get();
 
             let nextClass = null;
             if (!schedulesSnapshot.empty) {
-                const schedules = schedulesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                // Sort by startTime in memory if dates are same
-                schedules.sort((a: any, b: any) => {
-                    if (a.date === b.date) {
-                        return (a.startTime || "").localeCompare(b.startTime || "");
-                    }
-                    return 0; // Already sorted by date
+                const schedules = schedulesSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+                schedules.sort((a, b) => {
+                    if (a.date === b.date) return (a.startTime || "").localeCompare(b.startTime || "");
+                    return 0;
                 });
-                nextClass = schedules[0];
+                nextClass = schedules.find((s) => {
+                    if (s.date > todayStr) return true;
+                    return (s.endTime || "23:59") > nowTimeStr;
+                }) ?? null;
             }
 
             return {
-                recentLogin: studentData.lastLogin || null,
+                recentLogin,
                 nextClass: nextClass,
-                monthlyLoginCount: monthlyLogins.length,
+                monthlyLoginCount,
                 persistenceRate: studentData.persistenceRate || 100,
             };
         } catch (error) {
@@ -358,42 +386,93 @@ export const studentService = {
             if (!studentDoc.exists) return null;
 
             const studentData = studentDoc.data() as any;
-            const loginHistory = studentData.loginHistory || [];
             const now = new Date();
-            const currentMonth = now.getMonth();
-            const currentYear = now.getFullYear();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-            const monthlyLogins = loginHistory.filter((isoString: string) => {
-                const date = new Date(isoString);
-                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
-            });
+            const logsSnapshot = await docRef
+                .collection("loginLogs")
+                .where("loggedInAt", ">=", startOfMonth)
+                .get();
+            const monthlyLoginCount = logsSnapshot.size;
 
-            const todayStr = now.toISOString().split("T")[0];
+            let recentLogin: string | null = studentData.lastLogin || null;
+            if (!recentLogin) {
+                const latestLogSnap = await docRef
+                    .collection("loginLogs")
+                    .orderBy("loggedInAt", "desc")
+                    .limit(1)
+                    .get();
+                if (!latestLogSnap.empty) {
+                    recentLogin = (latestLogSnap.docs[0].data().loggedInAt as string) ?? null;
+                }
+            }
+
+            const todayStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+            const nowKST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+            const nowTimeStr = `${String(nowKST.getHours()).padStart(2, "0")}:${String(nowKST.getMinutes()).padStart(2, "0")}`;
+
             const schedulesSnapshot = await docRef.collection("schedules")
                 .where("date", ">=", todayStr)
                 .orderBy("date", "asc")
-                .limit(5)
+                .limit(10)
                 .get();
 
             let nextClass = null;
             if (!schedulesSnapshot.empty) {
-                const schedules = schedulesSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                (schedules as any[]).sort((a, b) => {
+                const schedules = schedulesSnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+                schedules.sort((a, b) => {
                     if (a.date === b.date) return (a.startTime || "").localeCompare(b.startTime || "");
                     return 0;
                 });
-                nextClass = schedules[0];
+                nextClass = schedules.find((s) => {
+                    if (s.date > todayStr) return true;
+                    return (s.endTime || "23:59") > nowTimeStr;
+                }) ?? null;
             }
 
             return {
-                recentLogin: studentData.lastLogin || null,
+                recentLogin,
                 nextClass,
-                monthlyLoginCount: monthlyLogins.length,
+                monthlyLoginCount,
                 persistenceRate: studentData.persistenceRate || 100,
             };
         } catch (error) {
             console.error("Firestore getDashboardStatsByDocId error:", error);
             return { recentLogin: null, nextClass: null, monthlyLoginCount: 0, persistenceRate: 100 };
+        }
+    },
+
+    /**
+     * 학생 로그인 성공 시 호출: 최근 접속 시간 및 월별 접속 통계용 로그 기록
+     * - students/{uid} 문서의 lastLogin 필드를 업데이트
+     * - loginHistory 배열에 ISO 문자열(로그인 시각) 추가
+     * - 선택: loginLogs 서브컬렉션에 개별 로그인 문서 적재
+     */
+    async recordStudentLoginByUid(uid: string) {
+        if (!adminDb || !uid) return;
+        try {
+            const docRef = adminDb.collection("students").doc(uid);
+            const snap = await docRef.get();
+            if (!snap.exists) return;
+
+            const now = new Date().toISOString();
+            const data = snap.data() || {};
+
+            // loginHistory는 최근 50개까지만 유지 (메모리·문서 크기 보호)
+            const history: string[] = Array.isArray(data.loginHistory) ? data.loginHistory : [];
+            const updatedHistory = [...history, now].slice(-50);
+
+            await docRef.update({
+                lastLogin: now,
+                loginHistory: updatedHistory,
+            });
+
+            await docRef.collection("loginLogs").add({
+                loggedInAt: now,
+                createdAt: now,
+            });
+        } catch (error) {
+            console.error("Firestore recordStudentLoginByUid error:", error);
         }
     },
 };

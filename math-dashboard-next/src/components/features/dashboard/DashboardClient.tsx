@@ -9,6 +9,7 @@ import { UnitCard } from "@/components/features/dashboard/UnitCard-v2";
 import { GuideCard } from "@/components/features/dashboard/GuideCard";
 import { Unit } from "@/types";
 import Link from "next/link";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
     updateUnitDifficulty,
     updateUnitName,
@@ -76,7 +77,12 @@ export default function DashboardClient({ initialUnits, studentId }: DashboardCl
     const learningRecordsCount = 3; // Mock count for now
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto space-y-8">
+        <div className="p-8 max-w-[1600px] mx-auto space-y-8 text-sm leading-relaxed">
+            <PageHeader
+                title="학습 대시보드"
+                description="최근 학습 현황과 단원 진행 상황을 한눈에 확인하세요."
+            />
+
             {/* Top 3 Cards - Removed as requested */}
             {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <OverallProgress units={units} />

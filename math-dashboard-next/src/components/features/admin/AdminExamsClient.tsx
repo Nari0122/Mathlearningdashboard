@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Pencil, Trash } from "lucide-react";
+import { Plus, Pencil, Trash, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { createExam, updateExam, deleteExam } from "@/actions/learning-actions";
 import { useRouter } from "next/navigation";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"; // Optional if we want select
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface AdminExamsClientProps {
     exams: any[];
@@ -100,15 +101,24 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold">시험 성적 관리</h2>
-                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                    <DialogTrigger asChild>
-                        <Button><Plus className="mr-2 h-4 w-4" /> 성적 추가</Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-h-[90vh] overflow-y-auto">
-                        <DialogHeader><DialogTitle>새 성적 추가</DialogTitle></DialogHeader>
+        <div className="space-y-6 text-sm leading-relaxed">
+            <PageHeader
+                title="시험 성적 관리"
+                description="학생의 시험 성적을 입력하고 성적 변화를 그래프로 확인합니다."
+                icon={
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                        <BarChart3 className="w-6 h-6 text-[#5D00E2]" />
+                    </div>
+                }
+                actions={
+                    <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" /> 성적 추가
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-h-[90vh] overflow-y-auto">
+                            <DialogHeader><DialogTitle>새 성적 추가</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                                 <Label htmlFor="type" className="text-right sm:text-right">시험 구분</Label>
@@ -136,11 +146,13 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+                }
+            />
 
-                {/* Edit Dialog */}
-                <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                    <DialogContent className="max-h-[90vh] overflow-y-auto">
-                        <DialogHeader><DialogTitle>성적 수정</DialogTitle></DialogHeader>
+            {/* Edit Dialog */}
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogHeader><DialogTitle>성적 수정</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                                 <Label htmlFor="edit-type" className="text-right sm:text-right">시험 구분</Label>
@@ -168,7 +180,6 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </div>
 
             {/* Score Trend Graph */}
             {exams.length > 0 && (

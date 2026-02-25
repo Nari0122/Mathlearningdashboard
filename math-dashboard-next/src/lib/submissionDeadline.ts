@@ -14,11 +14,38 @@ export function getSubmissionDeadline(assignment: {
     return new Date(`${due}T23:59:59+09:00`);
 }
 
+/** 정규 마감 시각이 지났는지 (수업 1시간 전 또는 dueDate 23:59:59) */
 export function isSubmissionLocked(assignment: {
     submissionDeadline?: string | null;
     dueDate: string;
 }): boolean {
     return new Date() >= getSubmissionDeadline(assignment);
+}
+
+/**
+ * 지각 제출 마감 시각: 정규 마감일 기준 다음날 23:59:59 KST
+ * 예) 정규 마감 2/25 15:00 → 지각 마감 2/26 23:59:59
+ */
+export function getLateSubmissionDeadline(assignment: {
+    submissionDeadline?: string | null;
+    dueDate: string;
+}): Date {
+    const normalDeadline = getSubmissionDeadline(assignment);
+    const kstDateStr = normalDeadline.toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
+    const [y, m, d] = kstDateStr.split("-").map(Number);
+    const nextDate = new Date(y, m - 1, d + 1);
+    const yy = nextDate.getFullYear();
+    const mm = String(nextDate.getMonth() + 1).padStart(2, "0");
+    const dd = String(nextDate.getDate()).padStart(2, "0");
+    return new Date(`${yy}-${mm}-${dd}T23:59:59+09:00`);
+}
+
+/** 지각 제출 마감(다음날 밤 23:59:59)까지 지났는지 */
+export function isLateSubmissionLocked(assignment: {
+    submissionDeadline?: string | null;
+    dueDate: string;
+}): boolean {
+    return new Date() >= getLateSubmissionDeadline(assignment);
 }
 
 /**

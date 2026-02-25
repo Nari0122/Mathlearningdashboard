@@ -2,6 +2,7 @@
 
 import { Unit } from "@/types";
 import { CheckCircle2, AlertTriangle, TrendingUp, Calendar, Zap } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface LearningRecord {
     id: number;
@@ -135,11 +136,16 @@ export default function ReportClient({ units, studentName, learningRecords }: Re
     }
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h2 className="text-xl font-bold tracking-tight">종합 통계 리포트</h2>
-                <p className="text-gray-500 mt-1">{studentName} 학생의 학습 패턴과 성취도를 분석한 리포트입니다.</p>
-            </div>
+        <div className="space-y-8 text-sm leading-relaxed">
+            <PageHeader
+                title="종합 통계 리포트"
+                description={`${studentName} 학생의 학습 패턴과 성취도를 분석한 리포트입니다.`}
+                icon={
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-blue-50">
+                        <Calendar className="w-6 h-6 text-blue-600" />
+                    </div>
+                }
+            />
 
             <div className="grid grid-cols-1 min-[510px]:grid-cols-3 gap-3">
                 {patterns.map((p) => (

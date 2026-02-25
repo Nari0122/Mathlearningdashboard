@@ -139,7 +139,7 @@ export async function getStudentIncorrectNotes(userId: number) {
 export async function submitHomework(homeworkId: string, studentDocId: string) {
     try {
         const { learningService } = await import("@/services/learningService");
-        const { isSubmissionLocked } = await import("@/lib/submissionDeadline");
+        const { isSubmissionLocked, isLateSubmissionLocked } = await import("@/lib/submissionDeadline");
         const homeworks = await learningService.getAssignments(studentDocId);
         const homework = homeworks.find((h: any) => h.id === homeworkId) as any;
 
@@ -147,19 +147,24 @@ export async function submitHomework(homeworkId: string, studentDocId: string) {
             return { success: false, error: "숙제를 찾을 수 없습니다." };
         }
 
-        if (isSubmissionLocked(homework)) {
-            return { success: false, error: "수업 준비를 위해 과제 제출이 마감되었습니다." };
+        if (isLateSubmissionLocked(homework)) {
+            return { success: false, error: "지각 제출 기한이 지났습니다." };
         }
 
-        const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
-        const isLate = today > homework.dueDate;
+        const now = new Date();
+        const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+        const nowInSeoul = new Date(
+            now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })
+        );
+        const isLate = today > homework.dueDate || isSubmissionLocked(homework);
 
         const { updateHomework } = await import("@/actions/admin-actions");
         const result = await updateHomework(homeworkId, studentDocId, {
             title: homework.title,
             dueDate: homework.dueDate,
             status: isLate ? 'late-submitted' : 'submitted',
-            submittedDate: today
+            // 한국 시간 기준 ISO 문자열로 저장 (날짜 + 시각)
+            submittedDate: nowInSeoul.toISOString()
         });
 
         if (result.success) {

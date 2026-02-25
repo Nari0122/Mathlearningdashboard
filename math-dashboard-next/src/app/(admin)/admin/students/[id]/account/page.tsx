@@ -1,6 +1,7 @@
 import { getStudentDetailByDocId } from "@/actions/student-actions";
 import StudentAccountManagementClient from "@/components/features/admin/StudentAccountManagementClient";
 import { notFound } from "next/navigation";
+import { getConnectedParentsForStudent } from "@/actions/parent-actions";
 
 export default async function StudentAccountPage({
     params,
@@ -14,5 +15,7 @@ export default async function StudentAccountPage({
         notFound();
     }
 
-    return <StudentAccountManagementClient student={student} studentDocId={docId} />;
+    const linkedParents = await getConnectedParentsForStudent(docId);
+
+    return <StudentAccountManagementClient student={student} studentDocId={docId} linkedParents={linkedParents} />;
 }

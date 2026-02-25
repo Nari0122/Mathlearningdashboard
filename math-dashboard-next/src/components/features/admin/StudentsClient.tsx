@@ -14,7 +14,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { updateStudentByDocId, updateStudentStatusByDocId, deleteStudentByDocId, approveStudentByDocId } from "@/actions/student-actions";
+import { updateStudentByDocId, deleteStudentByDocId, approveStudentByDocId } from "@/actions/student-actions";
+import { updateStudentAccountStatusAdmin } from "@/actions/account-actions";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -58,8 +59,9 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     );
 
     const filteredStudents = approvedStudents.filter(s => {
-        if (statusFilter === "active" && !s.isActive) return false;
-        if (statusFilter === "inactive" && s.isActive) return false;
+        const isActive = (s.accountStatus ?? "ACTIVE") === "ACTIVE";
+        if (statusFilter === "active" && !isActive) return false;
+        if (statusFilter === "inactive" && isActive) return false;
         const matchesSearch =
             (s.name && s.name.includes(searchTerm)) ||
             (s.loginId && s.loginId.includes(searchTerm)) ||
@@ -70,7 +72,7 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     });
 
     const totalStudents = approvedStudents.length;
-    const activeStudents = approvedStudents.filter(s => s.isActive).length;
+    const activeStudents = approvedStudents.filter(s => (s.accountStatus ?? "ACTIVE") === "ACTIVE").length;
     const averageProgress = totalStudents > 0
         ? Math.round(approvedStudents.reduce((acc, s) => acc + (s.progress || 0), 0) / totalStudents)
         : 0;
@@ -119,16 +121,18 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         }
     };
 
-    const handleToggleStatus = async (docId: string, currentStatus: boolean) => {
-        const confirmMessage = currentStatus
+    const handleToggleStatus = async (docId: string, currentAccountStatus: string) => {
+        const isCurrentlyActive = currentAccountStatus === "ACTIVE";
+        const confirmMessage = isCurrentlyActive
             ? "학생 계정을 비활성화하시겠습니까?\n\n• 로그인이 제한됩니다\n• 기존 학습 데이터는 삭제되지 않습니다\n• 관리자 페이지에서 계속 조회 가능합니다\n• 추후 재활성화가 가능합니다"
-            : "학생 계정을 활성화하시겠습니까?\n\n• 기존 ID/PW로 즉시 로그인 가능합니다\n• 모든 학습 데이터가 그대로 유지됩니다";
+            : "학생 계정을 활성화하시겠습니까?\n\n• 카카오 로그인으로 즉시 접속 가능합니다\n• 모든 학습 데이터가 그대로 유지됩니다";
 
         if (!confirm(confirmMessage)) {
             return;
         }
 
-        const res = await updateStudentStatusByDocId(docId, !currentStatus);
+        const newStatus = isCurrentlyActive ? "INACTIVE" : "ACTIVE";
+        const res = await updateStudentAccountStatusAdmin(docId, newStatus);
         if (res.success) {
             router.refresh();
         } else {
@@ -331,14 +335,14 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
 
                         <div className="mt-6 pt-4 border-t border-gray-50 flex justify-between items-center">
                             <Badge
-                                variant={student.isActive ? "default" : "destructive"}
-                                className={`cursor-pointer hover:opacity-80 transition-opacity ${!student.isActive ? 'bg-gray-500' : ''}`}
+                                variant={(student.accountStatus ?? "ACTIVE") === "ACTIVE" ? "default" : "destructive"}
+                                className={`cursor-pointer hover:opacity-80 transition-opacity ${(student.accountStatus ?? "ACTIVE") !== "ACTIVE" ? 'bg-gray-500' : ''}`}
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    handleToggleStatus(student.docId, student.isActive);
+                                    handleToggleStatus(student.docId, student.accountStatus ?? "ACTIVE");
                                 }}
                             >
-                                {student.isActive ? "활성화" : "비활성화"}
+                                {(student.accountStatus ?? "ACTIVE") === "ACTIVE" ? "활성화" : "비활성화"}
                             </Badge>
                             <button
                                 onClick={(e) => {

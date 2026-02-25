@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { X, BookOpen } from "lucide-react";
 import { isMiddleSchool } from "@/lib/curriculum-data";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -139,18 +140,17 @@ export default function StudentLearningClient({ units, studentDocId }: StudentLe
     );
 
     return (
-        <div className="space-y-6 pb-10">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
+        <div className="space-y-6 pb-10 text-sm leading-relaxed">
+            <PageHeader
+                title="나의 학습 현황"
+                description="등록된 단원별 학습 현황과 오답 수를 확인하세요."
+                icon={
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
                         <BookOpen className="w-6 h-6 text-[#5D00E2]" />
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-[#2F3438]">나의 학습 현황</h1>
-                        <p className="text-sm text-[#6C727A] mt-0.5">등록된 단원별 학습 현황과 오답 수를 확인하세요.</p>
-                    </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
+                }
+                actions={
+                    <>
                     <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                         <SelectTrigger className="w-[120px]">
                             <SelectValue placeholder="학제" />
@@ -219,8 +219,9 @@ export default function StudentLearningClient({ units, studentDocId }: StudentLe
                             <X className="h-4 w-4" />
                         </Button>
                     )}
-                </div>
-            </div>
+                    </>
+                }
+            />
 
             <Tabs defaultValue="in-progress" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 mb-8">

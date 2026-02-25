@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertCircle, TrendingDown, BookOpen, Calculator, FileText, Lightbulb } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   BarChart,
   Bar,
@@ -60,14 +61,12 @@ export default function AdminErrorAnalysisClient({ units }: AdminErrorAnalysisCl
   const hasData = totalErrorCount > 0;
 
   return (
-    <div className="max-w-[1440px] mx-auto p-8">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <AlertCircle size={32} className="text-red-600" />
-          <h1 className="text-3xl font-bold text-gray-900">오답 분석</h1>
-        </div>
-        <p className="text-gray-600">오답 유형별 상세 분석 및 통계를 확인할 수 있습니다.</p>
-      </div>
+    <div className="max-w-[1440px] mx-auto p-8 space-y-6 text-sm leading-relaxed">
+      <PageHeader
+        title="오답 분석"
+        description="오답 유형별 상세 분석 및 통계를 확인할 수 있습니다."
+        icon={<AlertCircle size={28} className="text-red-600" />}
+      />
 
       {!hasData && (
         <div className="bg-white rounded-2xl shadow-sm p-12">

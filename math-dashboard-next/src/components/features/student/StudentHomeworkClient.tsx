@@ -8,7 +8,8 @@ import { CheckCircle2, Clock, AlertCircle, X, PenTool } from "lucide-react";
 import { submitHomework } from "@/actions/student-actions";
 import { useRouter } from "next/navigation";
 import { useReadOnly } from "@/contexts/ReadOnlyContext";
-import { isSubmissionLocked } from "@/lib/submissionDeadline";
+import { isSubmissionLocked, isLateSubmissionLocked } from "@/lib/submissionDeadline";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface StudentHomeworkClientProps {
     assignments: any[];
@@ -23,6 +24,17 @@ function formatDate(dateString: string | Date | null) {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     return `${year}. ${month}. ${day}.`;
+}
+
+function formatDateTime(dateString: string | Date | null) {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}. ${month}. ${day}. ${hours}:${minutes}`;
 }
 
 export default function StudentHomeworkClient({ assignments, studentDocId }: StudentHomeworkClientProps) {
@@ -65,36 +77,37 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
-                    <PenTool className="w-6 h-6 text-[#5D00E2]" />
-                </div>
-                <div>
-                    <h1 className="text-xl font-bold text-[#2F3438]">숙제 관리</h1>
-                    <p className="text-sm text-[#6C727A] mt-0.5">선생님이 내준 숙제와 제출 현황을 확인하세요.</p>
-                </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-6 text-sm leading-relaxed">
+            <PageHeader
+                title="숙제 관리"
+                description="선생님이 내준 숙제와 제출 현황을 한눈에 확인하세요."
+                icon={
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                        <PenTool className="w-6 h-6 text-[#5D00E2]" />
+                    </div>
+                }
+            />
+            <div className="grid grid-cols-1 gap-3 md:gap-4">
                 {assignments.map((assignment: any) => {
                     const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
                     const isOverdue = today > assignment.dueDate && assignment.status !== 'submitted' && assignment.status !== 'late-submitted';
                     const isExpired = assignment.status === 'expired';
                     const isCompleted = assignment.status === 'submitted' || assignment.status === 'late-submitted';
                     const submissionLocked = isSubmissionLocked(assignment);
+                    const lateSubmissionLocked = isLateSubmissionLocked(assignment);
 
                     return (
-                        <Card key={assignment.id} className={isOverdue || isExpired ? "border-red-200" : ""}>
-                            <CardHeader className="pb-2">
-                                <div className="flex justify-between items-start">
-                                    <CardTitle className={`text-lg ${isCompleted ? 'line-through text-gray-400' : ''}`}>
+                        <Card key={assignment.id} className={`py-0 gap-0 ${isOverdue || isExpired ? "border-red-200" : ""}`}>
+                            <CardHeader className="px-3 pt-2.5 pb-1 md:px-5 md:pt-3 md:pb-1.5">
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className={`text-base md:text-lg font-semibold leading-snug min-w-0 break-keep ${isCompleted ? 'line-through text-gray-400' : ''}`}>
                                         {assignment.title}
                                     </CardTitle>
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
                                         {assignment.status === 'submitted' ? (
                                             <>
-                                                <Badge className="bg-green-600 hover:bg-green-700">
-                                                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                                                <Badge className="bg-green-600 hover:bg-green-700 text-[11px] md:text-xs px-1.5 py-0.5 md:px-2 whitespace-nowrap">
+                                                    <CheckCircle2 className="w-3 h-3 mr-0.5" />
                                                     제출 완료
                                                 </Badge>
                                                 {!readOnly && (
@@ -103,16 +116,16 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                                         size="sm"
                                                         onClick={() => handleCancelComplete(assignment.id)}
                                                         disabled={isPending}
-                                                        className="text-red-600 hover:text-red-700"
+                                                        className="text-red-600 hover:text-red-700 h-6 text-[11px] px-1.5 md:h-8 md:text-sm md:px-3"
                                                     >
-                                                        <X className="w-4 h-4 mr-1" />
-                                                        완료 취소
+                                                        <X className="w-3 h-3 mr-0.5" />
+                                                        취소
                                                     </Button>
                                                 )}
                                             </>
                                         ) : assignment.status === 'late-submitted' ? (
                                             <>
-                                                <Badge className="bg-yellow-500 hover:bg-yellow-600">
+                                                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-[11px] md:text-xs px-1.5 py-0.5 md:px-2 whitespace-nowrap">
                                                     지각 제출
                                                 </Badge>
                                                 {!readOnly && (
@@ -121,34 +134,46 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                                         size="sm"
                                                         onClick={() => handleCancelComplete(assignment.id)}
                                                         disabled={isPending}
-                                                        className="text-red-600 hover:text-red-700"
+                                                        className="text-red-600 hover:text-red-700 h-6 text-[11px] px-1.5 md:h-8 md:text-sm md:px-3"
                                                     >
-                                                        <X className="w-4 h-4 mr-1" />
-                                                        완료 취소
+                                                        <X className="w-3 h-3 mr-0.5" />
+                                                        취소
                                                     </Button>
                                                 )}
                                             </>
                                         ) : (
                                             <>
-                                                <Badge variant="outline" className="text-gray-500">
+                                                <Badge variant="outline" className="text-gray-500 text-[11px] md:text-xs px-1.5 py-0.5 md:px-2 whitespace-nowrap">
                                                     {isExpired ? "기한 만료" : "미제출"}
                                                 </Badge>
-                                                {(isOverdue || isExpired) && (
-                                                    <Badge variant="destructive" className="bg-red-600 hover:bg-red-700">
-                                                        <AlertCircle className="w-3 h-3 mr-1" />
-                                                        마감됨
+                                                {lateSubmissionLocked && (
+                                                    <Badge variant="destructive" className="bg-red-600 hover:bg-red-700 text-[11px] md:text-xs px-1.5 py-0.5 md:px-2 whitespace-nowrap">
+                                                        <AlertCircle className="w-3 h-3 mr-0.5" />
+                                                        마감
                                                     </Badge>
                                                 )}
-                                                {!readOnly && !submissionLocked && (
+                                                {!readOnly && !lateSubmissionLocked && !submissionLocked && (
                                                     <Button
                                                         variant="default"
                                                         size="sm"
                                                         onClick={() => handleToggleComplete(assignment.id, assignment.status)}
                                                         disabled={isPending}
-                                                        className="bg-blue-600 hover:bg-blue-700"
+                                                        className="bg-blue-600 hover:bg-blue-700 h-6 text-[11px] px-2 md:h-8 md:text-sm md:px-3 whitespace-nowrap"
                                                     >
-                                                        <CheckCircle2 className="w-4 h-4 mr-1" />
+                                                        <CheckCircle2 className="w-3 h-3 mr-0.5" />
                                                         완료하기
+                                                    </Button>
+                                                )}
+                                                {!readOnly && !lateSubmissionLocked && submissionLocked && (
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        onClick={() => handleToggleComplete(assignment.id, assignment.status)}
+                                                        disabled={isPending}
+                                                        className="bg-amber-500 hover:bg-amber-600 h-6 text-[11px] px-2 md:h-8 md:text-sm md:px-3 whitespace-nowrap"
+                                                    >
+                                                        <Clock className="w-3 h-3 mr-0.5" />
+                                                        지각 제출
                                                     </Button>
                                                 )}
                                             </>
@@ -156,25 +181,27 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-sm text-gray-500 space-y-1">
-                                    {submissionLocked && !isCompleted && (
-                                        <p className="text-amber-700 font-medium bg-amber-50 rounded px-2 py-1">
-                                            수업 준비를 위해 과제 제출이 마감되었습니다.
+                            <CardContent className="px-3 pb-2.5 md:px-5 md:pb-3">
+                                <div className="text-xs md:text-sm text-gray-500 space-y-0.5 md:space-y-1">
+                                    {submissionLocked && !lateSubmissionLocked && !isCompleted && (
+                                        <p className="text-amber-700 text-xs font-medium bg-amber-50 rounded px-2 py-1">
+                                            숙제 마감 기한이 지났습니다. 마감일 기준 다음날 밤 23:59까지 지각 제출이 가능합니다.
                                         </p>
                                     )}
-                                    <div className="flex items-center gap-2">
-                                        <Clock className="w-4 h-4" />
-                                        <span className={isOverdue || isExpired ? "text-red-600 font-semibold" : ""}>
-                                            마감: {formatDate(assignment.dueDate)}
-                                        </span>
-                                    </div>
+                                    {lateSubmissionLocked && !isCompleted && (
+                                        <p className="text-red-700 text-xs font-medium bg-red-50 rounded px-2 py-1">
+                                            지각 제출 기한이 만료되었습니다.
+                                        </p>
+                                    )}
+                                    <p className={isOverdue || isExpired ? "text-red-600 font-semibold" : ""}>
+                                        마감일: {formatDate(assignment.dueDate)}
+                                    </p>
                                     {assignment.assignedDate && (
                                         <p>부여일: {formatDate(assignment.assignedDate)}</p>
                                     )}
                                     {assignment.submittedDate && (
                                         <p className="text-green-600">
-                                            제출일: {formatDate(assignment.submittedDate)}
+                                            제출일: {formatDateTime(assignment.submittedDate)}
                                         </p>
                                     )}
                                 </div>
@@ -183,8 +210,8 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                     );
                 })}
                 {assignments.length === 0 && (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                        <p className="text-gray-500">등록된 숙제가 없습니다.</p>
+                    <div className="text-center py-8 md:py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                        <p className="text-gray-500 text-sm">등록된 숙제가 없습니다.</p>
                     </div>
                 )}
             </div>

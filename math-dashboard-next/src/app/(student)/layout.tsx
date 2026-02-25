@@ -21,7 +21,14 @@ export default async function StudentLayout({
     let studentName: string | undefined;
     if (uid) {
         const student = await studentService.getStudentByUid(uid);
-        if (student && (student as { approvalStatus?: string }).approvalStatus === "PENDING") {
+        if (!student) {
+            redirect("/login");
+        }
+        const accountStatus = (student as { accountStatus?: string }).accountStatus ?? "ACTIVE";
+        if (accountStatus === "INACTIVE") {
+            redirect("/login?error=account_inactive");
+        }
+        if ((student as { approvalStatus?: string }).approvalStatus === "PENDING") {
             redirect("/pending-approval");
         }
         if (student?.name) studentName = (student.name as string).trim() || undefined;

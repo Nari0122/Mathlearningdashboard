@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Unit } from "@/types";
-import { X } from 'lucide-react';
+import { X, AlertCircle } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { isMiddleSchool } from "@/lib/curriculum-data";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface AnalysisClientProps {
     units: Unit[];
@@ -199,11 +200,15 @@ export default function AnalysisClient({ units }: AnalysisClientProps) {
 
     return (
         <div className="space-y-4 md:space-y-8">
-            {/* Header */}
-            <div>
-                <h2 className="text-lg md:text-xl font-bold tracking-tight">오답 유형 분석</h2>
-                <p className="text-xs md:text-sm text-gray-500 mt-1">단원별 및 전체 오답 분포를 확인합니다.</p>
-            </div>
+            <PageHeader
+                title="오답 분석"
+                description="학생의 단원별 오답 분포와 전체 오답 유형 비율을 확인하는 페이지입니다."
+                icon={
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-red-50">
+                        <AlertCircle className="w-6 h-6 text-red-600" />
+                    </div>
+                }
+            />
 
             {/* Cascading Filters */}
             <div className="flex flex-wrap items-center gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useEffect, useMemo } from "react";
-import { Plus, Check, ChevronsUpDown, X } from "lucide-react";
+import { Plus, Check, ChevronsUpDown, X, BookOpen } from "lucide-react";
 import { Unit } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { createUnit, deleteUnit, updateUnit, updateUnitError } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
 import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, SchoolLevel, isMiddleSchool } from "@/lib/curriculum-data";
+import { PageHeader } from "@/components/shared/PageHeader";
 
 interface AdminLearningClientProps {
     initialUnits: Unit[];
@@ -184,13 +185,25 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
     };
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold tracking-tight">전체 단원 관리</h2>
-                <Dialog open={isAddUnitOpen} onOpenChange={setIsAddUnitOpen}>
-                    <DialogTrigger asChild><Button><Plus className="mr-2 h-4 w-4" />단원 추가 (관리자)</Button></DialogTrigger>
-                    <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader><DialogTitle>새 단원 추가</DialogTitle></DialogHeader>
+        <div className="space-y-6 text-sm leading-relaxed">
+            <PageHeader
+                title="나의 학습 (관리자)"
+                description="학생의 전체 단원과 난이도, 학습 완료 상태를 관리합니다."
+                icon={
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
+                        <BookOpen className="w-6 h-6 text-[#5D00E2]" />
+                    </div>
+                }
+                actions={
+                    <Dialog open={isAddUnitOpen} onOpenChange={setIsAddUnitOpen}>
+                        <DialogTrigger asChild>
+                            <Button>
+                                <Plus className="mr-2 h-4 w-4" />
+                                단원 추가 (관리자)
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader><DialogTitle>새 단원 추가</DialogTitle></DialogHeader>
                         <div className="grid grid-cols-2 gap-x-8 gap-y-6 py-6">
                             {/* 1. School Level */}
                             <div className="space-y-2">
@@ -258,22 +271,23 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
                                 </div>
                             )}
                         </div>
-                        <DialogFooter className="pt-4 border-t">
-                            <Button
-                                className="w-full sm:w-32"
-                                onClick={handleAddUnit}
-                                disabled={
-                                    isPending ||
-                                    !selectedUnit ||
-                                    (!isMiddleSchool(selectedLevel || "") && !selectedDetail)
-                                }
-                            >
-                                {isPending ? "추가 중..." : "추가하기"}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
+                            <DialogFooter className="pt-4 border-t">
+                                <Button
+                                    className="w-full sm:w-32"
+                                    onClick={handleAddUnit}
+                                    disabled={
+                                        isPending ||
+                                        !selectedUnit ||
+                                        (!isMiddleSchool(selectedLevel || "") && !selectedDetail)
+                                    }
+                                >
+                                    {isPending ? "추가 중..." : "추가하기"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                }
+            />
 
             {/* 5-Level Search Filters */}
             <div className="bg-white p-4 rounded-lg border">
