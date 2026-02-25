@@ -67,11 +67,6 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
         setTimeout(() => setCopiedField(null), 2000);
     };
 
-    const generatePassword = () => {
-        const randomPassword = Math.random().toString(36).slice(-8) + Math.floor(Math.random() * 100);
-        setNewPassword(randomPassword);
-    };
-
     const handleSave = async () => {
         setLoading(true);
         const res = await updateStudent(student.id, {
