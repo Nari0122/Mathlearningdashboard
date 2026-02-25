@@ -34,7 +34,7 @@ export default function StudentHistoryClient({ records }: StudentHistoryClientPr
                                 <div>
                                     <div className="flex items-center gap-2">
                                         {record.sessionNumber && (
-                                            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{record.sessionNumber}회차</span>
+                                            <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded whitespace-nowrap">{record.sessionNumber}회차</span>
                                         )}
                                         <h3 className="font-bold text-lg text-gray-900">{record.progress}</h3>
                                     </div>

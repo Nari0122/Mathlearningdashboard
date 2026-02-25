@@ -98,10 +98,11 @@ export async function deleteExam(examId: string, docId: string) {
 }
 
 // Learning Record Actions
-export async function createLearningRecord(docId: string, data: { date: string; progress: string; comment: string; sessionNumber?: number; createdBy?: string }) {
+export async function createLearningRecord(docId: string, data: { date: string; progress: string; comment: string; sessionNumber?: number; createdBy?: string; createdByName?: string }) {
     const result = await learningService.createLearningRecord(docId, {
         ...data,
-        createdBy: data.createdBy || "student"
+        createdBy: data.createdBy || "student",
+        ...(data.createdByName && { createdByName: data.createdByName }),
     });
     if (result.success) {
         revalidatePath(`/admin/students/${docId}/history`);

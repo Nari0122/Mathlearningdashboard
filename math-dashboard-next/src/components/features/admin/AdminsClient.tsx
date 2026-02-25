@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { updateAdminStatusAction, deleteAdminAction } from "@/actions/admin-management-actions";
 import type { FirestoreUserAdmin } from "@/types/firestore-user";
 import { formatPhoneDisplay } from "@/lib/phone";
@@ -22,6 +23,7 @@ export function AdminsClient({ list }: AdminsClientProps) {
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
     const [loadingUid, setLoadingUid] = useState<string | null>(null);
     const [deletingUid, setDeletingUid] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<AdminRow | null>(null);
 
     const superAdmins = list.filter((a) => a.role === "SUPER_ADMIN");
     const approvedAdmins = list.filter((a) => a.role === "ADMIN" && a.status === "APPROVED");
@@ -38,17 +40,19 @@ export function AdminsClient({ list }: AdminsClientProps) {
         }
     };
 
-    const handleDelete = async (a: AdminRow) => {
+    const handleDelete = (a: AdminRow) => {
         if (a.role === "SUPER_ADMIN") return;
-        const message = `"${a.name}"${a.username ? ` (@${a.username})` : ""} 관리자 계정을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.`;
-        if (!confirm(message)) return;
+        setDeleteTarget(a);
+    };
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        const a = deleteTarget;
+        setDeleteTarget(null);
         setDeletingUid(a.uid);
         const result = await deleteAdminAction(a.uid);
         setDeletingUid(null);
         if (result.success) {
             router.refresh();
-        } else {
-            alert(result.message ?? "삭제 실패");
         }
     };
 
@@ -200,6 +204,21 @@ export function AdminsClient({ list }: AdminsClientProps) {
                     )}
                 </CardContent>
             </Card>
+
+            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>관리자 계정 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {deleteTarget && `"${deleteTarget.name}"${deleteTarget.username ? ` (@${deleteTarget.username})` : ""} 관리자 계정을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

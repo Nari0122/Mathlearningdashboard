@@ -206,7 +206,7 @@ export const learningService = {
 
             await studentDocRef.collection("learningRecords").add({
                 ...data,
-                createdBy: "admin", // Default to admin for now
+                createdBy: data.createdBy || "admin",
                 createdAt: new Date().toISOString()
             });
             return { success: true };
@@ -469,8 +469,7 @@ export const learningService = {
                 ...data,
                 searchKey,
                 attachments: data.attachments || [],
-                createdAt: new Date().toISOString(),
-                isResolved: false
+                createdAt: new Date().toISOString()
             });
             return { success: true };
         } catch (error) {

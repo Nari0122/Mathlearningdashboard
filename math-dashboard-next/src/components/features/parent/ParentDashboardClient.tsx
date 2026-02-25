@@ -17,8 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { Label } from "@/components/ui/label";
-import { linkChildToParent, unlinkStudentFromParent } from "@/actions/parent-actions";
-import { GraduationCap, UserPlus, User, ChevronRight, Clock, Unlink } from "lucide-react";
+import { linkChildToParent, unlinkStudentFromParent, cancelLinkRequest } from "@/actions/parent-actions";
+import { GraduationCap, UserPlus, User, ChevronRight, Clock, Unlink, X } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -59,6 +59,7 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
     const [unlinkTarget, setUnlinkTarget] = useState<{ docId: string; name: string } | null>(null);
     const [unlinkLoading, setUnlinkLoading] = useState(false);
     const [unlinkError, setUnlinkError] = useState<string | null>(null);
+    const [cancelLoading, setCancelLoading] = useState<string | null>(null);
 
     const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
 
@@ -199,47 +200,37 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto overscroll-contain max-h-[70vh] pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <div className="space-y-3 overflow-y-auto overscroll-contain max-h-[70vh] pb-[max(1rem,env(safe-area-inset-bottom))]">
                     {linkedStudents.map((student) => (
                         <div
                             key={student.docId}
-                            className="group relative bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-300 overflow-hidden flex flex-col"
+                            className="relative bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200"
                         >
-                            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-purple-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
-
-                            <Link href={`/parent/${parentUid}/student/${student.docId}`} className="flex-1 min-w-0">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-500 transition-colors shrink-0">
-                                            <User size={24} />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors text-lg">{student.name}</h3>
-                                            <p className="text-xs text-gray-400">대시보드(읽기 전용) 보기</p>
-                                        </div>
-                                    </div>
+                            <Link
+                                href={`/parent/${parentUid}/student/${student.docId}`}
+                                className="flex items-center gap-4 p-4 pr-24"
+                            >
+                                <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white shrink-0 text-sm font-bold">
+                                    {student.name.charAt(0)}
                                 </div>
-
-                                <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
-                                    <span className="text-xs text-gray-400 flex items-center gap-1 group-hover:text-blue-600 transition-colors">
-                                        보기
-                                        <ChevronRight size={14} />
-                                    </span>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="font-semibold text-gray-900 text-[15px]">{student.name}</h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">학습 현황 보기</p>
                                 </div>
+                                <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
                             </Link>
-
-                            <div className="mt-3 pt-3 border-t border-gray-100">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="w-full min-h-[44px] text-amber-700 border-amber-300 hover:bg-amber-50"
-                                    onClick={() => setUnlinkTarget({ docId: student.docId, name: student.name })}
-                                >
-                                    <Unlink className="h-4 w-4 mr-1.5 shrink-0" />
-                                    연동 취소
-                                </Button>
-                            </div>
+                            <button
+                                type="button"
+                                className="absolute top-1/2 right-12 -translate-y-1/2 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setUnlinkTarget({ docId: student.docId, name: student.name });
+                                }}
+                            >
+                                <Unlink className="h-3.5 w-3.5" />
+                                <span>연결 끊기</span>
+                            </button>
                         </div>
                     ))}
                 </div>
@@ -248,12 +239,12 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
             <AlertDialog open={!!unlinkTarget} onOpenChange={(open) => !open && setUnlinkTarget(null)}>
                 <AlertDialogContent className="pb-[max(1rem,env(safe-area-inset-bottom))]">
                     <AlertDialogHeader>
-                        <AlertDialogTitle>연동 취소</AlertDialogTitle>
+                        <AlertDialogTitle>연결 끊기</AlertDialogTitle>
                         <AlertDialogDescription>{UNLINK_CONFIRM_MESSAGE}</AlertDialogDescription>
                     </AlertDialogHeader>
                     {unlinkTarget && (
                         <p className="text-sm text-gray-600">
-                            <strong>{unlinkTarget.name}</strong> 님과의 연동을 취소하면, 해당 자녀의 학습 현황을 더 이상 조회할 수 없습니다.
+                            <strong>{unlinkTarget.name}</strong> 님과의 연결을 끊으면, 해당 자녀의 학습 현황을 더 이상 조회할 수 없습니다.
                         </p>
                     )}
                     {unlinkError && (
@@ -267,9 +258,9 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                                 handleUnlinkConfirm();
                             }}
                             disabled={unlinkLoading}
-                            className="min-h-[44px] bg-amber-600 hover:bg-amber-700"
+                            className="min-h-[44px] bg-red-600 hover:bg-red-700"
                         >
-                            {unlinkLoading ? "처리 중..." : "연동 취소"}
+                            {unlinkLoading ? "처리 중..." : "연결 끊기"}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -292,19 +283,39 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                     <div className="space-y-2">
                         {sentPendingRequests.map((req) => (
                             <Card key={req.linkId}>
-                                <CardContent className="py-4 flex items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
+                                <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
                                         <Clock className="h-5 w-5 text-amber-500 shrink-0" />
-                                        <div>
+                                        <div className="min-w-0">
                                             <p className="font-medium text-gray-900">
-                                                <strong>{req.studentName}</strong>(학생)에게 자녀 등록 요청을 보냈습니다.
+                                                <strong>{req.studentName}</strong>(학생)
                                             </p>
                                             <p className="text-xs text-muted-foreground">
                                                 승인 대기 중 · {req.requestedAt ? new Date(req.requestedAt).toLocaleDateString("ko-KR") : ""}
                                             </p>
                                         </div>
                                     </div>
-                                    <span className="text-xs font-medium text-amber-600 bg-amber-50 px-2 py-1 rounded">승인 대기</span>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="shrink-0 min-h-[40px] text-red-600 border-red-200 hover:bg-red-50"
+                                        disabled={cancelLoading === req.linkId}
+                                        onClick={async () => {
+                                            if (!uid) return;
+                                            setCancelLoading(req.linkId);
+                                            const res = await cancelLinkRequest(uid, req.linkId);
+                                            setCancelLoading(null);
+                                            if (res.success) {
+                                                setSuccessMessage("요청이 취소되었습니다.");
+                                                setTimeout(() => setSuccessMessage(null), 5000);
+                                                router.refresh();
+                                            }
+                                        }}
+                                    >
+                                        <X className="h-4 w-4 mr-1" />
+                                        {cancelLoading === req.linkId ? "취소 중..." : "요청 취소"}
+                                    </Button>
                                 </CardContent>
                             </Card>
                         ))}

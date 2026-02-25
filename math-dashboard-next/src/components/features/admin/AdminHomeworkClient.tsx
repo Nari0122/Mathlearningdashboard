@@ -5,6 +5,7 @@ import { Plus, Pencil, Trash, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createHomework, updateHomework, deleteHomework } from "@/actions/admin-actions";
@@ -35,6 +36,7 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [currentEditId, setCurrentEditId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     const [title, setTitle] = useState("");
     const [dueDate, setDueDate] = useState("");
@@ -93,15 +95,13 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
         });
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("정말 삭제하시겠습니까?")) return;
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        const id = deleteTarget;
+        setDeleteTarget(null);
         startTransition(async () => {
             const result = await deleteHomework(id, studentDocId);
-            if (result.success) {
-                router.refresh();
-            } else {
-                alert("삭제 실패");
-            }
+            if (result.success) router.refresh();
         });
     };
 
@@ -126,26 +126,22 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                         <DialogContent>
                         <DialogHeader><DialogTitle>새 숙제 부여</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="title" className="text-right">숙제명</Label>
-                                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" placeholder="예: 수학의 정석 p.50~55" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="assignedDate" className="text-right">부여일</Label>
-                                <Input id="assignedDate" type="date" value={assignedDate} onChange={(e) => setAssignedDate(e.target.value)} className="col-span-3" />
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="duedate" className="text-right">마감일</Label>
-                                <Input id="duedate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="col-span-3" />
+                            <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-4">
+                                <Label htmlFor="title" className="text-right whitespace-nowrap text-sm">숙제명</Label>
+                                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="예: 수학의 정석 p.50~55" />
+                                <Label htmlFor="assignedDate" className="text-right whitespace-nowrap text-sm">부여일</Label>
+                                <Input id="assignedDate" type="date" value={assignedDate} onChange={(e) => setAssignedDate(e.target.value)} />
+                                <Label htmlFor="duedate" className="text-right whitespace-nowrap text-sm">마감일</Label>
+                                <Input id="duedate" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                             </div>
                             {schedules.length > 0 && (
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="linkedSchedule" className="text-right">연관 수업</Label>
+                                <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
+                                    <Label htmlFor="linkedSchedule" className="text-right whitespace-nowrap text-sm">연관 수업</Label>
                                     <select
                                         id="linkedSchedule"
                                         value={linkedScheduleId}
                                         onChange={(e) => setLinkedScheduleId(e.target.value)}
-                                        className="col-span-3 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                                     >
                                         <option value="">선택 안 함 (마감일 23:59까지)</option>
                                         {schedules
@@ -156,7 +152,8 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                                                 </option>
                                             ))}
                                     </select>
-                                    <p className="col-span-3 col-start-2 text-xs text-muted-foreground">
+                                    <div />
+                                    <p className="text-xs text-muted-foreground">
                                         선택 시 해당 수업 시작 1시간 전에 제출 마감됩니다.
                                     </p>
                                 </div>
@@ -177,30 +174,28 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                 <DialogContent>
                     <DialogHeader><DialogTitle>숙제 수정</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-title" className="text-right">숙제명</Label>
-                                <Input id="edit-title" value={editTitle || ""} onChange={(e) => setEditTitle(e.target.value)} className="col-span-3" />
+                            <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-4">
+                                <Label htmlFor="edit-title" className="text-right whitespace-nowrap text-sm">숙제명</Label>
+                                <Input id="edit-title" value={editTitle || ""} onChange={(e) => setEditTitle(e.target.value)} />
+                                <Label htmlFor="edit-duedate" className="text-right whitespace-nowrap text-sm">마감일</Label>
+                                <Input id="edit-duedate" type="date" value={editDueDate || ""} onChange={(e) => setEditDueDate(e.target.value)} />
+                                {(() => {
+                                    const editingHw = homeworks.find((h: any) => h.id === currentEditId);
+                                    const linkedSchedule = editingHw?.linkedScheduleId && schedules.length > 0
+                                        ? schedules.find((s: any) => s.id === editingHw.linkedScheduleId)
+                                        : null;
+                                    return (
+                                        <>
+                                            <Label className="text-right whitespace-nowrap text-sm text-muted-foreground">연관 수업</Label>
+                                            <div className="text-sm">
+                                                {linkedSchedule
+                                                    ? `${linkedSchedule.date} ${linkedSchedule.startTime || ""} ~ ${linkedSchedule.endTime || ""}${linkedSchedule.topic ? ` - ${linkedSchedule.topic}` : ""}`
+                                                    : "연관 수업 없음"}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="edit-duedate" className="text-right">마감일</Label>
-                                <Input id="edit-duedate" type="date" value={editDueDate || ""} onChange={(e) => setEditDueDate(e.target.value)} className="col-span-3" />
-                            </div>
-                            {(() => {
-                                const editingHw = homeworks.find((h: any) => h.id === currentEditId);
-                                const linkedSchedule = editingHw?.linkedScheduleId && schedules.length > 0
-                                    ? schedules.find((s: any) => s.id === editingHw.linkedScheduleId)
-                                    : null;
-                                return (
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label className="text-right text-muted-foreground">연관 수업</Label>
-                                        <div className="col-span-3 text-sm">
-                                            {linkedSchedule
-                                                ? `${linkedSchedule.date} ${linkedSchedule.startTime || ""} ~ ${linkedSchedule.endTime || ""}${linkedSchedule.topic ? ` - ${linkedSchedule.topic}` : ""}`
-                                                : "연관 수업 없음"}
-                                        </div>
-                                    </div>
-                                );
-                            })()}
                         </div>
                         <DialogFooter>
                             <Button onClick={handleUpdate} disabled={isPending}>
@@ -267,7 +262,7 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(hw)}>
                                                 수정
                                             </Button>
-                                            <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(hw.id)}>
+                                            <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteTarget(hw.id)}>
                                                 삭제
                                             </Button>
                                         </td>
@@ -278,6 +273,19 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                     </tbody>
                 </table>
             </div>
+
+            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>숙제 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>정말 이 숙제를 삭제하시겠습니까? 삭제된 숙제는 복구할 수 없습니다.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

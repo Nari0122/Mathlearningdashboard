@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { UnitCard } from "@/components/features/dashboard/UnitCard-v2";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -41,6 +42,7 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
     const [activeTab, setActiveTab] = useState("all");
     const [isAddUnitOpen, setIsAddUnitOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
+    const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
     // Derived filter options
     const filterLevels = useMemo(() => Array.from(new Set(initialUnits.map(u => u.schoolLevel))), [initialUnits]);
@@ -129,12 +131,16 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
             router.refresh();
         });
     };
-    const handleDelete = async (unitId: number) => {
-        if (!confirm("정말 삭제하시겠습니까?")) return;
+    const handleDelete = (unitId: number) => {
+        setDeleteTarget(unitId);
+    };
+    const handleDeleteConfirm = async () => {
+        if (deleteTarget === null) return;
+        const unitId = deleteTarget;
+        setDeleteTarget(null);
         startTransition(async () => {
             const result = await deleteUnit(unitId, studentDocId);
             if (result.success) router.refresh();
-            else alert("삭제 실패");
         });
     };
     const handleErrorChange = async (unitId: number, errorType: 'C' | 'M' | 'R' | 'S', delta: number) => {
@@ -398,6 +404,19 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
                     )}
                 </TabsContent>
             </Tabs>
+
+            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>단원 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>정말 이 단원을 삭제하시겠습니까? 삭제된 단원은 복구할 수 없습니다.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

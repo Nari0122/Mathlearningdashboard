@@ -75,6 +75,15 @@ export const parentService = {
             await ref.update({
                 studentIds: admin.firestore.FieldValue.arrayRemove(studentDocId),
             });
+
+            const staleRequests = await adminDb.collection("parentLinkRequests")
+                .where("parentUid", "==", parentUid)
+                .where("studentDocId", "==", studentDocId)
+                .get();
+            const batch = adminDb.batch();
+            staleRequests.docs.forEach((d) => batch.delete(d.ref));
+            if (!staleRequests.empty) await batch.commit();
+
             return { success: true };
         } catch (error) {
             console.error("[parentService.removeStudentDocIdFromParent]", error);
@@ -125,6 +134,168 @@ export const parentService = {
         } catch (error) {
             console.error("[parentService.getParentsLinkedToStudent]", error);
             return [];
+        }
+    },
+
+    // ========== 학부모-학생 연동 요청 (parentLinkRequests 컬렉션) ==========
+
+    async createLinkRequest(data: {
+        parentUid: string;
+        parentName: string;
+        studentDocId: string;
+        studentName: string;
+    }): Promise<{ success: true; linkId: string } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
+        try {
+            const existing = await adminDb.collection("parentLinkRequests")
+                .where("parentUid", "==", data.parentUid)
+                .where("studentDocId", "==", data.studentDocId)
+                .where("status", "==", "pending")
+                .limit(1)
+                .get();
+            if (!existing.empty) {
+                return { success: false, message: "이미 해당 학생에게 연동 요청을 보냈습니다. 학생의 승인을 기다려 주세요." };
+            }
+            const docRef = await adminDb.collection("parentLinkRequests").add({
+                parentUid: data.parentUid,
+                parentName: data.parentName,
+                studentDocId: data.studentDocId,
+                studentName: data.studentName,
+                status: "pending",
+                requestedAt: new Date().toISOString(),
+            });
+            return { success: true, linkId: docRef.id };
+        } catch (error) {
+            console.error("[parentService.createLinkRequest]", error);
+            return { success: false, message: "연동 요청 생성에 실패했습니다." };
+        }
+    },
+
+    async getPendingRequestsByParent(parentUid: string): Promise<
+        { linkId: string; studentDocId: string; studentName: string; requestedAt: string }[]
+    > {
+        if (!adminDb) return [];
+        try {
+            const snapshot = await adminDb.collection("parentLinkRequests")
+                .where("parentUid", "==", parentUid)
+                .where("status", "==", "pending")
+                .get();
+            const results = snapshot.docs.map((doc) => {
+                const d = doc.data();
+                return {
+                    linkId: doc.id,
+                    studentDocId: d.studentDocId as string,
+                    studentName: d.studentName as string,
+                    requestedAt: d.requestedAt as string,
+                };
+            });
+            results.sort((a, b) => (b.requestedAt || "").localeCompare(a.requestedAt || ""));
+            return results;
+        } catch (error) {
+            console.error("[parentService.getPendingRequestsByParent]", error);
+            return [];
+        }
+    },
+
+    async getPendingRequestsByStudent(studentDocId: string): Promise<
+        { linkId: string; parentUid: string; parentName: string; requestedAt: string }[]
+    > {
+        if (!adminDb) return [];
+        try {
+            const snapshot = await adminDb.collection("parentLinkRequests")
+                .where("studentDocId", "==", studentDocId)
+                .where("status", "==", "pending")
+                .get();
+            const results = snapshot.docs.map((doc) => {
+                const d = doc.data();
+                return {
+                    linkId: doc.id,
+                    parentUid: d.parentUid as string,
+                    parentName: d.parentName as string,
+                    requestedAt: d.requestedAt as string,
+                };
+            });
+            results.sort((a, b) => (b.requestedAt || "").localeCompare(a.requestedAt || ""));
+            return results;
+        } catch (error) {
+            console.error("[parentService.getPendingRequestsByStudent]", error);
+            return [];
+        }
+    },
+
+    async getLinkRequestById(linkId: string): Promise<{ parentUid: string; studentDocId: string; status: string } | null> {
+        if (!adminDb) return null;
+        try {
+            const doc = await adminDb.collection("parentLinkRequests").doc(linkId).get();
+            if (!doc.exists) return null;
+            const d = doc.data()!;
+            return {
+                parentUid: d.parentUid as string,
+                studentDocId: d.studentDocId as string,
+                status: d.status as string,
+            };
+        } catch (error) {
+            console.error("[parentService.getLinkRequestById]", error);
+            return null;
+        }
+    },
+
+    async acceptLinkRequest(linkId: string): Promise<{ success: true; parentUid: string; studentDocId: string } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
+        try {
+            const ref = adminDb.collection("parentLinkRequests").doc(linkId);
+            const doc = await ref.get();
+            if (!doc.exists) return { success: false, message: "요청을 찾을 수 없습니다." };
+            const data = doc.data()!;
+            if (data.status !== "pending") return { success: false, message: "이미 처리된 요청입니다." };
+
+            const parentUid = data.parentUid as string;
+            const studentDocId = data.studentDocId as string;
+
+            await adminDb.collection(PARENTS_COLLECTION).doc(parentUid).update({
+                studentIds: admin.firestore.FieldValue.arrayUnion(studentDocId),
+            });
+
+            await ref.delete();
+
+            return { success: true, parentUid, studentDocId };
+        } catch (error) {
+            console.error("[parentService.acceptLinkRequest]", error);
+            return { success: false, message: "승인 처리에 실패했습니다." };
+        }
+    },
+
+    async rejectLinkRequest(linkId: string): Promise<{ success: true } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
+        try {
+            const ref = adminDb.collection("parentLinkRequests").doc(linkId);
+            const doc = await ref.get();
+            if (!doc.exists) return { success: false, message: "요청을 찾을 수 없습니다." };
+            const data = doc.data()!;
+            if (data.status !== "pending") return { success: false, message: "이미 처리된 요청입니다." };
+
+            await ref.delete();
+            return { success: true };
+        } catch (error) {
+            console.error("[parentService.rejectLinkRequest]", error);
+            return { success: false, message: "거절 처리에 실패했습니다." };
+        }
+    },
+
+    async deleteParent(parentUid: string): Promise<{ success: true } | { success: false; message: string }> {
+        if (!adminDb) return { success: false, message: "Database not available" };
+        try {
+            const pendingSnapshot = await adminDb.collection("parentLinkRequests")
+                .where("parentUid", "==", parentUid)
+                .get();
+            const batch = adminDb.batch();
+            pendingSnapshot.docs.forEach((doc) => batch.delete(doc.ref));
+            batch.delete(adminDb.collection(PARENTS_COLLECTION).doc(parentUid));
+            await batch.commit();
+            return { success: true };
+        } catch (error) {
+            console.error("[parentService.deleteParent]", error);
+            return { success: false, message: "탈퇴 처리에 실패했습니다." };
         }
     },
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { FolderTree, Search, Plus } from "lucide-react";
 import { UnitCard } from "@/components/features/dashboard/UnitCard-v2";
 import { AddUnitModal } from "@/components/features/admin/AddUnitModal";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Unit } from "@/types";
 import {
   addUnit,
@@ -29,6 +30,7 @@ export default function AdminUnitManagementClient({
   const [units, setUnits] = useState<Unit[]>(initialUnits);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
   useEffect(() => {
     setUnits(initialUnits);
@@ -54,7 +56,13 @@ export default function AdminUnitManagementClient({
     router.refresh();
   };
 
-  const handleDelete = async (unitId: number) => {
+  const handleDelete = (unitId: number) => {
+    setDeleteTarget(unitId);
+  };
+  const handleDeleteConfirm = async () => {
+    if (deleteTarget === null) return;
+    const unitId = deleteTarget;
+    setDeleteTarget(null);
     setUnits((prev) => prev.filter((u) => u.id !== unitId));
     await deleteUnit(unitId);
     router.refresh();
@@ -203,6 +211,19 @@ export default function AdminUnitManagementClient({
         onClose={() => setIsAddModalOpen(false)}
         onAdd={handleAddUnit}
       />
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>단원 삭제</AlertDialogTitle>
+            <AlertDialogDescription>정말 이 단원을 삭제하시겠습니까? 삭제된 단원은 복구할 수 없습니다.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

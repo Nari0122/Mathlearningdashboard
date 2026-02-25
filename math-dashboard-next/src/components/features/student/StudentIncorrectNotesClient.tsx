@@ -6,11 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertCircle, Plus, FileImage, X, Trash2, Pencil, BookMarked } from "lucide-react";
+import { AlertCircle, Plus, FileImage, X, Trash2, Pencil, BookMarked } from "lucide-react";
 import { createIncorrectNote, deleteIncorrectNote, updateIncorrectNote, getBookTags, createBookTag } from "@/actions/learning-actions";
 import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, CURRICULUM_DATA, isMiddleSchool } from "@/lib/curriculum-data";
 import { storage } from "@/lib/firebase";
@@ -48,6 +49,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
     const [selectedZoomImg, setSelectedZoomImg] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [deleteNoteTarget, setDeleteNoteTarget] = useState<string | null>(null);
 
     // Filter State (for notes list)
     const [filterLevel, setFilterLevel] = useState<string>("all");
@@ -368,18 +370,14 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
         }
     };
 
-    const handleDelete = async (noteId: string) => {
-        if (!confirm("정말 이 오답노트를 삭제하시겠습니까?")) return;
-
+    const handleDeleteConfirm = async () => {
+        if (!deleteNoteTarget) return;
+        const noteId = deleteNoteTarget;
+        setDeleteNoteTarget(null);
         setIsLoading(true);
         const result = await deleteIncorrectNote(studentDocId, noteId);
         setIsLoading(false);
-
-        if (result.success) {
-            router.refresh();
-        } else {
-            alert(result.message || "삭제 실패");
-        }
+        if (result.success) router.refresh();
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -776,9 +774,9 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                                 </div>
                             </div>
                         </div>
-                        <DialogFooter className="pt-4 border-t flex flex-col sm:flex-row gap-2">
-                            <Button onClick={handleSubmit} disabled={isLoading} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700">
-                                {modalMode === 'add' ? '오답노트 등록' : '수정 완료'}
+                        <DialogFooter className="pt-4 border-t">
+                            <Button onClick={handleSubmit} disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700">
+                                {modalMode === 'add' ? '오답노트 등록' : '저장'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -977,12 +975,6 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                                                     </Badge>
                                                 ) : null;
                                             })() : null}
-                                            {note.isResolved ? (
-                                                <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 shrink-0">
-                                                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                    해결됨
-                                                </Badge>
-                                            ) : null}
                                         </div>
                                         <CardTitle className="text-base font-bold text-gray-900 mt-2">
                                             {note.problemName || "문제 이름 없음"}
@@ -1007,7 +999,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                            onClick={() => handleDelete(note.id)}
+                                            onClick={() => setDeleteNoteTarget(note.id)}
                                             disabled={isLoading}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -1120,6 +1112,19 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                     )}
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={deleteNoteTarget !== null} onOpenChange={(open) => !open && setDeleteNoteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>오답노트 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>정말 이 오답노트를 삭제하시겠습니까? 삭제된 노트는 복구할 수 없습니다.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

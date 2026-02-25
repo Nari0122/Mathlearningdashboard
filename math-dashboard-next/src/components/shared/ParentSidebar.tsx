@@ -7,8 +7,12 @@ import { LayoutDashboard, LogOut, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { getSystemSettings } from "@/actions/system-actions";
+import { withdrawParentAccount } from "@/actions/parent-actions";
 
 interface ParentSidebarProps {
     userName?: string;
@@ -19,9 +23,14 @@ interface ParentSidebarProps {
 
 export function ParentSidebar({ userName, parentUid, className }: ParentSidebarProps) {
     const pathname = usePathname();
+    const router = useRouter();
     const { data: session } = useSession();
     const displayName = userName?.trim() || session?.user?.name || "학부모";
+    const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
     const [settings, setSettings] = useState({ supportEmail: "support@mathclinic.com", supportPhone: "02-1234-5678" });
+    const [confirmWithdraw, setConfirmWithdraw] = useState(false);
+    const [supportLoading, setSupportLoading] = useState(false);
+    const [supportError, setSupportError] = useState<string | null>(null);
 
     useEffect(() => {
         getSystemSettings().then(setSettings);
@@ -78,26 +87,32 @@ export function ParentSidebar({ userName, parentUid, className }: ParentSidebarP
                 </ul>
             </nav>
 
-            <div className="p-4 border-t border-gray-200 space-y-2 shrink-0">
-                <Link
-                    href="/login"
-                    className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-100 hover:text-red-600 rounded-lg transition-colors"
-                >
-                    <LogOut size={20} />
-                    <span>로그아웃</span>
+            <div className="p-4 border-t border-gray-200 space-y-1 shrink-0">
+                <Link href="/login" className="block">
+                    <Button variant="ghost" className="w-full justify-start gap-3 h-12 text-base text-red-500 hover:bg-red-50 hover:text-red-600 min-h-[44px]">
+                        <LogOut size={20} />
+                        로그아웃
+                    </Button>
                 </Link>
-                <Dialog>
+                <Dialog
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setConfirmWithdraw(false);
+                            setSupportError(null);
+                        }
+                    }}
+                >
                     <DialogTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-start gap-3 text-gray-500 hover:text-gray-900">
-                            <HelpCircle className="w-5 h-5" />
+                        <Button variant="ghost" className="w-full justify-start gap-3 h-12 text-base text-gray-500 hover:text-gray-900 min-h-[44px]">
+                            <HelpCircle size={20} />
                             Support
                         </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
                             <DialogTitle>학부모 지원 및 계정 정보</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-6 py-4">
+                        <div className="space-y-6 py-4 pr-2">
                             <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
                                 <h3 className="font-bold text-sm mb-2 text-blue-900">내 정보</h3>
                                 <div className="space-y-1 text-sm text-blue-800">
@@ -118,6 +133,41 @@ export function ParentSidebar({ userName, parentUid, className }: ParentSidebarP
                                     <p className="flex items-center gap-2 text-gray-700">
                                         <span className="font-semibold">Tel:</span> {settings.supportPhone}
                                     </p>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-gray-200 pt-4 space-y-4">
+                                <h3 className="font-bold text-sm text-gray-900">계정 관리</h3>
+                                {supportError && (
+                                    <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{supportError}</p>
+                                )}
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
+                                    <p className="text-sm text-red-900">회원 탈퇴 시 학부모 계정과 연동 정보가 모두 삭제되며 복구할 수 없습니다.</p>
+                                    <label className="flex items-center gap-2 cursor-pointer min-h-[44px]">
+                                        <Checkbox checked={confirmWithdraw} onCheckedChange={(v) => setConfirmWithdraw(!!v)} />
+                                        <span className="text-sm">탈퇴를 원한다는 것을 확인했습니다.</span>
+                                    </label>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="w-full min-h-[44px] text-red-700 border-red-300 hover:bg-red-100"
+                                        disabled={!confirmWithdraw || supportLoading || !uid}
+                                        onClick={async () => {
+                                            if (!uid) return;
+                                            setSupportLoading(true);
+                                            setSupportError(null);
+                                            const res = await withdrawParentAccount(uid);
+                                            setSupportLoading(false);
+                                            if (res.success) {
+                                                await signOut({ callbackUrl: "/login" });
+                                                router.push("/login");
+                                                return;
+                                            }
+                                            setSupportError(res.message ?? "처리 실패");
+                                        }}
+                                    >
+                                        회원 탈퇴
+                                    </Button>
                                 </div>
                             </div>
 

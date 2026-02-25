@@ -5,6 +5,7 @@ import { Plus, Trash, Clock, Pencil, AlertCircle, CalendarClock } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,6 +43,7 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
     const [pendingUpdateType, setPendingUpdateType] = useState<"session" | "regular" | null>(null);
 
     const [isPending, startTransition] = useTransition();
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     // Session State (Add/Edit)
     const [currentEditId, setCurrentEditId] = useState<string | null>(null);
@@ -244,8 +246,10 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("정말 삭제하시겠습니까?")) return;
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        const id = deleteTarget;
+        setDeleteTarget(null);
         startTransition(async () => {
             await deleteSchedule(id, studentDocId);
             router.refresh();
@@ -405,7 +409,7 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={() => handleEditRegular(s)}>
                                             <Pencil className="h-4 w-4" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => setDeleteTarget(s.id)}>
                                             <Trash className="h-4 w-4" />
                                         </Button>
                                     </div>
@@ -417,64 +421,82 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
 
                 <Card className="md:col-span-2">
                     <CardHeader><CardTitle className="text-sm text-gray-500">최근 수업 내역</CardTitle></CardHeader>
-                    <CardContent>
+                    <CardContent className="p-0 md:p-6 md:pt-0">
                         {sessions.length === 0 ? (
-                            <p className="text-sm text-gray-400">수업 내역이 없습니다.</p>
+                            <p className="text-sm text-gray-400 px-6 pb-4">수업 내역이 없습니다.</p>
                         ) : (
-                            sessions.map((s: any) => {
-                                const isModified = s.isModified || s.status === "POSTPONED" || s.status === "CHANGED" || s.status === "CANCELLED";
-                                const hasChangeBadge = s.scheduleChangeType;
-                                return (
-                                    <div
-                                        key={s.id}
-                                        className={`flex justify-between items-center p-3 border-b last:border-0 ${isModified ? "opacity-70" : ""}`}
-                                    >
-                                        <div>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                {hasChangeBadge && (
-                                                    <Badge className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-full">
-                                                        {s.scheduleChangeType}
-                                                    </Badge>
-                                                )}
-                                                <div className={isModified ? "line-through text-gray-500" : "font-bold"}>{s.date}</div>
-                                                {s.sessionNumber && (
-                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                                                        {s.sessionNumber}회차
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="text-xs text-gray-400">
-                                                {(() => {
-                                                    if (s.status === "CANCELLED") return "취소됨";
-                                                    if (s.status === "POSTPONED") return "연기됨";
-                                                    if (s.status === "CHANGED") return "일정 변경됨";
-                                                    const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
-                                                    const now = new Date();
-                                                    const isPassed = now > scheduleEnd;
-                                                    if (s.status === "cancelled") return "취소됨";
-                                                    if (s.status === "completed" || isPassed) return "수업 완료";
-                                                    if (s.status === "scheduled") return "예정됨";
-                                                    return s.status;
-                                                })()}
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className={`text-sm mr-2 ${isModified ? "line-through text-gray-500" : ""}`}>{s.startTime} - {s.endTime}</span>
-                                            {!isModified && (
-                                                <Button variant="ghost" size="sm" className="h-8 text-violet-600 hover:text-violet-700 hover:bg-violet-50" onClick={() => handleOpenPostpone(s)} title="연기/보강/취소/일정변경">
-                                                    <CalendarClock className="h-4 w-4 mr-1" /> 연기
-                                                </Button>
-                                            )}
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-500 hover:text-gray-900" onClick={() => handleEditSession(s)}>
-                                                <Pencil className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-red-400 hover:text-red-600" onClick={() => handleDelete(s.id)}>
-                                                <Trash className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                );
-                            })
+                            <div className="overflow-x-auto">
+                                <table className="w-full min-w-[600px] text-sm">
+                                    <thead className="bg-gray-50 border-b">
+                                        <tr>
+                                            <th className="px-4 py-2.5 text-left font-medium text-gray-500 whitespace-nowrap">날짜</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-gray-500 whitespace-nowrap">회차</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-gray-500 whitespace-nowrap">시간</th>
+                                            <th className="px-4 py-2.5 text-left font-medium text-gray-500 whitespace-nowrap">상태</th>
+                                            <th className="px-4 py-2.5 text-right font-medium text-gray-500 whitespace-nowrap">관리</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sessions.map((s: any) => {
+                                            const isModified = s.isModified || s.status === "POSTPONED" || s.status === "CHANGED" || s.status === "CANCELLED";
+                                            const hasChangeBadge = s.scheduleChangeType;
+                                            const statusLabel = (() => {
+                                                if (s.status === "CANCELLED") return "취소됨";
+                                                if (s.status === "POSTPONED") return "연기됨";
+                                                if (s.status === "CHANGED") return "일정 변경됨";
+                                                const scheduleEnd = new Date(`${s.date}T${s.endTime}`);
+                                                const now = new Date();
+                                                if (s.status === "cancelled") return "취소됨";
+                                                if (s.status === "completed" || now > scheduleEnd) return "수업 완료";
+                                                if (s.status === "scheduled") return "예정됨";
+                                                return s.status;
+                                            })();
+                                            return (
+                                                <tr key={s.id} className={`border-b last:border-0 hover:bg-gray-50 ${isModified ? "opacity-70" : ""}`}>
+                                                    <td className="px-4 py-2.5 whitespace-nowrap">
+                                                        <div className="flex items-center gap-1.5">
+                                                            {hasChangeBadge && (
+                                                                <Badge className="bg-[#8B5CF6] hover:bg-[#7C3AED] text-white rounded-full text-[11px] px-1.5 py-0">
+                                                                    {s.scheduleChangeType}
+                                                                </Badge>
+                                                            )}
+                                                            <span className={isModified ? "line-through text-gray-500" : "font-semibold"}>{s.date}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 whitespace-nowrap">
+                                                        {s.sessionNumber ? (
+                                                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded whitespace-nowrap inline-block">{s.sessionNumber}회차</span>
+                                                        ) : (
+                                                            <span className="text-gray-300">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className={`px-4 py-2.5 whitespace-nowrap ${isModified ? "line-through text-gray-500" : ""}`}>
+                                                        {s.startTime} - {s.endTime}
+                                                    </td>
+                                                    <td className="px-4 py-2.5 whitespace-nowrap text-xs text-gray-500">
+                                                        {statusLabel}
+                                                    </td>
+                                                    <td className="px-4 py-2.5 whitespace-nowrap text-right">
+                                                        <div className="flex items-center justify-end gap-1">
+                                                            {!isModified && (
+                                                                <Button variant="ghost" size="sm" className="h-7 text-xs text-violet-600 hover:text-violet-700 hover:bg-violet-50 px-2" onClick={() => handleOpenPostpone(s)}>
+                                                                    <CalendarClock className="h-3.5 w-3.5 mr-0.5" /> 연기
+                                                                </Button>
+                                                            )}
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-gray-900" onClick={() => handleEditSession(s)}>
+                                                                <Pencil className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600" onClick={() => setDeleteTarget(s.id)}>
+                                                                <Trash className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
@@ -674,6 +696,19 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                     </DialogContent>
                 </Dialog>
             </div>
+
+            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>일정 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>정말 이 일정을 삭제하시겠습니까? 삭제된 일정은 복구할 수 없습니다.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

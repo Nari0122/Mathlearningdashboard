@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus, Pencil, Trash, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createExam, updateExam, deleteExam } from "@/actions/learning-actions";
@@ -26,6 +27,7 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [currentEditId, setCurrentEditId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     const [examType, setExamType] = useState("");
     const [subject, setSubject] = useState("수학");
@@ -88,15 +90,13 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
         });
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("정말 삭제하시겠습니까?")) return;
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        const id = deleteTarget;
+        setDeleteTarget(null);
         startTransition(async () => {
             const result = await deleteExam(id, studentDocId);
-            if (result.success) {
-                router.refresh();
-            } else {
-                alert("삭제 실패");
-            }
+            if (result.success) router.refresh();
         });
     };
 
@@ -249,7 +249,7 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
                                         <Button variant="ghost" size="sm" onClick={() => handleEditClick(exam)}>
                                             수정
                                         </Button>
-                                        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleDelete(exam.id)}>
+                                        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => setDeleteTarget(exam.id)}>
                                             삭제
                                         </Button>
                                     </td>
@@ -259,6 +259,19 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
                     </tbody>
                 </table>
             </div>
+
+            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>성적 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>정말 이 성적 기록을 삭제하시겠습니까? 삭제된 기록은 복구할 수 없습니다.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

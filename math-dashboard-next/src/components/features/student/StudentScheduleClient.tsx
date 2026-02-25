@@ -74,7 +74,7 @@ export default function StudentScheduleClient({ schedules }: StudentScheduleClie
                                                 )}
                                                 <div className={isModified ? "line-through text-gray-500" : "font-bold"}>{s.date}</div>
                                                 {s.sessionNumber && (
-                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded whitespace-nowrap">
                                                         {s.sessionNumber}회차
                                                     </span>
                                                 )}

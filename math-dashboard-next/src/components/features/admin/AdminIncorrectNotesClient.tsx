@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, AlertCircle, FileImage, X, Search, FileText, Pencil, Plus, Loader2, Trash2, BookMarked } from "lucide-react";
+import { AlertCircle, FileImage, X, Search, FileText, Pencil, Plus, Loader2, Trash2, BookMarked } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, getDetails, isMiddleSchool } from "@/lib/curriculum-data";
 import { getBookTags, createBookTag, updateIncorrectNote, createIncorrectNote, deleteIncorrectNote } from "@/actions/learning-actions";
 import { storage } from "@/lib/firebase";
@@ -39,6 +39,7 @@ interface AdminIncorrectNotesClientProps {
 export default function AdminIncorrectNotesClient({ notes, units = [], studentDocId }: AdminIncorrectNotesClientProps) {
     const router = useRouter();
     const [isPending, startTransition] = useTransition();
+    const [deleteNoteTarget, setDeleteNoteTarget] = useState<string | null>(null);
     // Hierarchy Filter State
     const [filterLevel, setFilterLevel] = useState<string>("all");
     const [filterGrade, setFilterGrade] = useState<string>("all");
@@ -69,7 +70,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
     const [editMemo, setEditMemo] = useState("");
     const [editErrorType, setEditErrorType] = useState("C");
     const [editRetryCount, setEditRetryCount] = useState<number>(1);
-    const [editIsResolved, setEditIsResolved] = useState(false);
     const [editAttachments, setEditAttachments] = useState<Attachment[]>([]);
     const [editIsUploading, setEditIsUploading] = useState(false);
     const [editUploadProgress, setEditUploadProgress] = useState<Record<string, number>>({});
@@ -215,7 +215,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
         setEditMemo(note.memo || "");
         setEditErrorType(note.errorType || "C");
         setEditRetryCount(note.retryCount ?? 1);
-        setEditIsResolved(!!note.isResolved);
         setEditAttachments(note.attachments || []);
         setEditUploadProgress({});
         if (note.bookTagId) {
@@ -316,7 +315,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                 memo: editMemo.trim(),
                 errorType: editErrorType,
                 retryCount: editRetryCount,
-                isResolved: editIsResolved,
                 bookTagId: editSelectedBookTagId || undefined,
                 attachments: editAttachments,
             });
@@ -331,14 +329,18 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
 
     const handleDeleteNote = () => {
         if (!editingNoteId) return;
-        if (!confirm("정말 이 오답 노트를 삭제하시겠습니까?")) return;
+        setDeleteNoteTarget(editingNoteId);
+    };
+
+    const handleDeleteNoteConfirm = () => {
+        if (!deleteNoteTarget) return;
+        const noteId = deleteNoteTarget;
+        setDeleteNoteTarget(null);
         startTransition(async () => {
-            const result = await deleteIncorrectNote(studentDocId, editingNoteId);
+            const result = await deleteIncorrectNote(studentDocId, noteId);
             if (result.success) {
                 closeEditNote();
                 router.refresh();
-            } else {
-                alert(result.message ?? "삭제에 실패했습니다.");
             }
         });
     };
@@ -703,6 +705,7 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                                                 <Badge variant="outline" className="bg-white font-medium text-gray-700 shrink-0">
                                                     {note.retryCount}회차
                                                 </Badge>
+
                                             ) : null}
                                             {note.bookTagId ? (() => {
                                                 const tag = bookTags.find((t) => t.id === note.bookTagId);
@@ -712,12 +715,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                                                     </Badge>
                                                 ) : null;
                                             })() : null}
-                                            {note.isResolved ? (
-                                                <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 shrink-0">
-                                                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                    해결됨
-                                                </Badge>
-                                            ) : null}
                                         </div>
                                         <CardTitle className="text-base font-bold text-gray-900 mt-2">
                                             {note.problemName || "문제 이름 없음"}
@@ -740,7 +737,7 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                                             variant="ghost"
                                             size="icon"
                                             className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                            onClick={() => { if (confirm("정말 이 오답 노트를 삭제하시겠습니까?")) { startTransition(async () => { const r = await deleteIncorrectNote(studentDocId, note.id); if (r.success) router.refresh(); }); } }}
+                                            onClick={() => setDeleteNoteTarget(note.id)}
                                             disabled={isPending}
                                         >
                                             <Trash2 className="h-4 w-4" />
@@ -1015,8 +1012,7 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                         </div>
                     </div>
                     <DialogFooter className="pt-4 border-t">
-                        <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="w-24">취소</Button>
-                        <Button onClick={handleCreateNote} disabled={isPending} className="w-32 bg-blue-600 hover:bg-blue-700">
+                        <Button onClick={handleCreateNote} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700">
                             {isPending ? "등록 중..." : "오답노트 등록"}
                         </Button>
                     </DialogFooter>
@@ -1159,10 +1155,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                                     <Label className="font-semibold">메모 / 풀이</Label>
                                     <Textarea placeholder="틀린 이유나 올바른 풀이 과정" className="h-32 resize-none min-h-[44px]" value={editMemo} onChange={(e) => setEditMemo(e.target.value)} />
                                 </div>
-                                <div className="flex items-center gap-2 min-h-[44px]">
-                                    <Checkbox id="edit-resolved" checked={editIsResolved} onCheckedChange={(v) => setEditIsResolved(!!v)} />
-                                    <Label htmlFor="edit-resolved" className="cursor-pointer">해결됨으로 표시</Label>
-                                </div>
                                 <div className="space-y-2">
                                     <Label className="font-semibold">사진 첨부 (이미지/문서)</Label>
                                     <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-50 hover:border-blue-300 transition-all cursor-pointer min-h-[120px]" onClick={() => document.getElementById("edit-file-upload")?.click()}>
@@ -1206,17 +1198,10 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                                 </div>
                             </div>
                         </div>
-                    <DialogFooter className="flex justify-between sm:justify-between">
-                        <Button variant="destructive" onClick={handleDeleteNote} disabled={isPending} className="mr-auto">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            삭제
+                    <DialogFooter className="pt-4 border-t">
+                        <Button onClick={handleSaveNoteEdit} disabled={isPending} className="w-full">
+                            {isPending ? "저장 중..." : "저장"}
                         </Button>
-                        <div className="flex gap-2">
-                            <Button variant="outline" onClick={closeEditNote}>취소</Button>
-                            <Button onClick={handleSaveNoteEdit} disabled={isPending}>
-                                {isPending ? "저장 중..." : "저장"}
-                            </Button>
-                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -1245,6 +1230,19 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                     )}
                 </DialogContent>
             </Dialog>
+
+            <AlertDialog open={deleteNoteTarget !== null} onOpenChange={(open) => !open && setDeleteNoteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>오답 노트 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>정말 이 오답 노트를 삭제하시겠습니까? 삭제된 노트는 복구할 수 없습니다.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteNoteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Plus, Pencil, Trash, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createExam, updateExam, deleteExam } from "@/actions/learning-actions";
@@ -23,6 +24,7 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [currentEditId, setCurrentEditId] = useState<string | null>(null);
     const [isPending, startTransition] = useTransition();
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     const [examType, setExamType] = useState("");
     const [subject, setSubject] = useState("수학");
@@ -86,15 +88,13 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
         });
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm("정말 삭제하시겠습니까?")) return;
+    const handleDeleteConfirm = async () => {
+        if (!deleteTarget) return;
+        const id = deleteTarget;
+        setDeleteTarget(null);
         startTransition(async () => {
             const result = await deleteExam(id, studentDocId);
-            if (result.success) {
-                router.refresh();
-            } else {
-                alert("삭제 실패");
-            }
+            if (result.success) router.refresh();
         });
     };
 
@@ -117,7 +117,7 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
                             <Plus className="mr-2 h-4 w-4" /> 성적 추가
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogContent>
                         <DialogHeader><DialogTitle>새 성적 추가</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
@@ -140,7 +140,7 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleAdd} disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
+                            <Button onClick={handleAdd} disabled={isPending} className="bg-blue-600 hover:bg-blue-700 w-full">
                                 {isPending ? "추가 중..." : "추가하기"}
                             </Button>
                         </DialogFooter>
@@ -151,7 +151,7 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
                 {/* Edit Dialog */}
                 {!readOnly && (
                 <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                    <DialogContent className="max-h-[90vh] overflow-y-auto">
+                    <DialogContent>
                         <DialogHeader><DialogTitle>성적 수정</DialogTitle></DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
@@ -174,7 +174,7 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleUpdate} disabled={isPending} className="bg-blue-600 hover:bg-blue-700">
+                            <Button onClick={handleUpdate} disabled={isPending} className="bg-blue-600 hover:bg-blue-700 w-full">
                                 {isPending ? "수정 중..." : "수정하기"}
                             </Button>
                         </DialogFooter>
@@ -252,7 +252,7 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
                                         <Button variant="ghost" size="sm" onClick={() => handleEditClick(exam)}>
                                             <Pencil className="w-4 h-4 mr-1 text-gray-400" /> 수정
                                         </Button>
-                                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => handleDelete(exam.id)}>
+                                        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(exam.id)}>
                                             <Trash className="w-4 h-4 mr-1" /> 삭제
                                         </Button>
                                     </td>
@@ -263,6 +263,19 @@ export default function StudentExamsClient({ exams, studentDocId }: StudentExams
                     </tbody>
                 </table>
             </div>
+
+            <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>성적 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>정말 이 성적 기록을 삭제하시겠습니까? 삭제된 기록은 복구할 수 없습니다.</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteConfirm} className="bg-red-600 hover:bg-red-700">삭제</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
