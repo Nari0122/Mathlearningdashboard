@@ -14,8 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, getDetails, isMiddleSchool } from "@/lib/curriculum-data";
 import { getBookTags, createBookTag, updateIncorrectNote, createIncorrectNote, deleteIncorrectNote } from "@/actions/learning-actions";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import imageCompression from "browser-image-compression";
 import { v4 as uuidv4 } from "uuid";
 
@@ -234,11 +232,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
     const handleEditFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
-        const storageInstance = storage;
-        if (!storageInstance) {
-            alert("파일 업로드를 사용하려면 Firebase Storage가 설정되어 있어야 합니다.");
-            return;
-        }
         setEditIsUploading(true);
         const wrongNoteId = editingNoteId || "temp_" + Date.now();
         for (let i = 0; i < files.length; i++) {
@@ -246,7 +239,7 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
             const fileId = uuidv4();
             const isImage = file.type.startsWith("image/");
             try {
-                let uploadFile: File = file;
+                let uploadFile: File | Blob = file;
                 let compressed = false;
                 if (isImage) {
                     try {
@@ -257,18 +250,21 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                     }
                 }
                 const storagePath = `students/${studentDocId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
-                const storageRef = ref(storageInstance, storagePath);
-                const uploadTask = uploadBytesResumable(storageRef, uploadFile);
-                await new Promise<void>((resolve, reject) => {
-                    uploadTask.on("state_changed", (snapshot) => {
-                        setEditUploadProgress((prev) => ({ ...prev, [fileId]: (snapshot.bytesTransferred / snapshot.totalBytes) * 100 }));
-                    }, reject, () => resolve());
-                });
-                const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-                setEditAttachments((prev) => [...prev, { id: fileId, originalName: file.name, storagePath, downloadUrl, type: isImage ? "image" : "file", sizeBytes: uploadFile.size, contentType: uploadFile.type, compressed }]);
+                setEditUploadProgress((prev) => ({ ...prev, [fileId]: 10 }));
+
+                const formData = new FormData();
+                formData.append("file", uploadFile, file.name);
+                formData.append("storagePath", storagePath);
+
+                const res = await fetch("/api/storage/upload", { method: "POST", body: formData });
+                const result = await res.json();
+                if (!res.ok || !result.success) throw new Error(result.message || "Upload failed");
+
+                setEditUploadProgress((prev) => ({ ...prev, [fileId]: 100 }));
+                setEditAttachments((prev) => [...prev, { id: fileId, originalName: file.name, storagePath, downloadUrl: result.downloadUrl, type: isImage ? "image" : "file", sizeBytes: uploadFile.size, contentType: uploadFile instanceof File ? uploadFile.type : file.type, compressed }]);
             } catch (error) {
                 console.error(`Upload failed ${file.name}`, error);
-                alert(`${file.name} 업로드 실패`);
+                alert(`${file.name} 업로드 실패: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
             }
         }
         setEditIsUploading(false);
@@ -367,11 +363,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
     const handleNewFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
-        const storageInstance = storage;
-        if (!storageInstance) {
-            alert("파일 업로드를 사용하려면 Firebase Storage가 설정되어 있어야 합니다. Vercel 환경 변수에 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET(또는 NEXT_PUBLIC_FIREBASE_PROJECT_ID)를 설정해 주세요.");
-            return;
-        }
         setNewIsUploading(true);
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -379,7 +370,7 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
             const wrongNoteId = "temp_" + Date.now();
             const isImage = file.type.startsWith("image/");
             try {
-                let uploadFile: File = file;
+                let uploadFile: File | Blob = file;
                 let compressed = false;
                 if (isImage) {
                     try {
@@ -395,28 +386,25 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                     }
                 }
                 const storagePath = `students/${studentDocId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
-                const storageRef = ref(storageInstance, storagePath);
-                const uploadTask = uploadBytesResumable(storageRef, uploadFile);
-                await new Promise<void>((resolve, reject) => {
-                    uploadTask.on(
-                        "state_changed",
-                        (snapshot) => {
-                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                            setNewUploadProgress((prev) => ({ ...prev, [fileId]: progress }));
-                        },
-                        (err) => reject(err),
-                        () => resolve()
-                    );
-                });
-                const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                setNewUploadProgress((prev) => ({ ...prev, [fileId]: 10 }));
+
+                const formData = new FormData();
+                formData.append("file", uploadFile, file.name);
+                formData.append("storagePath", storagePath);
+
+                const res = await fetch("/api/storage/upload", { method: "POST", body: formData });
+                const result = await res.json();
+                if (!res.ok || !result.success) throw new Error(result.message || "Upload failed");
+
+                setNewUploadProgress((prev) => ({ ...prev, [fileId]: 100 }));
                 const attachment: Attachment = {
                     id: fileId,
                     originalName: file.name,
                     storagePath,
-                    downloadUrl,
+                    downloadUrl: result.downloadUrl,
                     type: isImage ? "image" : "file",
                     sizeBytes: uploadFile.size,
-                    contentType: uploadFile.type,
+                    contentType: uploadFile instanceof File ? uploadFile.type : file.type,
                     compressed,
                 };
                 setNewAttachments((prev) => [...prev, attachment]);

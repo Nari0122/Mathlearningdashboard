@@ -14,8 +14,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, Plus, FileImage, X, Trash2, Pencil, BookMarked } from "lucide-react";
 import { createIncorrectNote, deleteIncorrectNote, updateIncorrectNote, getBookTags, createBookTag } from "@/actions/learning-actions";
 import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, CURRICULUM_DATA, isMiddleSchool } from "@/lib/curriculum-data";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import imageCompression from "browser-image-compression";
 import { v4 as uuidv4 } from "uuid";
 import { Progress } from "@/components/ui/progress"; // Assuming shadcn Progress component exists, or I will use simple div
@@ -383,14 +381,8 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
-        const storageInstance = storage;
-        if (!storageInstance) {
-            alert("이미지 업로드를 사용하려면 Firebase Storage가 설정되어 있어야 합니다. Vercel 환경 변수에 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET(또는 NEXT_PUBLIC_FIREBASE_PROJECT_ID)를 설정해 주세요.");
-            return;
-        }
 
         setIsUploading(true);
-        const newAttachments: Attachment[] = []; // Collect successful uploads
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -399,68 +391,52 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
             const isImage = file.type.startsWith("image/");
 
             try {
-                let uploadFile = file;
+                let uploadFile: File | Blob = file;
                 let compressed = false;
-                let width, height;
 
-                // 1. Image Compression
                 if (isImage) {
-                    const options = {
-                        maxSizeMB: 1, // Start small
-                        maxWidthOrHeight: 1920,
-                        useWebWorker: true,
-                        initialQuality: 0.7,
-                    };
                     try {
-                        const compressedFile = await imageCompression(file, options);
+                        const compressedFile = await imageCompression(file, {
+                            maxSizeMB: 1,
+                            maxWidthOrHeight: 1920,
+                            useWebWorker: true,
+                            initialQuality: 0.7,
+                        });
                         uploadFile = compressedFile;
                         compressed = true;
-
-                        // Get dimensions if possible (optional)
                     } catch (err) {
                         console.error("Compression failed, using original", err);
                     }
                 }
 
-                // 2. Upload to Firebase Storage
-                // Path: students/{studentDocId}/wrongNotes/{wrongNoteId}/attachments/{fileId}_{filename}
                 const storagePath = `students/${studentDocId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
-                const storageRef = ref(storageInstance, storagePath);
+                setUploadProgress(prev => ({ ...prev, [fileId]: 10 }));
 
-                const uploadTask = uploadBytesResumable(storageRef, uploadFile);
+                const formData = new FormData();
+                formData.append("file", uploadFile, file.name);
+                formData.append("storagePath", storagePath);
 
-                await new Promise<void>((resolve, reject) => {
-                    uploadTask.on('state_changed',
-                        (snapshot) => {
-                            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                            setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
-                        },
-                        (error) => {
-                            console.error("Upload error:", error);
-                            reject(error);
-                        },
-                        () => {
-                            resolve();
-                        }
-                    );
-                });
+                const res = await fetch("/api/storage/upload", { method: "POST", body: formData });
+                const result = await res.json();
 
-                const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+                if (!res.ok || !result.success) {
+                    throw new Error(result.message || "Upload failed");
+                }
+
+                setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
 
                 const attachment: Attachment = {
                     id: fileId,
                     originalName: file.name,
                     storagePath: storagePath,
-                    downloadUrl: downloadUrl,
+                    downloadUrl: result.downloadUrl,
                     type: isImage ? "image" : "file",
                     sizeBytes: uploadFile.size,
-                    contentType: uploadFile.type,
+                    contentType: uploadFile instanceof File ? uploadFile.type : file.type,
                     compressed: compressed,
                 };
 
-                // Add to list immediately
                 setAttachments(prev => [...prev, attachment]);
-
             } catch (error) {
                 console.error(`Failed to upload ${file.name}`, error);
                 alert(`${file.name} 업로드 실패: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
@@ -468,7 +444,6 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
         }
 
         setIsUploading(false);
-        // Reset file input
         e.target.value = "";
     };
 
