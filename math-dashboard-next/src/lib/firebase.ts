@@ -10,7 +10,7 @@ import { getStorage, FirebaseStorage } from "firebase/storage";
 const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 const storageBucket =
     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET?.trim() ||
-    (projectId ? `${projectId}.appspot.com` : undefined);
+    (projectId ? `${projectId}.firebasestorage.app` : undefined);
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,

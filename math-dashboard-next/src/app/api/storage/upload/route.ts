@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/auth";
 import { getAdminBucket } from "@/lib/firebase-admin";
+import { v4 as uuidv4 } from "uuid";
 
 export const runtime = "nodejs";
 
@@ -37,16 +38,16 @@ export async function POST(request: NextRequest) {
 
         const buffer = Buffer.from(await file.arrayBuffer());
         const fileRef = bucket.file(storagePath);
+        const downloadToken = uuidv4();
 
         await fileRef.save(buffer, {
             metadata: {
                 contentType: file.type || "application/octet-stream",
+                metadata: { firebaseStorageDownloadTokens: downloadToken },
             },
-            public: true,
         });
 
-        const encodedPath = storagePath.split("/").map(encodeURIComponent).join("/");
-        const downloadUrl = `https://storage.googleapis.com/${bucket.name}/${encodedPath}`;
+        const downloadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(storagePath)}?alt=media&token=${downloadToken}`;
 
         return NextResponse.json({ success: true, downloadUrl, storagePath });
     } catch (error) {

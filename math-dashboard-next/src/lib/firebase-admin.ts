@@ -11,7 +11,7 @@ if (!admin.apps.length) {
         const clientEmail = trimEnv(process.env.FIREBASE_CLIENT_EMAIL);
         const privateKeyRaw = process.env.FIREBASE_PRIVATE_KEY;
         const privateKey = privateKeyRaw ? trimEnv(privateKeyRaw.replace(/\\n/g, "\n")) : undefined;
-        const storageBucket = trimEnv(process.env.FIREBASE_STORAGE_BUCKET) || `${projectId}.appspot.com`;
+        const storageBucket = trimEnv(process.env.FIREBASE_STORAGE_BUCKET) || trimEnv(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) || `${projectId}.firebasestorage.app`;
 
         if (projectId && clientEmail && privateKey) {
             admin.initializeApp({

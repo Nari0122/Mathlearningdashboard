@@ -44,6 +44,30 @@ function generateSearchKey(data: {
     return parts.join("|");
 }
 
+const VALID_ERROR_TYPES = ['C', 'M', 'R', 'S'] as const;
+
+async function syncUnitErrorCount(
+    studentDocRef: FirebaseFirestore.DocumentReference,
+    unitId: number | undefined,
+    errorType: string | undefined,
+    delta: number
+) {
+    if (!unitId || unitId === 0) return;
+    if (!errorType || !VALID_ERROR_TYPES.includes(errorType as any)) return;
+    try {
+        const unitDocRef = await getUnitDocRef(studentDocRef, unitId);
+        if (!unitDocRef) return;
+        const unitDoc = await unitDocRef.get();
+        const data = unitDoc.data() || {};
+        const field = `error${errorType}`;
+        const current = data[field] || 0;
+        const next = Math.max(0, current + delta);
+        await unitDocRef.update({ [field]: next });
+    } catch (err) {
+        console.error("syncUnitErrorCount error (non-fatal):", err);
+    }
+}
+
 export const learningService = {
     async getUnits(docId: string) {
         try {
@@ -454,6 +478,9 @@ export const learningService = {
                 attachments: data.attachments || [],
                 createdAt: new Date().toISOString()
             });
+
+            await syncUnitErrorCount(studentDocRef, data.unitId, data.errorType, +1);
+
             return { success: true };
         } catch (error) {
             console.error("Firestore createIncorrectNote error:", error);
@@ -471,6 +498,9 @@ export const learningService = {
             const noteRef = studentDocRef.collection("incorrectNotes").doc(noteId);
             const existingSnap = await noteRef.get();
             const existing = existingSnap.exists ? existingSnap.data() || {} : {};
+            const oldErrorType = existing.errorType;
+            const oldUnitId = existing.unitId;
+
             const merged = { ...existing, ...data };
             const searchKey = generateSearchKey(merged);
 
@@ -478,6 +508,14 @@ export const learningService = {
                 ...merged,
                 searchKey,
             });
+
+            const newErrorType = merged.errorType;
+            const newUnitId = merged.unitId;
+            if (oldErrorType !== newErrorType || oldUnitId !== newUnitId) {
+                await syncUnitErrorCount(studentDocRef, oldUnitId, oldErrorType, -1);
+                await syncUnitErrorCount(studentDocRef, newUnitId, newErrorType, +1);
+            }
+
             return { success: true };
         } catch (error) {
             console.error("Firestore updateIncorrectNote error:", error);
@@ -494,11 +532,11 @@ export const learningService = {
 
             const noteRef = studentDocRef.collection("incorrectNotes").doc(noteId);
             const noteSnap = await noteRef.get();
+            const noteData = noteSnap.exists ? noteSnap.data() : null;
 
             const bucket = getAdminBucket();
-            if (noteSnap.exists && bucket) {
-                const noteData = noteSnap.data();
-                const attachments = noteData?.attachments as { storagePath?: string }[] | undefined;
+            if (noteData && bucket) {
+                const attachments = noteData.attachments as { storagePath?: string }[] | undefined;
                 if (attachments && attachments.length > 0) {
                     await Promise.allSettled(
                         attachments
@@ -506,12 +544,17 @@ export const learningService = {
                             .map((a) => bucket.file(a.storagePath!).delete().catch(() => {}))
                     );
                 }
-                if (noteData?.questionImg && typeof noteData.questionImg === "string" && noteData.questionImg.startsWith("students/")) {
+                if (noteData.questionImg && typeof noteData.questionImg === "string" && noteData.questionImg.startsWith("students/")) {
                     await bucket.file(noteData.questionImg).delete().catch(() => {});
                 }
             }
 
             await noteRef.delete();
+
+            if (noteData) {
+                await syncUnitErrorCount(studentDocRef, noteData.unitId, noteData.errorType, -1);
+            }
+
             return { success: true };
         } catch (error) {
             console.error("Firestore deleteIncorrectNote error:", error);

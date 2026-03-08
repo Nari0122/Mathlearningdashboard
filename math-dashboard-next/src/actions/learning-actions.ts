@@ -29,6 +29,8 @@ export async function createIncorrectNote(docId: string, data: CreateIncorrectNo
     if (result.success) {
         revalidatePath(`/student/${docId}/incorrect-notes`);
         revalidatePath(`/admin/students/${docId}/incorrect-notes`);
+        revalidatePath(`/student/${docId}/learning`);
+        revalidatePath(`/admin/students/${docId}/learning`);
     }
     return result;
 }
@@ -42,6 +44,8 @@ export async function updateIncorrectNote(docId: string, noteId: string, data: a
     if (result.success) {
         revalidatePath(`/student/${docId}/incorrect-notes`);
         revalidatePath(`/admin/students/${docId}/incorrect-notes`);
+        revalidatePath(`/student/${docId}/learning`);
+        revalidatePath(`/admin/students/${docId}/learning`);
     }
     return result;
 }
@@ -51,6 +55,8 @@ export async function deleteIncorrectNote(docId: string, noteId: string) {
     if (result.success) {
         revalidatePath(`/student/${docId}/incorrect-notes`);
         revalidatePath(`/admin/students/${docId}/incorrect-notes`);
+        revalidatePath(`/student/${docId}/learning`);
+        revalidatePath(`/admin/students/${docId}/learning`);
     }
     return result;
 }
