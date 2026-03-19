@@ -30,7 +30,7 @@ interface Attachment {
 
 interface AdminIncorrectNotesClientProps {
     notes: any[];
-    units?: { id: number; name?: string; unitName?: string; schoolLevel?: string; grade?: string; subject?: string }[];
+    units?: { id: number; name?: string; unitName?: string; schoolLevel?: string; grade?: string; subject?: string; unitDetails?: string[] }[];
     studentDocId: string;
 }
 
@@ -300,6 +300,24 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
             return;
         }
         const problemName = `${editBookName.trim()} ${editPage ? `${editPage}p ` : ""}${editNumber ? `${editNumber}번` : ""}`.trim();
+        let editMatchingUnit = units.find(
+            (u) =>
+                u.schoolLevel === editSelLevel &&
+                u.grade === editSelGrade &&
+                u.subject === editSelSubject &&
+                (u.unitName || u.name) === editSelUnitName &&
+                (isMiddle || (Array.isArray(u.unitDetails) && u.unitDetails.includes(editSelDetail)))
+        );
+        if (!editMatchingUnit) {
+            editMatchingUnit = units.find(
+                (u) =>
+                    u.schoolLevel === editSelLevel &&
+                    u.grade === editSelGrade &&
+                    u.subject === editSelSubject &&
+                    (u.unitName || u.name) === editSelUnitName
+            );
+        }
+        const editUnitIdToUse = editMatchingUnit ? editMatchingUnit.id : 0;
         startTransition(async () => {
             const result = await updateIncorrectNote(studentDocId, editingNoteId, {
                 schoolLevel: editSelLevel,
@@ -313,6 +331,7 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                 retryCount: editRetryCount,
                 bookTagId: editSelectedBookTagId || undefined,
                 attachments: editAttachments,
+                unitId: editUnitIdToUse,
             });
             if (result.success) {
                 closeEditNote();
@@ -445,13 +464,24 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
             return;
         }
         const problemName = `${newBookName.trim()} ${newPage ? `${newPage}p ` : ""}${newNumber ? `${newNumber}번` : ""}`.trim();
-        const matchingUnit = units.find(
+        const isMiddleNew = newSelLevel && isMiddleSchool(newSelLevel);
+        let matchingUnit = units.find(
             (u) =>
                 u.schoolLevel === newSelLevel &&
                 u.grade === newSelGrade &&
                 u.subject === newSelSubject &&
-                (u.unitName || u.name) === newSelUnitName
+                (u.unitName || u.name) === newSelUnitName &&
+                (isMiddleNew || (Array.isArray(u.unitDetails) && u.unitDetails.includes(newSelDetail)))
         );
+        if (!matchingUnit) {
+            matchingUnit = units.find(
+                (u) =>
+                    u.schoolLevel === newSelLevel &&
+                    u.grade === newSelGrade &&
+                    u.subject === newSelSubject &&
+                    (u.unitName || u.name) === newSelUnitName
+            );
+        }
         const unitIdToUse = matchingUnit ? matchingUnit.id : 0;
 
         startTransition(async () => {

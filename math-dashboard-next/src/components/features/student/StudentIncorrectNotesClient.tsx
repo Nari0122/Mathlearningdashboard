@@ -345,8 +345,17 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                 u.schoolLevel === selLevel &&
                 u.grade === selGrade &&
                 u.subject === selSubject &&
-                (u.unitName || u.name) === selUnitName
+                (u.unitName || u.name) === selUnitName &&
+                (isMiddle || (Array.isArray(u.unitDetails) && u.unitDetails.includes(selDetail)))
             );
+            if (!matchingUnit) {
+                matchingUnit = units.find(u =>
+                    u.schoolLevel === selLevel &&
+                    u.grade === selGrade &&
+                    u.subject === selSubject &&
+                    (u.unitName || u.name) === selUnitName
+                );
+            }
             const unitIdToUse = matchingUnit ? matchingUnit.id : 0;
 
             result = await createIncorrectNote(studentDocId, {
@@ -354,7 +363,27 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                 unitId: unitIdToUse,
             });
         } else {
-            result = await updateIncorrectNote(studentDocId, editingNoteId!, payload);
+            let matchingUnit = units.find(u =>
+                u.schoolLevel === selLevel &&
+                u.grade === selGrade &&
+                u.subject === selSubject &&
+                (u.unitName || u.name) === selUnitName &&
+                (isMiddle || (Array.isArray(u.unitDetails) && u.unitDetails.includes(selDetail)))
+            );
+            if (!matchingUnit) {
+                matchingUnit = units.find(u =>
+                    u.schoolLevel === selLevel &&
+                    u.grade === selGrade &&
+                    u.subject === selSubject &&
+                    (u.unitName || u.name) === selUnitName
+                );
+            }
+            const unitIdToUse = matchingUnit ? matchingUnit.id : 0;
+
+            result = await updateIncorrectNote(studentDocId, editingNoteId!, {
+                ...payload,
+                unitId: unitIdToUse,
+            });
         }
 
         setIsLoading(false);
