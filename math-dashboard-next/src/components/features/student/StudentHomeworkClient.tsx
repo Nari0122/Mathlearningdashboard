@@ -20,21 +20,26 @@ interface StudentHomeworkClientProps {
 function formatDate(dateString: string | Date | null) {
     if (!dateString) return "";
     const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${year}. ${month}. ${day}.`;
+    return date.toLocaleDateString("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+    });
 }
 
 function formatDateTime(dateString: string | Date | null) {
     if (!dateString) return "";
     const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}. ${month}. ${day}. ${hours}:${minutes}`;
+    return date.toLocaleString("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    });
 }
 
 export default function StudentHomeworkClient({ assignments, studentDocId }: StudentHomeworkClientProps) {
@@ -185,7 +190,9 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                 <div className="text-xs md:text-sm text-gray-500 space-y-0.5 md:space-y-1">
                                     {submissionLocked && !lateSubmissionLocked && !isCompleted && (
                                         <p className="text-amber-700 text-xs font-medium bg-amber-50 rounded px-2 py-1">
-                                            숙제 마감 기한이 지났습니다. 마감일 기준 다음날 밤 23:59까지 지각 제출이 가능합니다.
+                                            {assignment.linkedScheduleId
+                                                ? "숙제 마감 기한이 지났습니다. 수업 시작 10분 전까지 지각 제출이 가능합니다."
+                                                : "숙제 마감 기한이 지났습니다. 마감일 기준 다음날 밤 23:59까지 지각 제출이 가능합니다."}
                                         </p>
                                     )}
                                     {lateSubmissionLocked && !isCompleted && (

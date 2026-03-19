@@ -7,8 +7,10 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(date: string | Date) {
   const d = new Date(date);
-  const year = d.getFullYear();
-  const month = d.getMonth() + 1;
-  const day = d.getDate();
-  return `${year}. ${month}. ${day}.`;
+  return d.toLocaleDateString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
 }

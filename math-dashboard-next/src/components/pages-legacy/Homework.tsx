@@ -32,7 +32,7 @@ export function Homework({
   const [newHomework, setNewHomework] = useState({
     title: '',
     description: '',
-    assignedDate: new Date().toISOString().split('T')[0],
+    assignedDate: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }),
     dueDate: '',
     status: 'pending' as const,
     feedback: ''
@@ -46,9 +46,8 @@ export function Homework({
     overdue: { label: '기한초과', color: 'bg-red-100 text-red-700', icon: AlertTriangle }
   };
 
-  // 마감일이 지나면 자동으로 overdue로 변경
   const getActualStatus = (hw: HomeworkItem): 'pending' | 'submitted' | 'overdue' => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
     if (hw.status === 'submitted') {
       return 'submitted';
     }
@@ -66,7 +65,7 @@ export function Homework({
     setNewHomework({
       title: '',
       description: '',
-      assignedDate: new Date().toISOString().split('T')[0],
+      assignedDate: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }),
       dueDate: '',
       status: 'pending',
       feedback: ''

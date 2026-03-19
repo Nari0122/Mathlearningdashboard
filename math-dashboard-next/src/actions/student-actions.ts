@@ -1,5 +1,6 @@
 "use server";
 import { studentService } from "@/services/studentService";
+import { toKSTISOString, todayKSTString } from "@/lib/date-kst";
 import { revalidatePath } from "next/cache";
 
 export async function getStudents() {
@@ -95,11 +96,7 @@ export async function submitHomework(homeworkId: string, studentDocId: string) {
             return { success: false, error: "지각 제출 기한이 지났습니다." };
         }
 
-        const now = new Date();
-        const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
-        const nowInSeoul = new Date(
-            now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })
-        );
+        const today = todayKSTString();
         const isLate = today > homework.dueDate || isSubmissionLocked(homework);
 
         const { updateHomework } = await import("@/actions/admin-actions");
@@ -107,7 +104,7 @@ export async function submitHomework(homeworkId: string, studentDocId: string) {
             title: homework.title,
             dueDate: homework.dueDate,
             status: isLate ? 'late-submitted' : 'submitted',
-            submittedDate: nowInSeoul.toISOString()
+            submittedDate: toKSTISOString()
         });
 
         if (result.success) {

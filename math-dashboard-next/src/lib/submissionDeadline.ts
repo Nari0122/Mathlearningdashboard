@@ -1,12 +1,17 @@
+import { toKSTISOString } from "@/lib/date-kst";
+
+interface AssignmentDeadlineInfo {
+    submissionDeadline?: string | null;
+    linkedScheduleId?: string | null;
+    dueDate: string;
+}
+
 /**
- * 과제 최종 제출 마감 시각 계산 (클라이언트/서버 공용, Firebase 미의존)
- * - submissionDeadline 있으면 해당 시각
+ * 과제 정규 제출 마감 시각 (클라이언트/서버 공용, Firebase 미의존)
+ * - submissionDeadline 있으면 해당 시각 (수업 1시간 전)
  * - 없으면 dueDate(YYYY-MM-DD) 당일 23:59:59 Asia/Seoul
  */
-export function getSubmissionDeadline(assignment: {
-    submissionDeadline?: string | null;
-    dueDate: string;
-}): Date {
+export function getSubmissionDeadline(assignment: AssignmentDeadlineInfo): Date {
     if (assignment.submissionDeadline) {
         return new Date(assignment.submissionDeadline);
     }
@@ -15,22 +20,22 @@ export function getSubmissionDeadline(assignment: {
 }
 
 /** 정규 마감 시각이 지났는지 (수업 1시간 전 또는 dueDate 23:59:59) */
-export function isSubmissionLocked(assignment: {
-    submissionDeadline?: string | null;
-    dueDate: string;
-}): boolean {
+export function isSubmissionLocked(assignment: AssignmentDeadlineInfo): boolean {
     return new Date() >= getSubmissionDeadline(assignment);
 }
 
 /**
- * 지각 제출 마감 시각: 정규 마감일 기준 다음날 23:59:59 KST
- * 예) 정규 마감 2/25 15:00 → 지각 마감 2/26 23:59:59
+ * 지각 제출 마감 시각
+ * - 수업 연동 과제: 수업 시작 10분 전 (정규 마감 + 50분)
+ * - 수업 미연동 과제: 마감일 다음날 23:59:59 KST
  */
-export function getLateSubmissionDeadline(assignment: {
-    submissionDeadline?: string | null;
-    dueDate: string;
-}): Date {
+export function getLateSubmissionDeadline(assignment: AssignmentDeadlineInfo): Date {
     const normalDeadline = getSubmissionDeadline(assignment);
+
+    if (assignment.linkedScheduleId) {
+        return new Date(normalDeadline.getTime() + 50 * 60 * 1000);
+    }
+
     const kstDateStr = normalDeadline.toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
     const [y, m, d] = kstDateStr.split("-").map(Number);
     const nextDate = new Date(y, m - 1, d + 1);
@@ -40,20 +45,17 @@ export function getLateSubmissionDeadline(assignment: {
     return new Date(`${yy}-${mm}-${dd}T23:59:59+09:00`);
 }
 
-/** 지각 제출 마감(다음날 밤 23:59:59)까지 지났는지 */
-export function isLateSubmissionLocked(assignment: {
-    submissionDeadline?: string | null;
-    dueDate: string;
-}): boolean {
+/** 지각 제출 마감까지 지났는지 */
+export function isLateSubmissionLocked(assignment: AssignmentDeadlineInfo): boolean {
     return new Date() >= getLateSubmissionDeadline(assignment);
 }
 
 /**
- * 수업 date + startTime 기준 1시간 전 시각을 ISO 문자열로 (Asia/Seoul)
+ * 수업 date + startTime 기준 1시간 전 시각을 KST ISO 문자열로 반환
  */
 export function submissionDeadlineFromSchedule(date: string, startTime: string): string {
     const [h, m] = startTime.split(":").map(Number);
     const start = new Date(`${date}T${String(h).padStart(2, "0")}:${String(m || 0).padStart(2, "0")}:00+09:00`);
     const oneHourBefore = new Date(start.getTime() - 60 * 60 * 1000);
-    return oneHourBefore.toISOString();
+    return toKSTISOString(oneHourBefore);
 }

@@ -1,5 +1,6 @@
 import * as bcrypt from "bcryptjs";
 import { adminDb } from "@/lib/firebase-admin";
+import { toKSTISOString } from "@/lib/date-kst";
 import type { FirestoreUser, FirestoreUserAdmin } from "@/types/firestore-user";
 
 /** Firestore 관리자 컬렉션. 문서 ID = 카카오 uid. */
@@ -165,7 +166,7 @@ export const userService = {
                 role: "ADMIN",
                 status: "PENDING",
                 passwordHash,
-                createdAt: new Date().toISOString(),
+                createdAt: toKSTISOString(),
             });
             return { success: true, uid };
         } catch (err) {
@@ -199,7 +200,7 @@ export const userService = {
                 phoneNumber: phoneNumber.trim(),
                 role: "ADMIN",
                 status: "PENDING",
-                createdAt: new Date().toISOString(),
+                createdAt: toKSTISOString(),
             });
             return { success: true };
         } catch (err) {

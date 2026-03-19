@@ -40,7 +40,7 @@ export function StudentAccountManagement({ student, onBack, onSave, onDelete }: 
     const updatedStudent: Student = {
       ...student,
       ...formData,
-      lastUpdated: new Date().toISOString().split('T')[0]
+      lastUpdated: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" })
     };
 
     onSave(updatedStudent, newPassword);

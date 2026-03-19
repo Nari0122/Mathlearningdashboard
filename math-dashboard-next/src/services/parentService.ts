@@ -1,5 +1,6 @@
 import { admin } from "@/lib/firebase-admin";
 import { adminDb } from "@/lib/firebase-admin";
+import { toKSTISOString } from "@/lib/date-kst";
 import { getPhoneDigits } from "@/lib/phone";
 
 const PARENTS_COLLECTION = "parents";
@@ -105,7 +106,7 @@ export const parentService = {
                     uid: data.uid,
                     name: data.name ?? "",
                     image: data.image ?? "",
-                    createdAt: new Date().toISOString(),
+                    createdAt: toKSTISOString(),
                     studentIds: [],
                 });
             return { success: true };
@@ -162,7 +163,7 @@ export const parentService = {
                 studentDocId: data.studentDocId,
                 studentName: data.studentName,
                 status: "pending",
-                requestedAt: new Date().toISOString(),
+                requestedAt: toKSTISOString(),
             });
             return { success: true, linkId: docRef.id };
         } catch (error) {

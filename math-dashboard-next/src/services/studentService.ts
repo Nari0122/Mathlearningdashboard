@@ -1,4 +1,5 @@
 import { adminDb, admin } from "@/lib/firebase-admin";
+import { toKSTISOString, todayKSTString } from "@/lib/date-kst";
 import { Student } from "@/types";
 
 export const studentService = {
@@ -81,7 +82,7 @@ export const studentService = {
             const { approvalStatus: _, ...rest } = data;
             await adminDb.collection("students").doc(uid).set({
                 ...rest,
-                createdAt: new Date().toISOString(),
+                createdAt: toKSTISOString(),
                 isActive: true,
                 approvalStatus,
                 accountStatus: "ACTIVE",
@@ -142,7 +143,7 @@ export const studentService = {
             const { approvalStatus: _, ...rest } = data;
             const ref = await adminDb.collection("students").add({
                 ...rest,
-                createdAt: new Date().toISOString(),
+                createdAt: toKSTISOString(),
                 isActive: true,
                 approvalStatus,
                 accountStatus: "ACTIVE",
@@ -207,7 +208,8 @@ export const studentService = {
 
             const studentData = studentDoc.data() as any;
             const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+            const kstToday = todayKSTString(now);
+            const startOfMonth = kstToday.slice(0, 7) + "-01T00:00:00+09:00";
 
             const logsSnapshot = await docRef
                 .collection("loginLogs")
@@ -227,9 +229,9 @@ export const studentService = {
                 }
             }
 
-            const todayStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
-            const nowKST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-            const nowTimeStr = `${String(nowKST.getHours()).padStart(2, "0")}:${String(nowKST.getMinutes()).padStart(2, "0")}`;
+            const todayStr = kstToday;
+            const kstISO = toKSTISOString(now);
+            const nowTimeStr = kstISO.slice(11, 16);
 
             const schedulesSnapshot = await docRef.collection("schedules")
                 .where("date", ">=", todayStr)
@@ -269,20 +271,20 @@ export const studentService = {
             const snap = await docRef.get();
             if (!snap.exists) return;
 
-            const now = new Date().toISOString();
+            const nowKST = toKSTISOString();
             const data = snap.data() || {};
 
             const history: string[] = Array.isArray(data.loginHistory) ? data.loginHistory : [];
-            const updatedHistory = [...history, now].slice(-50);
+            const updatedHistory = [...history, nowKST].slice(-50);
 
             await docRef.update({
-                lastLogin: now,
+                lastLogin: nowKST,
                 loginHistory: updatedHistory,
             });
 
             await docRef.collection("loginLogs").add({
-                loggedInAt: now,
-                createdAt: now,
+                loggedInAt: nowKST,
+                createdAt: nowKST,
             });
         } catch (error) {
             console.error("Firestore recordStudentLoginByUid error:", error);

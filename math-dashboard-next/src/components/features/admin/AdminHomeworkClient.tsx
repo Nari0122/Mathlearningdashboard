@@ -16,12 +16,19 @@ import { PageHeader } from "@/components/shared/PageHeader";
 function formatDateTime(dateString: string | Date | null) {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    return `${year}. ${month}. ${day}. ${hours}:${minutes}`;
+    return date.toLocaleString("ko-KR", {
+        timeZone: "Asia/Seoul",
+        year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+    });
+}
+
+function todayKST(): string {
+    return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" });
 }
 
 interface AdminHomeworkClientProps {
@@ -40,7 +47,7 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
 
     const [title, setTitle] = useState("");
     const [dueDate, setDueDate] = useState("");
-    const [assignedDate, setAssignedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [assignedDate, setAssignedDate] = useState(todayKST());
     const [linkedScheduleId, setLinkedScheduleId] = useState<string>("");
 
     const [editTitle, setEditTitle] = useState("");
@@ -61,7 +68,7 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                 setIsAddOpen(false);
                 setTitle("");
                 setDueDate("");
-                setAssignedDate(new Date().toISOString().split('T')[0]);
+                setAssignedDate(todayKST());
                 setLinkedScheduleId("");
                 router.refresh();
             } else {
@@ -226,7 +233,7 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                             </tr>
                         ) : (
                             homeworks.map((hw: any) => {
-                                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+                                const today = todayKST();
                                 const notSubmitted = hw.status !== 'submitted' && hw.status !== 'late-submitted';
                                 const pastDeadline = notSubmitted && (today > hw.dueDate || isSubmissionLocked(hw));
                                 const statusLabel = hw.status === 'submitted' ? '제출 완료' : hw.status === 'late-submitted' ? '지각 제출' : hw.status === 'expired' ? '기한 만료' : hw.status === 'overdue' ? '미완료' : pastDeadline ? '미완료' : '미제출';

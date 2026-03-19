@@ -1,4 +1,5 @@
 import { adminDb, getAdminBucket } from "@/lib/firebase-admin";
+import { toKSTISOString } from "@/lib/date-kst";
 
 async function getStudentDocRef(docId: string) {
     if (!adminDb || !docId) return null;
@@ -103,7 +104,7 @@ export const learningService = {
             await studentDocRef.collection("units").add({
                 ...data,
                 id: nextId,
-                createdAt: new Date().toISOString(),
+                createdAt: toKSTISOString(),
                 completionStatus: "incomplete",
                 errorC: 0, errorM: 0, errorR: 0, errorS: 0
             });
@@ -214,7 +215,7 @@ export const learningService = {
             await studentDocRef.collection("learningRecords").add({
                 ...data,
                 createdBy: data.createdBy || "admin",
-                createdAt: new Date().toISOString()
+                createdAt: toKSTISOString()
             });
             return { success: true };
         } catch (error) {
@@ -275,7 +276,7 @@ export const learningService = {
 
             await studentDocRef.collection("schedules").add({
                 ...data,
-                createdAt: new Date().toISOString()
+                createdAt: toKSTISOString()
             });
             return { success: true };
         } catch (error) {
@@ -350,7 +351,7 @@ export const learningService = {
 
             await studentDocRef.collection("assignments").add({
                 ...data,
-                createdAt: new Date().toISOString()
+                createdAt: toKSTISOString()
             });
             return { success: true };
         } catch (error) {
@@ -411,7 +412,7 @@ export const learningService = {
 
             await studentDocRef.collection("exams").add({
                 ...data,
-                createdAt: new Date().toISOString()
+                createdAt: toKSTISOString()
             });
             return { success: true };
         } catch (error) {
@@ -476,7 +477,7 @@ export const learningService = {
                 ...data,
                 searchKey,
                 attachments: data.attachments || [],
-                createdAt: new Date().toISOString()
+                createdAt: toKSTISOString()
             });
 
             await syncUnitErrorCount(studentDocRef, data.unitId, data.errorType, +1);
@@ -597,7 +598,7 @@ export const learningService = {
                 return { success: true, tagId: existingDoc.id, existing: true };
             }
 
-            const now = new Date().toISOString();
+            const now = toKSTISOString();
             const docRef = await studentDocRef.collection("bookTags").add({
                 name,
                 nameLower: name.toLowerCase(),
@@ -617,7 +618,7 @@ export const learningService = {
             if (!studentDocRef) return { success: false };
 
             await studentDocRef.collection("bookTags").doc(tagId).update({
-                lastUsedAt: new Date().toISOString(),
+                lastUsedAt: toKSTISOString(),
             });
             return { success: true };
         } catch (error) {

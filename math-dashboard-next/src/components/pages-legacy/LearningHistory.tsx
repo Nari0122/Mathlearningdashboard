@@ -29,7 +29,7 @@ export function LearningHistory({
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }),
     progress: '',
     comment: ''
   });
@@ -45,7 +45,7 @@ export function LearningHistory({
     } else {
       setEditingRecord(null);
       setFormData({
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }),
         progress: '',
         comment: ''
       });
@@ -57,7 +57,7 @@ export function LearningHistory({
     setIsModalOpen(false);
     setEditingRecord(null);
     setFormData({
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }),
       progress: '',
       comment: ''
     });

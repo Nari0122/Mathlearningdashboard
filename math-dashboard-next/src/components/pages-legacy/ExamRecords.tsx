@@ -32,7 +32,7 @@ export function ExamRecords({
   const [newExam, setNewExam] = useState({
     examType: '',
     subject: '수학',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }),
     score: 0,
     maxScore: 100,
     notes: ''
@@ -48,7 +48,7 @@ export function ExamRecords({
     setNewExam({
       examType: '',
       subject: '수학',
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Seoul" }),
       score: 0,
       maxScore: 100,
       notes: ''
