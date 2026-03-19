@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useTransition } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,9 +34,10 @@ interface AdminIncorrectNotesClientProps {
     studentDocId: string;
 }
 
-export default function AdminIncorrectNotesClient({ notes, units = [], studentDocId }: AdminIncorrectNotesClientProps) {
+export default function AdminIncorrectNotesClient({ notes: initialNotes, units = [], studentDocId }: AdminIncorrectNotesClientProps) {
     const router = useRouter();
-    const [isPending, startTransition] = useTransition();
+    const [notes, setNotes] = useState(initialNotes);
+    useEffect(() => { setNotes(initialNotes); }, [initialNotes]);
     const [deleteNoteTarget, setDeleteNoteTarget] = useState<string | null>(null);
     // Hierarchy Filter State
     const [filterLevel, setFilterLevel] = useState<string>("all");
@@ -318,26 +319,26 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
             );
         }
         const editUnitIdToUse = editMatchingUnit ? editMatchingUnit.id : 0;
-        startTransition(async () => {
-            const result = await updateIncorrectNote(studentDocId, editingNoteId, {
-                schoolLevel: editSelLevel,
-                grade: editSelGrade,
-                subject: editSelSubject,
-                unitName: editSelUnitName,
-                unitDetail: isMiddle ? "" : (editSelDetail || ""),
-                problemName,
-                memo: editMemo.trim(),
-                errorType: editErrorType,
-                retryCount: editRetryCount,
-                bookTagId: editSelectedBookTagId || undefined,
-                attachments: editAttachments,
-                unitId: editUnitIdToUse,
-            });
+        closeEditNote();
+        updateIncorrectNote(studentDocId, editingNoteId, {
+            schoolLevel: editSelLevel,
+            grade: editSelGrade,
+            subject: editSelSubject,
+            unitName: editSelUnitName,
+            unitDetail: isMiddle ? "" : (editSelDetail || ""),
+            problemName,
+            memo: editMemo.trim(),
+            errorType: editErrorType,
+            retryCount: editRetryCount,
+            bookTagId: editSelectedBookTagId || undefined,
+            attachments: editAttachments,
+            unitId: editUnitIdToUse,
+        }).then((result) => {
             if (result.success) {
-                closeEditNote();
                 router.refresh();
             } else {
                 alert(result.message ?? "수정에 실패했습니다.");
+                router.refresh();
             }
         });
     };
@@ -351,8 +352,8 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
         if (!deleteNoteTarget) return;
         const noteId = deleteNoteTarget;
         setDeleteNoteTarget(null);
-        startTransition(async () => {
-            const result = await deleteIncorrectNote(studentDocId, noteId);
+        setNotes(prev => prev.filter((n: any) => n.id !== noteId));
+        deleteIncorrectNote(studentDocId, noteId).then((result) => {
             if (result.success) {
                 closeEditNote();
                 router.refresh();
@@ -484,23 +485,22 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
         }
         const unitIdToUse = matchingUnit ? matchingUnit.id : 0;
 
-        startTransition(async () => {
-            const result = await createIncorrectNote(studentDocId, {
-                unitId: unitIdToUse,
-                problemName,
-                memo: newMemo.trim(),
-                errorType: newErrorType,
-                retryCount: newRetryCount,
-                schoolLevel: newSelLevel,
-                grade: newSelGrade,
-                subject: newSelSubject,
-                unitName: newSelUnitName,
-                unitDetail: isMiddle ? "" : (newSelDetail || ""),
-                bookTagId: newSelectedBookTagId || undefined,
-                attachments: newAttachments,
-            });
+        setIsCreateOpen(false);
+        createIncorrectNote(studentDocId, {
+            unitId: unitIdToUse,
+            problemName,
+            memo: newMemo.trim(),
+            errorType: newErrorType,
+            retryCount: newRetryCount,
+            schoolLevel: newSelLevel,
+            grade: newSelGrade,
+            subject: newSelSubject,
+            unitName: newSelUnitName,
+            unitDetail: isMiddle ? "" : (newSelDetail || ""),
+            bookTagId: newSelectedBookTagId || undefined,
+            attachments: newAttachments,
+        }).then((result) => {
             if (result.success) {
-                setIsCreateOpen(false);
                 router.refresh();
             } else {
                 alert(result.message ?? "추가에 실패했습니다.");
@@ -747,7 +747,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                                             size="icon"
                                             className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50"
                                             onClick={() => openEditNote(note)}
-                                            disabled={isPending}
                                         >
                                             <Pencil className="h-4 w-4" />
                                         </Button>
@@ -756,7 +755,6 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                                             size="icon"
                                             className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
                                             onClick={() => setDeleteNoteTarget(note.id)}
-                                            disabled={isPending}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
@@ -1030,8 +1028,8 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                         </div>
                     </div>
                     <DialogFooter className="pt-4 border-t">
-                        <Button onClick={handleCreateNote} disabled={isPending} className="w-full bg-blue-600 hover:bg-blue-700">
-                            {isPending ? "등록 중..." : "오답노트 등록"}
+                        <Button onClick={handleCreateNote} className="w-full bg-blue-600 hover:bg-blue-700">
+                            오답노트 등록
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -1217,8 +1215,8 @@ export default function AdminIncorrectNotesClient({ notes, units = [], studentDo
                             </div>
                         </div>
                     <DialogFooter className="pt-4 border-t">
-                        <Button onClick={handleSaveNoteEdit} disabled={isPending} className="w-full">
-                            {isPending ? "저장 중..." : "저장"}
+                        <Button onClick={handleSaveNoteEdit} className="w-full">
+                            저장
                         </Button>
                     </DialogFooter>
                 </DialogContent>

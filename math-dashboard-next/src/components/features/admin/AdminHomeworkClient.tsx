@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,13 +37,17 @@ interface AdminHomeworkClientProps {
     studentDocId: string;
 }
 
-export default function AdminHomeworkClient({ homeworks, schedules = [], studentDocId }: AdminHomeworkClientProps) {
+export default function AdminHomeworkClient({ homeworks: initialHomeworks, schedules = [], studentDocId }: AdminHomeworkClientProps) {
     const router = useRouter();
+    const [homeworks, setHomeworks] = useState(initialHomeworks);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [currentEditId, setCurrentEditId] = useState<string | null>(null);
-    const [isPending, startTransition] = useTransition();
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+    useEffect(() => {
+        setHomeworks(initialHomeworks);
+    }, [initialHomeworks]);
 
     const [title, setTitle] = useState("");
     const [dueDate, setDueDate] = useState("");
@@ -56,20 +60,23 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
     const handleAdd = async () => {
         if (!title || !dueDate || !assignedDate) return;
 
-        startTransition(async () => {
-            const result = await createHomework(studentDocId, {
-                title,
-                dueDate,
-                assignedDate,
-                ...(linkedScheduleId && { linkedScheduleId }),
-            });
+        setIsAddOpen(false);
+        const savedTitle = title;
+        const savedDueDate = dueDate;
+        const savedAssignedDate = assignedDate;
+        const savedLinkedScheduleId = linkedScheduleId;
+        setTitle("");
+        setDueDate("");
+        setAssignedDate(todayKST());
+        setLinkedScheduleId("");
 
+        createHomework(studentDocId, {
+            title: savedTitle,
+            dueDate: savedDueDate,
+            assignedDate: savedAssignedDate,
+            ...(savedLinkedScheduleId && { linkedScheduleId: savedLinkedScheduleId }),
+        }).then(result => {
             if (result.success) {
-                setIsAddOpen(false);
-                setTitle("");
-                setDueDate("");
-                setAssignedDate(todayKST());
-                setLinkedScheduleId("");
                 router.refresh();
             } else {
                 alert("숙제 부여 실패");
@@ -87,14 +94,16 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
     const handleUpdate = async () => {
         if (!currentEditId || !editTitle || !editDueDate) return;
 
-        startTransition(async () => {
-            const result = await updateHomework(currentEditId, studentDocId, {
-                title: editTitle,
-                dueDate: editDueDate
-            });
+        setIsEditOpen(false);
+        const savedEditId = currentEditId;
+        const savedEditTitle = editTitle;
+        const savedEditDueDate = editDueDate;
 
+        updateHomework(savedEditId, studentDocId, {
+            title: savedEditTitle,
+            dueDate: savedEditDueDate
+        }).then(result => {
             if (result.success) {
-                setIsEditOpen(false);
                 router.refresh();
             } else {
                 alert("수정 실패");
@@ -106,9 +115,13 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
         if (!deleteTarget) return;
         const id = deleteTarget;
         setDeleteTarget(null);
-        startTransition(async () => {
-            const result = await deleteHomework(id, studentDocId);
-            if (result.success) router.refresh();
+
+        setHomeworks(prev => prev.filter(hw => hw.id !== id));
+
+        deleteHomework(id, studentDocId).then(result => {
+            if (result.success) {
+                router.refresh();
+            }
         });
     };
 
@@ -167,8 +180,8 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                             )}
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleAdd} disabled={isPending}>
-                                {isPending ? "부여 중..." : "추가하기"}
+                            <Button onClick={handleAdd}>
+                                추가하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -205,8 +218,8 @@ export default function AdminHomeworkClient({ homeworks, schedules = [], student
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleUpdate} disabled={isPending}>
-                                {isPending ? "수정 중..." : "수정하기"}
+                            <Button onClick={handleUpdate}>
+                                수정하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>

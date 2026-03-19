@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Trash, Clock, Pencil, AlertCircle, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,8 +28,10 @@ interface AdminScheduleClientProps {
 
 const DAYS = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
 
-export default function AdminScheduleClient({ schedules, studentDocId }: AdminScheduleClientProps) {
+export default function AdminScheduleClient({ schedules: initialSchedules, studentDocId }: AdminScheduleClientProps) {
     const router = useRouter();
+    const [schedules, setSchedules] = useState(initialSchedules);
+    useEffect(() => { setSchedules(initialSchedules); }, [initialSchedules]);
     const [isAddSessionOpen, setIsAddSessionOpen] = useState(false);
     const [isRegularOpen, setIsRegularOpen] = useState(false);
     const [isEditSessionOpen, setIsEditSessionOpen] = useState(false);
@@ -42,7 +44,6 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
     const [pendingOriginalSnapshot, setPendingOriginalSnapshot] = useState<any>(null);
     const [pendingUpdateType, setPendingUpdateType] = useState<"session" | "regular" | null>(null);
 
-    const [isPending, startTransition] = useTransition();
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     // Session State (Add/Edit)
@@ -71,22 +72,25 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
     const handleAddSession = async () => {
         if (!date || !startTime || !endTime) return;
 
-        startTransition(async () => {
-            const result = await createSchedule(studentDocId, {
-                date,
-                startTime,
-                endTime,
-                status: "scheduled",
-                isRegular: false,
-                sessionNumber: sessionNumber ? parseInt(sessionNumber) : undefined
-            });
+        setIsAddSessionOpen(false);
+        const savedDate = date;
+        const savedStartTime = startTime;
+        const savedEndTime = endTime;
+        const savedSessionNumber = sessionNumber;
+        setDate("");
+        setStartTime("");
+        setEndTime("");
+        setSessionNumber("");
 
+        createSchedule(studentDocId, {
+            date: savedDate,
+            startTime: savedStartTime,
+            endTime: savedEndTime,
+            status: "scheduled",
+            isRegular: false,
+            sessionNumber: savedSessionNumber ? parseInt(savedSessionNumber) : undefined
+        }).then((result) => {
             if (result.success) {
-                setIsAddSessionOpen(false);
-                setDate("");
-                setStartTime("");
-                setEndTime("");
-                setSessionNumber("");
                 router.refresh();
             } else {
                 alert("수업 추가 실패");
@@ -97,27 +101,22 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
     const handleAddRegular = async () => {
         if (!regularDay || !regularStart || !regularEnd) return;
 
-        startTransition(async () => {
-            const result = await createSchedule(studentDocId, {
-                date: "", // Not used for regular
-                startTime: regularStart,
-                endTime: regularEnd,
-                status: "active",
-                isRegular: true,
-                dayOfWeek: regularDay
-            });
+        setIsRegularOpen(false);
+        const savedDay = regularDay;
+        const savedStart = regularStart;
+        const savedEnd = regularEnd;
+        setRegularStart("");
+        setRegularEnd("");
 
+        createSchedule(studentDocId, {
+            date: "",
+            startTime: savedStart,
+            endTime: savedEnd,
+            status: "active",
+            isRegular: true,
+            dayOfWeek: savedDay
+        }).then((result) => {
             if (result.success) {
-                // Don't close dialog immediately to allow adding multiple? 
-                // User said "2개 이상 여러개 할 수 있도록".
-                // I'll keep dialog open or clear fields? 
-                // Usually "Add" closes. Re-opening is fine. Or "Add & Continue".
-                // I'll just close for simplicity, but user can open again. Or just clear fields.
-                // Text: "2개 이상 여러개 할 수 있도록 해줘" likely means the *capability* to have multiple records, which DB supports.
-                // Not necessarily "Batch Add".
-                setIsRegularOpen(false);
-                setRegularStart("");
-                setRegularEnd("");
                 router.refresh();
             } else {
                 alert("정규 수업 추가 실패");
@@ -155,33 +154,28 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
             date,
             startTime,
             endTime,
-            status: "scheduled", // Maintain status or update? Usually status isn't edited here, just time. 
-            // Actually, if date changes, status might stay same.
-            // For now, let's keep other fields same.
+            status: "scheduled",
             isRegular: false,
             sessionNumber: sessionNumber ? parseInt(sessionNumber) : undefined
         };
 
         const snapshot = force ? null : originalData;
 
-        startTransition(async () => {
-            const result = await updateSchedule(studentDocId, currentEditId, dataToUpdate, snapshot, force) as any;
+        const result = await updateSchedule(studentDocId, currentEditId, dataToUpdate, snapshot, force) as any;
 
-            if (result.success) {
-                setIsEditSessionOpen(false);
-                setIsConflictModalOpen(false);
-                router.refresh();
-            } else if (result.conflict) {
-                // Conflict detected!
-                setConflictData(result.latestData);
-                setPendingUpdateData(dataToUpdate);
-                setPendingOriginalSnapshot(snapshot);
-                setPendingUpdateType("session");
-                setIsConflictModalOpen(true);
-            } else {
-                alert("수정 실패: " + result.message);
-            }
-        });
+        if (result.success) {
+            setIsEditSessionOpen(false);
+            setIsConflictModalOpen(false);
+            router.refresh();
+        } else if (result.conflict) {
+            setConflictData(result.latestData);
+            setPendingUpdateData(dataToUpdate);
+            setPendingOriginalSnapshot(snapshot);
+            setPendingUpdateType("session");
+            setIsConflictModalOpen(true);
+        } else {
+            alert("수정 실패: " + result.message);
+        }
     };
 
     const handleUpdateRegular = async (force: boolean = false) => {
@@ -192,28 +186,25 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
             endTime: regularEnd,
             isRegular: true,
             dayOfWeek: regularDay
-            // Regular schedules don't use date/status usually the same way
         };
 
         const snapshot = force ? null : originalData;
 
-        startTransition(async () => {
-            const result = await updateSchedule(studentDocId, currentEditId, dataToUpdate, snapshot, force) as any;
+        const result = await updateSchedule(studentDocId, currentEditId, dataToUpdate, snapshot, force) as any;
 
-            if (result.success) {
-                setIsEditRegularOpen(false);
-                setIsConflictModalOpen(false);
-                router.refresh();
-            } else if (result.conflict) {
-                setConflictData(result.latestData);
-                setPendingUpdateData(dataToUpdate);
-                setPendingOriginalSnapshot(snapshot);
-                setPendingUpdateType("regular");
-                setIsConflictModalOpen(true);
-            } else {
-                alert("수정 실패: " + result.message);
-            }
-        });
+        if (result.success) {
+            setIsEditRegularOpen(false);
+            setIsConflictModalOpen(false);
+            router.refresh();
+        } else if (result.conflict) {
+            setConflictData(result.latestData);
+            setPendingUpdateData(dataToUpdate);
+            setPendingOriginalSnapshot(snapshot);
+            setPendingUpdateType("regular");
+            setIsConflictModalOpen(true);
+        } else {
+            alert("수정 실패: " + result.message);
+        }
     };
 
     // --- Conflict Resolution Handlers ---
@@ -250,8 +241,9 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
         if (!deleteTarget) return;
         const id = deleteTarget;
         setDeleteTarget(null);
-        startTransition(async () => {
-            await deleteSchedule(id, studentDocId);
+        setSchedules(prev => prev.filter((s: any) => s.id !== id));
+
+        deleteSchedule(id, studentDocId).then(() => {
             router.refresh();
         });
     };
@@ -276,17 +268,19 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
             alert("새 날짜와 시간을 입력해주세요.");
             return;
         }
-        startTransition(async () => {
-            const result = await postponeOrChangeSchedule(studentDocId, postponeTarget.id, {
-                changeType,
-                reason: changeReason.trim(),
-                newDate: changeType === "취소" ? undefined : newDate,
-                newStartTime: changeType === "취소" ? undefined : newStartTime,
-                newEndTime: changeType === "취소" ? undefined : newEndTime,
-            });
+
+        const targetId = postponeTarget.id;
+        setIsPostponeOpen(false);
+        setPostponeTarget(null);
+
+        postponeOrChangeSchedule(studentDocId, targetId, {
+            changeType,
+            reason: changeReason.trim(),
+            newDate: changeType === "취소" ? undefined : newDate,
+            newStartTime: changeType === "취소" ? undefined : newStartTime,
+            newEndTime: changeType === "취소" ? undefined : newEndTime,
+        }).then((result) => {
             if (result.success) {
-                setIsPostponeOpen(false);
-                setPostponeTarget(null);
                 router.refresh();
             } else {
                 alert(result.message || "처리 실패");
@@ -342,8 +336,8 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                                 </div>
                             </div>
                             <DialogFooter>
-                                <Button onClick={handleAddRegular} disabled={isPending}>
-                                    {isPending ? "추가 중..." : "추가하기"}
+                                <Button onClick={handleAddRegular}>
+                                    추가하기
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -384,8 +378,8 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                                 </div>
                             </div>
                             <DialogFooter>
-                                <Button onClick={handleAddSession} disabled={isPending}>
-                                    {isPending ? "추가 중..." : "추가하기"}
+                                <Button onClick={handleAddSession}>
+                                    추가하기
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -524,8 +518,8 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={() => handleUpdateRegular(false)} disabled={isPending}>
-                                {isPending ? "수정 중..." : "수정하기"}
+                            <Button onClick={() => handleUpdateRegular(false)}>
+                                수정하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -561,8 +555,8 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={() => handleUpdateSession(false)} disabled={isPending}>
-                                {isPending ? "수정 중..." : "수정하기"}
+                            <Button onClick={() => handleUpdateSession(false)}>
+                                수정하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -689,8 +683,8 @@ export default function AdminScheduleClient({ schedules, studentDocId }: AdminSc
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsPostponeOpen(false)}>취소</Button>
-                            <Button onClick={handlePostponeSubmit} disabled={isPending} className="bg-violet-600 hover:bg-violet-700">
-                                {isPending ? "저장 중..." : "저장"}
+                            <Button onClick={handlePostponeSubmit} className="bg-violet-600 hover:bg-violet-700">
+                                저장
                             </Button>
                         </DialogFooter>
                     </DialogContent>

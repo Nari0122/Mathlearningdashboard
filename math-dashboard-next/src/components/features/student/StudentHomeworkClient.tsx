@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,41 +42,59 @@ function formatDateTime(dateString: string | Date | null) {
     });
 }
 
-export default function StudentHomeworkClient({ assignments, studentDocId }: StudentHomeworkClientProps) {
+export default function StudentHomeworkClient({ assignments: initialAssignments, studentDocId }: StudentHomeworkClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
-    const [isPending, startTransition] = useTransition();
+    const [assignments, setAssignments] = useState(initialAssignments);
+
+    useEffect(() => {
+        setAssignments(initialAssignments);
+    }, [initialAssignments]);
 
     const handleToggleComplete = async (assignmentId: string, currentStatus: string) => {
-        startTransition(async () => {
-            const result = await submitHomework(assignmentId, studentDocId);
+        setAssignments(prev =>
+            prev.map(a =>
+                a.id === assignmentId
+                    ? { ...a, status: 'submitted', submittedDate: new Date().toISOString() }
+                    : a
+            )
+        );
+
+        submitHomework(assignmentId, studentDocId).then(result => {
             if (result.success) {
                 router.refresh();
             } else {
                 alert("숙제 제출 실패");
+                router.refresh();
             }
         });
     };
 
     const handleCancelComplete = async (assignmentId: string) => {
-        startTransition(async () => {
-            // Import updateHomework to reset status
-            const { updateHomework } = await import("@/actions/admin-actions");
-            const assignment = assignments.find((a: any) => a.id === assignmentId);
+        setAssignments(prev =>
+            prev.map(a =>
+                a.id === assignmentId
+                    ? { ...a, status: 'pending', submittedDate: null }
+                    : a
+            )
+        );
 
+        import("@/actions/admin-actions").then(({ updateHomework }) => {
+            const assignment = initialAssignments.find((a: any) => a.id === assignmentId);
             if (assignment) {
-                const result = await updateHomework(assignmentId, studentDocId, {
+                updateHomework(assignmentId, studentDocId, {
                     title: assignment.title,
                     dueDate: assignment.dueDate,
                     status: 'pending',
                     submittedDate: null as any
+                }).then(result => {
+                    if (result.success) {
+                        router.refresh();
+                    } else {
+                        alert("완료 취소 실패");
+                        router.refresh();
+                    }
                 });
-
-                if (result.success) {
-                    router.refresh();
-                } else {
-                    alert("완료 취소 실패");
-                }
             }
         });
     };
@@ -120,7 +138,6 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => handleCancelComplete(assignment.id)}
-                                                        disabled={isPending}
                                                         className="text-red-600 hover:text-red-700 h-6 text-[11px] px-1.5 md:h-8 md:text-sm md:px-3"
                                                     >
                                                         <X className="w-3 h-3 mr-0.5" />
@@ -138,7 +155,6 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => handleCancelComplete(assignment.id)}
-                                                        disabled={isPending}
                                                         className="text-red-600 hover:text-red-700 h-6 text-[11px] px-1.5 md:h-8 md:text-sm md:px-3"
                                                     >
                                                         <X className="w-3 h-3 mr-0.5" />
@@ -162,7 +178,6 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                                         variant="default"
                                                         size="sm"
                                                         onClick={() => handleToggleComplete(assignment.id, assignment.status)}
-                                                        disabled={isPending}
                                                         className="bg-blue-600 hover:bg-blue-700 h-6 text-[11px] px-2 md:h-8 md:text-sm md:px-3 whitespace-nowrap"
                                                     >
                                                         <CheckCircle2 className="w-3 h-3 mr-0.5" />
@@ -174,7 +189,6 @@ export default function StudentHomeworkClient({ assignments, studentDocId }: Stu
                                                         variant="default"
                                                         size="sm"
                                                         onClick={() => handleToggleComplete(assignment.id, assignment.status)}
-                                                        disabled={isPending}
                                                         className="bg-amber-500 hover:bg-amber-600 h-6 text-[11px] px-2 md:h-8 md:text-sm md:px-3 whitespace-nowrap"
                                                     >
                                                         <Clock className="w-3 h-3 mr-0.5" />

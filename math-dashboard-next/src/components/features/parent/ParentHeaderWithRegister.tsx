@@ -22,7 +22,6 @@ export function ParentHeaderWithRegister() {
     const router = useRouter();
     const { data: session } = useSession();
     const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [form, setForm] = useState({
         studentName: "",
@@ -38,20 +37,22 @@ export function ParentHeaderWithRegister() {
             setError("로그인 정보가 없습니다.");
             return;
         }
+        const submittedForm = { ...form };
         setError(null);
-        setLoading(true);
+        setForm({ studentName: "", studentPhone: "", parentPhone: "" });
+        setOpen(false);
+
         const result = await linkChildToParent(uid, {
-            studentName: form.studentName.trim(),
-            studentPhone: form.studentPhone,
-            parentPhone: form.parentPhone,
+            studentName: submittedForm.studentName.trim(),
+            studentPhone: submittedForm.studentPhone,
+            parentPhone: submittedForm.parentPhone,
         });
-        setLoading(false);
         if (result.success) {
-            setForm({ studentName: "", studentPhone: "", parentPhone: "" });
-            setOpen(false);
             router.refresh();
         } else {
+            setForm(submittedForm);
             setError(result.message ?? "연동에 실패했습니다.");
+            setOpen(true);
         }
     };
 
@@ -110,8 +111,8 @@ export function ParentHeaderWithRegister() {
                             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                                 취소
                             </Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading ? "연동 중..." : "연동하기"}
+                            <Button type="submit">
+                                연동하기
                             </Button>
                         </DialogFooter>
                     </form>

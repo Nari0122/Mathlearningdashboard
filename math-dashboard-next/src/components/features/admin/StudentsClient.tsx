@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -32,8 +32,9 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
 
-    const [isLoading, setIsLoading] = useState(false);
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+
+    useEffect(() => { setStudents(initialStudents); }, [initialStudents]);
 
     // Edit Student State
     const [isEditOpen, setIsEditOpen] = useState(false);
@@ -51,10 +52,10 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         memo: "",
     });
 
-    const approvedStudents = initialStudents.filter(
+    const approvedStudents = students.filter(
         (s: any) => s.approvalStatus !== "PENDING"
     );
-    const pendingStudents = initialStudents.filter(
+    const pendingStudents = students.filter(
         (s: any) => s.approvalStatus === "PENDING"
     );
 
@@ -77,15 +78,18 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         ? Math.round(approvedStudents.reduce((acc, s) => acc + (s.progress || 0), 0) / totalStudents)
         : 0;
 
-    const handleApprove = async (docId: string) => {
-        setIsLoading(true);
-        const res = await approveStudentByDocId(docId);
-        setIsLoading(false);
-        if (res.success) {
-            router.refresh();
-        } else {
-            alert(res.message);
-        }
+    const handleApprove = (docId: string) => {
+        setStudents(prev => prev.map(s =>
+            s.docId === docId ? { ...s, approvalStatus: "APPROVED" } : s
+        ));
+        approveStudentByDocId(docId).then((res) => {
+            if (res.success) {
+                router.refresh();
+            } else {
+                alert(res.message);
+                router.refresh();
+            }
+        });
     };
 
     const handleEditClick = (student: any) => {
@@ -105,23 +109,21 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         setIsEditOpen(true);
     };
 
-    const handleEditSave = async () => {
+    const handleEditSave = () => {
         if (!editingId) return;
-        setIsLoading(true);
-        const res = await updateStudentByDocId(editingId, editFormData);
-        setIsLoading(false);
-
-        if (res.success) {
-            alert("학생 정보가 수정되었습니다.");
-            setIsEditOpen(false);
-            setEditingId(null);
-            router.refresh();
-        } else {
-            alert(res.message);
-        }
+        setIsEditOpen(false);
+        setEditingId(null);
+        updateStudentByDocId(editingId, editFormData).then((res) => {
+            if (res.success) {
+                router.refresh();
+            } else {
+                alert(res.message);
+                router.refresh();
+            }
+        });
     };
 
-    const handleToggleStatus = async (docId: string, currentAccountStatus: string) => {
+    const handleToggleStatus = (docId: string, currentAccountStatus: string) => {
         const isCurrentlyActive = currentAccountStatus === "ACTIVE";
         const confirmMessage = isCurrentlyActive
             ? "학생 계정을 비활성화하시겠습니까?\n\n• 로그인이 제한됩니다\n• 기존 학습 데이터는 삭제되지 않습니다\n• 관리자 페이지에서 계속 조회 가능합니다\n• 추후 재활성화가 가능합니다"
@@ -132,15 +134,20 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
         }
 
         const newStatus = isCurrentlyActive ? "INACTIVE" : "ACTIVE";
-        const res = await updateStudentAccountStatusAdmin(docId, newStatus);
-        if (res.success) {
-            router.refresh();
-        } else {
-            alert(res.message);
-        }
+        setStudents(prev => prev.map(s =>
+            s.docId === docId ? { ...s, accountStatus: newStatus } : s
+        ));
+        updateStudentAccountStatusAdmin(docId, newStatus).then((res) => {
+            if (res.success) {
+                router.refresh();
+            } else {
+                alert(res.message);
+                router.refresh();
+            }
+        });
     };
 
-    const handleDeleteStudent = async () => {
+    const handleDeleteStudent = () => {
         if (!editingId) return;
 
         const confirmMessage = "학생 정보를 영구적으로 삭제하시겠습니까?\n\n• 이 작업은 되돌릴 수 없습니다.\n• 모든 학습 데이터와 기록이 삭제될 수 있습니다.\n• 계속하시려면 학생의 이름을 입력해주세요.";
@@ -155,18 +162,18 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
             return;
         }
 
-        setIsLoading(true);
-        const res = await deleteStudentByDocId(editingId);
-        setIsLoading(false);
-
-        if (res.success) {
-            alert("학생 정보가 영구 삭제되었습니다.");
-            setIsEditOpen(false);
-            setEditingId(null);
-            router.refresh();
-        } else {
-            alert(res.message);
-        }
+        const deletingId = editingId;
+        setIsEditOpen(false);
+        setEditingId(null);
+        setStudents(prev => prev.filter(s => s.docId !== deletingId));
+        deleteStudentByDocId(deletingId).then((res) => {
+            if (res.success) {
+                router.refresh();
+            } else {
+                alert(res.message);
+                router.refresh();
+            }
+        });
     };
 
     return (
@@ -285,7 +292,6 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                             <Button
                                                 size="sm"
                                                 onClick={() => handleApprove(s.docId)}
-                                                disabled={isLoading}
                                                 className="flex-shrink-0 bg-blue-600 hover:bg-blue-700"
                                             >
                                                 승인
@@ -475,15 +481,14 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                         <Button
                             variant="ghost"
                             onClick={handleDeleteStudent}
-                            disabled={isLoading}
                             className="text-red-500 hover:text-red-700 hover:bg-red-50"
                         >
                             학생 영구 삭제
                         </Button>
                         <div className="flex gap-2">
                             <Button variant="outline" onClick={() => setIsEditOpen(false)} className="h-10">취소</Button>
-                            <Button onClick={handleEditSave} disabled={isLoading} className="h-10 bg-blue-600 hover:bg-blue-700">
-                                {isLoading ? "수정 중..." : "수정완료"}
+                            <Button onClick={handleEditSave} className="h-10 bg-blue-600 hover:bg-blue-700">
+                                수정완료
                             </Button>
                         </div>
                     </DialogFooter>

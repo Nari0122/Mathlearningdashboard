@@ -55,11 +55,10 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
     const [copiedField, setCopiedField] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const accountStatus = (rawStudent as { accountStatus?: string })?.accountStatus ?? "ACTIVE";
-    const isLoginBlocked = accountStatus === "INACTIVE";
+    const initialAccountStatus = (rawStudent as { accountStatus?: string })?.accountStatus ?? "ACTIVE";
+    const [visualAccountStatus, setVisualAccountStatus] = useState(initialAccountStatus);
+    const isLoginBlocked = visualAccountStatus === "INACTIVE";
     const docIdForStatus = studentDocId ?? (rawStudent as { docId?: string })?.docId;
-    const [statusLoading, setStatusLoading] = useState(false);
 
     const handleCopy = (field: string, value: string) => {
         navigator.clipboard.writeText(value);
@@ -67,14 +66,15 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
         setTimeout(() => setCopiedField(null), 2000);
     };
 
-    const handleSave = async () => {
+    const handleSave = () => {
         const docIdToUse = studentDocId ?? (rawStudent as { docId?: string })?.docId;
         if (!docIdToUse) {
             alert("학생 문서 ID를 찾을 수 없습니다.");
             return;
         }
-        setLoading(true);
-        const res = await updateStudentByDocId(docIdToUse, {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+        updateStudentByDocId(docIdToUse, {
             name: formData.name,
             loginId: student.kakaoUid || student.loginId || "",
             grade: formData.grade,
@@ -86,37 +86,35 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
             enrollmentDate: formData.enrollmentDate,
             memo: formData.memo,
             schoolType: formData.schoolType,
+        }).then((res) => {
+            if (res.success) {
+                router.refresh();
+            } else {
+                setSaveSuccess(false);
+                alert(res.message ?? "저장에 실패했습니다.");
+            }
         });
-        setLoading(false);
-
-        if (res.success) {
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3000);
-            router.refresh();
-        } else {
-            alert(res.message ?? "저장에 실패했습니다.");
-        }
     };
 
-    const handleDelete = async () => {
+    const handleDelete = () => {
         const docIdToDelete = studentDocId ?? (rawStudent as { docId?: string })?.docId;
         if (!docIdToDelete) {
             alert("학생 문서 ID를 찾을 수 없습니다.");
             return;
         }
-        const res = await deleteStudentByDocId(docIdToDelete);
-        if (res.success) {
-            router.push("/admin/students");
-            router.refresh();
-        } else {
-            alert(res.message ?? "삭제에 실패했습니다.");
-        }
         setShowDeleteConfirm(false);
+        deleteStudentByDocId(docIdToDelete).then((res) => {
+            if (res.success) {
+                router.push("/admin/students");
+                router.refresh();
+            } else {
+                alert(res.message ?? "삭제에 실패했습니다.");
+            }
+        });
     };
 
     return (
         <div className="max-w-[1200px] mx-auto px-6 pt-2 pb-8 space-y-6 text-sm leading-relaxed">
-            {/* 상단 성공 배지만 간단히 표시 */}
             {saveSuccess && (
                 <div className="flex justify-end mb-2">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs">
@@ -330,20 +328,21 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
                                 </div>
                                 <button
                                     type="button"
-                                    disabled={statusLoading}
-                                    onClick={async () => {
-                                        setStatusLoading(true);
-                                        const res = await updateStudentAccountStatusAdmin(docIdForStatus, isLoginBlocked ? "ACTIVE" : "INACTIVE");
-                                        setStatusLoading(false);
-                                        if (res.success) {
-                                            router.refresh();
-                                        } else {
-                                            alert(res.message ?? "변경 실패");
-                                        }
+                                    onClick={() => {
+                                        const newStatus = isLoginBlocked ? "ACTIVE" : "INACTIVE";
+                                        setVisualAccountStatus(newStatus);
+                                        updateStudentAccountStatusAdmin(docIdForStatus, newStatus).then((res) => {
+                                            if (res.success) {
+                                                router.refresh();
+                                            } else {
+                                                setVisualAccountStatus(isLoginBlocked ? "INACTIVE" : "ACTIVE");
+                                                alert(res.message ?? "변경 실패");
+                                            }
+                                        });
                                     }}
                                     className={`w-full py-2 rounded-lg text-sm font-medium min-h-[40px] ${isLoginBlocked ? "bg-green-600 hover:bg-green-700 text-white" : "bg-amber-600 hover:bg-amber-700 text-white"}`}
                                 >
-                                    {statusLoading ? "처리 중..." : isLoginBlocked ? "로그인 허용으로 변경" : "로그인 차단(비활성화)"}
+                                    {isLoginBlocked ? "로그인 허용으로 변경" : "로그인 차단(비활성화)"}
                                 </button>
                             </div>
                         ) : (
@@ -399,11 +398,10 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
                     <button
                         type="button"
                         onClick={handleSave}
-                        disabled={loading}
-                        className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 text-sm"
+                        className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
                     >
                         <Save size={18} />
-                        {loading ? "저장 중..." : "변경사항 저장"}
+                        변경사항 저장
                     </button>
 
                     <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -48,7 +48,6 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
     const router = useRouter();
     const { data: session } = useSession();
     const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [form, setForm] = useState({
@@ -57,9 +56,12 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
         parentPhone: "",
     });
     const [unlinkTarget, setUnlinkTarget] = useState<{ docId: string; name: string } | null>(null);
-    const [unlinkLoading, setUnlinkLoading] = useState(false);
     const [unlinkError, setUnlinkError] = useState<string | null>(null);
-    const [cancelLoading, setCancelLoading] = useState<string | null>(null);
+
+    const [localStudents, setLocalStudents] = useState(linkedStudents);
+    const [localRequests, setLocalRequests] = useState(sentPendingRequests);
+    useEffect(() => { setLocalStudents(linkedStudents); }, [linkedStudents]);
+    useEffect(() => { setLocalRequests(sentPendingRequests); }, [sentPendingRequests]);
 
     const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
 
@@ -68,16 +70,19 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
 
     const handleUnlinkConfirm = async () => {
         if (!uid || !unlinkTarget) return;
+        const target = unlinkTarget;
         setUnlinkError(null);
-        setUnlinkLoading(true);
-        const res = await unlinkStudentFromParent(uid, unlinkTarget.docId);
-        setUnlinkLoading(false);
+        setUnlinkTarget(null);
+        setLocalStudents((prev) => prev.filter((s) => s.docId !== target.docId));
+        setSuccessMessage("연동이 해제되었습니다. 해당 자녀의 학습 현황을 더 이상 조회할 수 없습니다.");
+        setTimeout(() => setSuccessMessage(null), 5000);
+
+        const res = await unlinkStudentFromParent(uid, target.docId);
         if (res.success) {
-            setUnlinkTarget(null);
-            setSuccessMessage("연동이 해제되었습니다. 해당 자녀의 학습 현황을 더 이상 조회할 수 없습니다.");
-            setTimeout(() => setSuccessMessage(null), 5000);
             router.refresh();
         } else {
+            setLocalStudents((prev) => [...prev, { name: target.name, docId: target.docId }]);
+            setSuccessMessage(null);
             setUnlinkError(res.message ?? "연동 해제에 실패했습니다.");
         }
     };
@@ -88,23 +93,40 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
             setError("로그인 정보가 없습니다.");
             return;
         }
+        const submittedForm = { ...form };
         setError(null);
-        setLoading(true);
+        setForm({ studentName: "", studentPhone: "", parentPhone: "" });
+        setOpen(false);
+        setSuccessMessage("자녀에게 연동 요청이 전달되었습니다. 학생이 승인하면 목록에 표시됩니다.");
+        setTimeout(() => setSuccessMessage(null), 5000);
+
         const result = await linkChildToParent(uid, {
-            studentName: form.studentName.trim(),
-            studentPhone: form.studentPhone,
-            parentPhone: form.parentPhone,
+            studentName: submittedForm.studentName.trim(),
+            studentPhone: submittedForm.studentPhone,
+            parentPhone: submittedForm.parentPhone,
         });
-        setLoading(false);
         if (result.success) {
-            setForm({ studentName: "", studentPhone: "", parentPhone: "" });
-            setOpen(false);
-            setError(null);
-            setSuccessMessage("자녀에게 연동 요청이 전달되었습니다. 학생이 승인하면 목록에 표시됩니다.");
-            setTimeout(() => setSuccessMessage(null), 5000);
             router.refresh();
         } else {
+            setSuccessMessage(null);
             setError(result.message ?? "연동에 실패했습니다.");
+            setForm(submittedForm);
+            setOpen(true);
+        }
+    };
+
+    const handleCancelRequest = async (req: SentPendingRequest) => {
+        if (!uid) return;
+        setLocalRequests((prev) => prev.filter((r) => r.linkId !== req.linkId));
+        setSuccessMessage("요청이 취소되었습니다.");
+        setTimeout(() => setSuccessMessage(null), 5000);
+
+        const res = await cancelLinkRequest(uid, req.linkId);
+        if (res.success) {
+            router.refresh();
+        } else {
+            setLocalRequests((prev) => [...prev, req]);
+            setSuccessMessage(null);
         }
     };
 
@@ -161,8 +183,8 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                         <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                             취소
                         </Button>
-                        <Button type="submit" disabled={loading}>
-                            {loading ? "연동 중..." : "연동하기"}
+                        <Button type="submit">
+                            연동하기
                         </Button>
                     </DialogFooter>
                 </form>
@@ -187,7 +209,7 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                 {RegisterButton}
             </div>
 
-            {linkedStudents.length === 0 ? (
+            {localStudents.length === 0 ? (
                 <Card>
                     <CardContent className="py-12">
                         <div className="flex flex-col items-center justify-center px-4">
@@ -201,7 +223,7 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                 </Card>
             ) : (
                 <div className="space-y-3 overflow-y-auto overscroll-contain max-h-[70vh] pb-[max(1rem,env(safe-area-inset-bottom))]">
-                    {linkedStudents.map((student) => (
+                    {localStudents.map((student) => (
                         <div
                             key={student.docId}
                             className="relative bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200"
@@ -251,16 +273,15 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-2">{unlinkError}</p>
                     )}
                     <AlertDialogFooter>
-                        <AlertDialogCancel disabled={unlinkLoading}>취소</AlertDialogCancel>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={(e) => {
                                 e.preventDefault();
                                 handleUnlinkConfirm();
                             }}
-                            disabled={unlinkLoading}
                             className="min-h-[44px] bg-red-600 hover:bg-red-700"
                         >
-                            {unlinkLoading ? "처리 중..." : "연결 끊기"}
+                            연결 끊기
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -272,7 +293,7 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                 <p className="text-sm text-muted-foreground mb-3">
                     자녀에게 연동 요청을 보낸 목록입니다. 학생이 승인하면 위 자녀 목록에 표시됩니다.
                 </p>
-                {sentPendingRequests.length === 0 ? (
+                {localRequests.length === 0 ? (
                     <Card>
                         <CardContent className="py-8 text-center">
                             <Clock className="h-10 w-10 text-gray-300 mx-auto mb-2" />
@@ -281,7 +302,7 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                     </Card>
                 ) : (
                     <div className="space-y-2">
-                        {sentPendingRequests.map((req) => (
+                        {localRequests.map((req) => (
                             <Card key={req.linkId}>
                                 <CardContent className="py-4 flex flex-wrap items-center justify-between gap-3">
                                     <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -300,21 +321,10 @@ export function ParentDashboardClient({ parentUid, linkedStudents, parentName, s
                                         variant="outline"
                                         size="sm"
                                         className="shrink-0 min-h-[40px] text-red-600 border-red-200 hover:bg-red-50"
-                                        disabled={cancelLoading === req.linkId}
-                                        onClick={async () => {
-                                            if (!uid) return;
-                                            setCancelLoading(req.linkId);
-                                            const res = await cancelLinkRequest(uid, req.linkId);
-                                            setCancelLoading(null);
-                                            if (res.success) {
-                                                setSuccessMessage("요청이 취소되었습니다.");
-                                                setTimeout(() => setSuccessMessage(null), 5000);
-                                                router.refresh();
-                                            }
-                                        }}
+                                        onClick={() => handleCancelRequest(req)}
                                     >
                                         <X className="h-4 w-4 mr-1" />
-                                        {cancelLoading === req.linkId ? "취소 중..." : "요청 취소"}
+                                        요청 취소
                                     </Button>
                                 </CardContent>
                             </Card>

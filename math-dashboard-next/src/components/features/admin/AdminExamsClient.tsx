@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -21,12 +21,13 @@ interface AdminExamsClientProps {
 const EXAM_TYPES = ["중간고사", "기말고사", "모의고사", "단원평가", "기타"];
 const SUBJECTS = ["수학", "영어", "국어", "과학", "사회", "공통수학1", "공통수학2", "미적분", "확률과통계", "기하"];
 
-export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClientProps) {
+export default function AdminExamsClient({ exams: initialExams, studentDocId }: AdminExamsClientProps) {
     const router = useRouter();
+    const [exams, setExams] = useState(initialExams);
+    useEffect(() => { setExams(initialExams); }, [initialExams]);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [currentEditId, setCurrentEditId] = useState<string | null>(null);
-    const [isPending, startTransition] = useTransition();
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     const [examType, setExamType] = useState("");
@@ -42,18 +43,21 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
     const handleAdd = async () => {
         if (!examType || !date || !score) return;
 
-        startTransition(async () => {
-            const result = await createExam(studentDocId, {
-                examType,
-                subject,
-                date,
-                score: parseInt(score)
-            });
+        setIsAddOpen(false);
+        const savedScore = score;
+        const savedDate = date;
+        const savedExamType = examType;
+        const savedSubject = subject;
+        setScore("");
+        setDate("");
 
+        createExam(studentDocId, {
+            examType: savedExamType,
+            subject: savedSubject,
+            date: savedDate,
+            score: parseInt(savedScore)
+        }).then((result) => {
             if (result.success) {
-                setIsAddOpen(false);
-                setScore("");
-                setDate("");
                 router.refresh();
             } else {
                 alert("성적 추가 실패");
@@ -73,16 +77,15 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
     const handleUpdate = async () => {
         if (!currentEditId || !editScore || !editDate) return;
 
-        startTransition(async () => {
-            const result = await updateExam(currentEditId, studentDocId, {
-                examType: editExamType,
-                subject: editSubject,
-                score: parseInt(editScore),
-                date: editDate
-            });
+        setIsEditOpen(false);
 
+        updateExam(currentEditId, studentDocId, {
+            examType: editExamType,
+            subject: editSubject,
+            score: parseInt(editScore),
+            date: editDate
+        }).then((result) => {
             if (result.success) {
-                setIsEditOpen(false);
                 router.refresh();
             } else {
                 alert("수정 실패");
@@ -94,8 +97,9 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
         if (!deleteTarget) return;
         const id = deleteTarget;
         setDeleteTarget(null);
-        startTransition(async () => {
-            const result = await deleteExam(id, studentDocId);
+        setExams(prev => prev.filter((e: any) => e.id !== id));
+
+        deleteExam(id, studentDocId).then((result) => {
             if (result.success) router.refresh();
         });
     };
@@ -140,8 +144,8 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleAdd} disabled={isPending}>
-                                {isPending ? "추가 중..." : "추가하기"}
+                            <Button onClick={handleAdd}>
+                                추가하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -174,8 +178,8 @@ export default function AdminExamsClient({ exams, studentDocId }: AdminExamsClie
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleUpdate} disabled={isPending}>
-                                {isPending ? "수정 중..." : "수정하기"}
+                            <Button onClick={handleUpdate}>
+                                수정하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>

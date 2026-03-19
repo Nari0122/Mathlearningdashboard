@@ -39,14 +39,15 @@ interface StudentIncorrectNotesClientProps {
     units: any[];
 }
 
-export default function StudentIncorrectNotesClient({ studentDocId, notes, units }: StudentIncorrectNotesClientProps) {
+export default function StudentIncorrectNotesClient({ studentDocId, notes: initialNotes, units }: StudentIncorrectNotesClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
+    const [notes, setNotes] = useState(initialNotes);
+    useEffect(() => { setNotes(initialNotes); }, [initialNotes]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
     const [selectedZoomImg, setSelectedZoomImg] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [deleteNoteTarget, setDeleteNoteTarget] = useState<string | null>(null);
 
     // Filter State (for notes list)
@@ -295,7 +296,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
         setIsModalOpen(true);
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = () => {
         const isMiddle = selLevel && isMiddleSchool(selLevel);
 
         if (!selLevel || !selGrade || !selSubject || !selUnitName || !formData.bookName || (!isMiddle && !selDetail)) {
@@ -319,7 +320,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
             return;
         }
 
-        setIsLoading(true);
+        setIsModalOpen(false);
 
         const combinedName = `${formData.bookName} ${formData.page ? `${formData.page}p ` : ''}${formData.number ? `${formData.number}번` : ''}`.trim();
 
@@ -338,9 +339,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
             bookTagId: selectedBookTagId || undefined,
         };
 
-        let result;
         if (modalMode === 'add') {
-            // Find matching unit from student's units
             let matchingUnit = units.find(u =>
                 u.schoolLevel === selLevel &&
                 u.grade === selGrade &&
@@ -358,9 +357,15 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
             }
             const unitIdToUse = matchingUnit ? matchingUnit.id : 0;
 
-            result = await createIncorrectNote(studentDocId, {
+            createIncorrectNote(studentDocId, {
                 ...payload,
                 unitId: unitIdToUse,
+            }).then((result) => {
+                if (result.success) {
+                    router.refresh();
+                } else {
+                    alert(result.message || "오답노트 저장 실패");
+                }
             });
         } else {
             let matchingUnit = units.find(u =>
@@ -380,31 +385,29 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
             }
             const unitIdToUse = matchingUnit ? matchingUnit.id : 0;
 
-            result = await updateIncorrectNote(studentDocId, editingNoteId!, {
+            updateIncorrectNote(studentDocId, editingNoteId!, {
                 ...payload,
                 unitId: unitIdToUse,
+            }).then((result) => {
+                if (result.success) {
+                    router.refresh();
+                } else {
+                    alert(result.message || "오답노트 저장 실패");
+                }
             });
-        }
-
-        setIsLoading(false);
-
-        if (result.success) {
-            alert(modalMode === 'add' ? "오답노트가 등록되었습니다." : "오답노트가 수정되었습니다.");
-            setIsModalOpen(false);
-            router.refresh();
-        } else {
-            alert(result.message || "오답노트 저장 실패");
         }
     };
 
-    const handleDeleteConfirm = async () => {
+    const handleDeleteConfirm = () => {
         if (!deleteNoteTarget) return;
         const noteId = deleteNoteTarget;
         setDeleteNoteTarget(null);
-        setIsLoading(true);
-        const result = await deleteIncorrectNote(studentDocId, noteId);
-        setIsLoading(false);
-        if (result.success) router.refresh();
+        setNotes(prev => prev.filter((n: any) => n.id !== noteId));
+        deleteIncorrectNote(studentDocId, noteId).then((result) => {
+            if (result.success) {
+                router.refresh();
+            }
+        });
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -779,7 +782,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                             </div>
                         </div>
                         <DialogFooter className="pt-4 border-t">
-                            <Button onClick={handleSubmit} disabled={isLoading} className="w-full bg-blue-600 hover:bg-blue-700">
+                            <Button onClick={handleSubmit} className="w-full bg-blue-600 hover:bg-blue-700">
                                 {modalMode === 'add' ? '오답노트 등록' : '저장'}
                             </Button>
                         </DialogFooter>
@@ -995,7 +998,6 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                                             size="icon"
                                             className="h-8 w-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50"
                                             onClick={() => handleEditClick(note)}
-                                            disabled={isLoading}
                                         >
                                             <Pencil className="h-4 w-4" />
                                         </Button>
@@ -1004,7 +1006,6 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes, units
                                             size="icon"
                                             className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
                                             onClick={() => setDeleteNoteTarget(note.id)}
-                                            disabled={isLoading}
                                         >
                                             <Trash2 className="h-4 w-4" />
                                         </Button>

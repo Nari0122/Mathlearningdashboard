@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect } from "react";
 import { Plus, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -18,13 +18,17 @@ interface AdminHistoryClientProps {
     adminName?: string;
 }
 
-export default function AdminHistoryClient({ records, studentDocId, adminName }: AdminHistoryClientProps) {
+export default function AdminHistoryClient({ records: initialRecords, studentDocId, adminName }: AdminHistoryClientProps) {
     const router = useRouter();
+    const [records, setRecords] = useState(initialRecords);
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [currentEditId, setCurrentEditId] = useState<number | null>(null);
-    const [isPending, startTransition] = useTransition();
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+
+    useEffect(() => {
+        setRecords(initialRecords);
+    }, [initialRecords]);
 
     const [date, setDate] = useState("");
     const [progress, setProgress] = useState("");
@@ -39,22 +43,25 @@ export default function AdminHistoryClient({ records, studentDocId, adminName }:
     const handleAdd = async () => {
         if (!date || !progress) return;
 
-        startTransition(async () => {
-            const result = await createLearningRecord(studentDocId, {
-                date,
-                progress,
-                comment,
-                sessionNumber: sessionNumber ? parseInt(sessionNumber) : undefined,
-                createdBy: "admin",
-                createdByName: adminName || "관리자",
-            });
+        setIsAddOpen(false);
+        const savedDate = date;
+        const savedProgress = progress;
+        const savedComment = comment;
+        const savedSessionNumber = sessionNumber;
+        setDate("");
+        setProgress("");
+        setComment("");
+        setSessionNumber("");
 
+        createLearningRecord(studentDocId, {
+            date: savedDate,
+            progress: savedProgress,
+            comment: savedComment,
+            sessionNumber: savedSessionNumber ? parseInt(savedSessionNumber) : undefined,
+            createdBy: "admin",
+            createdByName: adminName || "관리자",
+        }).then(result => {
             if (result.success) {
-                setIsAddOpen(false);
-                setDate("");
-                setProgress("");
-                setComment("");
-                setSessionNumber("");
                 router.refresh();
             } else {
                 alert("기록 추가 실패");
@@ -74,16 +81,20 @@ export default function AdminHistoryClient({ records, studentDocId, adminName }:
     const handleUpdate = async () => {
         if (!currentEditId || !editDate || !editProgress) return;
 
-        startTransition(async () => {
-            const result = await updateLearningRecord(String(currentEditId), studentDocId, {
-                date: editDate,
-                progress: editProgress,
-                comment: editComment,
-                sessionNumber: editSessionNumber ? parseInt(editSessionNumber) : undefined
-            });
+        setIsEditOpen(false);
+        const savedEditId = currentEditId;
+        const savedEditDate = editDate;
+        const savedEditProgress = editProgress;
+        const savedEditComment = editComment;
+        const savedEditSessionNumber = editSessionNumber;
 
+        updateLearningRecord(String(savedEditId), studentDocId, {
+            date: savedEditDate,
+            progress: savedEditProgress,
+            comment: savedEditComment,
+            sessionNumber: savedEditSessionNumber ? parseInt(savedEditSessionNumber) : undefined
+        }).then(result => {
             if (result.success) {
-                setIsEditOpen(false);
                 router.refresh();
             } else {
                 alert("수정 실패");
@@ -95,8 +106,10 @@ export default function AdminHistoryClient({ records, studentDocId, adminName }:
         if (deleteTarget === null) return;
         const id = deleteTarget;
         setDeleteTarget(null);
-        startTransition(async () => {
-            const result = await deleteLearningRecord(String(id), studentDocId);
+
+        setRecords(prev => prev.filter(r => r.id !== id));
+
+        deleteLearningRecord(String(id), studentDocId).then(result => {
             if (result.success) {
                 router.refresh();
             }
@@ -139,8 +152,8 @@ export default function AdminHistoryClient({ records, studentDocId, adminName }:
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleAdd} disabled={isPending}>
-                                {isPending ? "추가 중..." : "추가하기"}
+                            <Button onClick={handleAdd}>
+                                추가하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -173,8 +186,8 @@ export default function AdminHistoryClient({ records, studentDocId, adminName }:
                             </div>
                         </div>
                         <DialogFooter>
-                            <Button onClick={handleUpdate} disabled={isPending}>
-                                {isPending ? "수정 중..." : "수정하기"}
+                            <Button onClick={handleUpdate}>
+                                수정하기
                             </Button>
                         </DialogFooter>
                     </DialogContent>

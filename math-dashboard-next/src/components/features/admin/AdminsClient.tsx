@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { updateAdminStatusAction, deleteAdminAction } from "@/actions/admin-management-actions";
 import type { FirestoreUserAdmin } from "@/types/firestore-user";
 import { formatPhoneDisplay } from "@/lib/phone";
-import { UserCheck, User, Loader2, Trash2 } from "lucide-react";
+import { UserCheck, User, Trash2 } from "lucide-react";
 
 type AdminRow = FirestoreUserAdmin & { uid: string };
 
@@ -20,45 +20,51 @@ interface AdminsClientProps {
 
 export function AdminsClient({ list }: AdminsClientProps) {
     const router = useRouter();
+    const [admins, setAdmins] = useState(list);
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
-    const [loadingUid, setLoadingUid] = useState<string | null>(null);
-    const [deletingUid, setDeletingUid] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<AdminRow | null>(null);
 
-    const superAdmins = list.filter((a) => a.role === "SUPER_ADMIN");
-    const approvedAdmins = list.filter((a) => a.role === "ADMIN" && a.status === "APPROVED");
-    const pendingAdmins = list.filter((a) => a.role === "ADMIN" && a.status === "PENDING");
+    useEffect(() => { setAdmins(list); }, [list]);
 
-    const handleApprove = async (uid: string) => {
-        setLoadingUid(uid);
-        const result = await updateAdminStatusAction(uid, "APPROVED");
-        setLoadingUid(null);
-        if (result.success) {
-            router.refresh();
-        } else {
-            alert(result.message ?? "처리 실패");
-        }
+    const superAdmins = admins.filter((a) => a.role === "SUPER_ADMIN");
+    const approvedAdmins = admins.filter((a) => a.role === "ADMIN" && a.status === "APPROVED");
+    const pendingAdmins = admins.filter((a) => a.role === "ADMIN" && a.status === "PENDING");
+
+    const handleApprove = (uid: string) => {
+        setAdmins(prev => prev.map(a =>
+            a.uid === uid ? { ...a, status: "APPROVED" as const } : a
+        ));
+        updateAdminStatusAction(uid, "APPROVED").then((result) => {
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(result.message ?? "처리 실패");
+                router.refresh();
+            }
+        });
     };
 
     const handleDelete = (a: AdminRow) => {
         if (a.role === "SUPER_ADMIN") return;
         setDeleteTarget(a);
     };
-    const handleDeleteConfirm = async () => {
+    const handleDeleteConfirm = () => {
         if (!deleteTarget) return;
         const a = deleteTarget;
         setDeleteTarget(null);
-        setDeletingUid(a.uid);
-        const result = await deleteAdminAction(a.uid);
-        setDeletingUid(null);
-        if (result.success) {
-            router.refresh();
-        }
+        setAdmins(prev => prev.filter(admin => admin.uid !== a.uid));
+        deleteAdminAction(a.uid).then((result) => {
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert(result.message ?? "삭제 실패");
+                router.refresh();
+            }
+        });
     };
 
     return (
         <div className="space-y-6">
-            {/* 제목·설명과 승인 대기 버튼을 같은 줄에 */}
             <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900">관리자 관리</h1>
@@ -107,24 +113,18 @@ export function AdminsClient({ list }: AdminsClientProps) {
                                                 <Button
                                                     size="sm"
                                                     onClick={() => handleApprove(a.uid)}
-                                                    disabled={loadingUid !== null}
                                                     className="bg-blue-600 hover:bg-blue-700"
                                                 >
-                                                    {loadingUid === a.uid ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                    ) : (
-                                                        "승인"
-                                                    )}
+                                                    승인
                                                 </Button>
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
                                                     className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                                     onClick={() => handleDelete(a)}
-                                                    disabled={deletingUid !== null}
                                                     title="계정 삭제"
                                                 >
-                                                    {deletingUid === a.uid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                                    <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         </li>
@@ -192,10 +192,9 @@ export function AdminsClient({ list }: AdminsClientProps) {
                                             variant="ghost"
                                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             onClick={() => handleDelete(a)}
-                                            disabled={deletingUid !== null}
                                             title="계정 삭제"
                                         >
-                                            {deletingUid === a.uid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                            <Trash2 className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </li>

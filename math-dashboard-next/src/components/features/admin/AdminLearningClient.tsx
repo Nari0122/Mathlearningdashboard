@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Check, ChevronsUpDown, X, BookOpen } from "lucide-react";
 import { Unit } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ interface AdminLearningClientProps {
 
 export default function AdminLearningClient({ initialUnits, studentDocId }: AdminLearningClientProps) {
     const router = useRouter();
+    const [units, setUnits] = useState(initialUnits);
+    useEffect(() => { setUnits(initialUnits); }, [initialUnits]);
 
     // 5-Step Cascading Selection State for Adding Units
     const [selectedLevel, setSelectedLevel] = useState<SchoolLevel | "">("");
@@ -41,37 +43,36 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
 
     const [activeTab, setActiveTab] = useState("all");
     const [isAddUnitOpen, setIsAddUnitOpen] = useState(false);
-    const [isPending, startTransition] = useTransition();
     const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
 
     // Derived filter options
-    const filterLevels = useMemo(() => Array.from(new Set(initialUnits.map(u => u.schoolLevel))), [initialUnits]);
+    const filterLevels = useMemo(() => Array.from(new Set(units.map(u => u.schoolLevel))), [units]);
     const filterGrades = useMemo(() => {
-        if (filterLevel === "all") return Array.from(new Set(initialUnits.map(u => u.grade)));
-        return Array.from(new Set(initialUnits.filter(u => u.schoolLevel === filterLevel).map(u => u.grade)));
-    }, [initialUnits, filterLevel]);
+        if (filterLevel === "all") return Array.from(new Set(units.map(u => u.grade)));
+        return Array.from(new Set(units.filter(u => u.schoolLevel === filterLevel).map(u => u.grade)));
+    }, [units, filterLevel]);
     const filterSubjects = useMemo(() => {
-        let filtered = initialUnits;
+        let filtered = units;
         if (filterLevel !== "all") filtered = filtered.filter(u => u.schoolLevel === filterLevel);
         if (filterGrade !== "all") filtered = filtered.filter(u => u.grade === filterGrade);
         return Array.from(new Set(filtered.map(u => u.subject)));
-    }, [initialUnits, filterLevel, filterGrade]);
+    }, [units, filterLevel, filterGrade]);
     const filterUnitNames = useMemo(() => {
-        let filtered = initialUnits;
+        let filtered = units;
         if (filterLevel !== "all") filtered = filtered.filter(u => u.schoolLevel === filterLevel);
         if (filterGrade !== "all") filtered = filtered.filter(u => u.grade === filterGrade);
         if (filterSubject !== "all") filtered = filtered.filter(u => u.subject === filterSubject);
         return Array.from(new Set(filtered.map(u => u.unitName || u.name)));
-    }, [initialUnits, filterLevel, filterGrade, filterSubject]);
+    }, [units, filterLevel, filterGrade, filterSubject]);
     const filterDetails = useMemo(() => {
-        let filtered = initialUnits;
+        let filtered = units;
         if (filterLevel !== "all") filtered = filtered.filter(u => u.schoolLevel === filterLevel);
         if (filterGrade !== "all") filtered = filtered.filter(u => u.grade === filterGrade);
         if (filterSubject !== "all") filtered = filtered.filter(u => u.subject === filterSubject);
         if (filterUnitName !== "all") filtered = filtered.filter(u => (u.unitName || u.name) === filterUnitName);
         const allDetails = filtered.flatMap(u => u.unitDetails || []);
         return Array.from(new Set(allDetails));
-    }, [initialUnits, filterLevel, filterGrade, filterSubject, filterUnitName]);
+    }, [units, filterLevel, filterGrade, filterSubject, filterUnitName]);
 
     // Cascading Resets
     useEffect(() => { setSelectedGrade(""); setSelectedSubject(""); setSelectedUnit(""); setSelectedDetail(""); }, [selectedLevel]);
@@ -96,22 +97,21 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
             return;
         }
 
-        startTransition(async () => {
-            const result = await createUnit(studentDocId, {
-                schoolLevel: selectedLevel,
-                grade: selectedGrade,
-                subject: selectedSubject,
-                unitName: selectedUnit,
-                unitDetails: isMiddle ? [] : [selectedDetail], // Store as array for backward compatibility
-                name: isMiddle ? selectedUnit : selectedDetail, // For High School, detail is the primary name
-                status: "MID",
-                selectedDifficulty: "중"
-            });
+        setIsAddUnitOpen(false);
+        setSelectedDetail("");
+        setSelectedUnit("");
 
+        createUnit(studentDocId, {
+            schoolLevel: selectedLevel,
+            grade: selectedGrade,
+            subject: selectedSubject,
+            unitName: selectedUnit,
+            unitDetails: isMiddle ? [] : [selectedDetail],
+            name: isMiddle ? selectedUnit : selectedDetail,
+            status: "MID",
+            selectedDifficulty: "중"
+        }).then((result) => {
             if (result.success) {
-                setIsAddUnitOpen(false);
-                setSelectedDetail("");
-                setSelectedUnit("");
                 router.refresh();
             } else {
                 alert(`단원 추가 실패: ${result.message || '알 수 없는 오류'}`);
@@ -122,12 +122,11 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
 
 
 
-    // --- Existing Handlers (Unchanged mostly) ---
     const handleDifficultyChange = async (unitId: number, difficulty: string) => {
-        const unit = initialUnits.find(u => u.id === unitId);
+        const unit = units.find(u => u.id === unitId);
         if (!unit) return;
-        startTransition(async () => {
-            await updateUnit(unitId, studentDocId, { ...unit, selectedDifficulty: difficulty });
+        setUnits(prev => prev.map(u => u.id === unitId ? { ...u, selectedDifficulty: difficulty } : u));
+        updateUnit(unitId, studentDocId, { ...unit, selectedDifficulty: difficulty }).then(() => {
             router.refresh();
         });
     };
@@ -138,35 +137,40 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
         if (deleteTarget === null) return;
         const unitId = deleteTarget;
         setDeleteTarget(null);
-        startTransition(async () => {
-            const result = await deleteUnit(unitId, studentDocId);
+        setUnits(prev => prev.filter(u => u.id !== unitId));
+        deleteUnit(unitId, studentDocId).then((result) => {
             if (result.success) router.refresh();
         });
     };
     const handleErrorChange = async (unitId: number, errorType: 'C' | 'M' | 'R' | 'S', delta: number) => {
-        startTransition(async () => {
-            const result = await updateUnitError(unitId, studentDocId, errorType, delta);
+        const errorField = `error${errorType}` as keyof Unit;
+        setUnits(prev => prev.map(u => {
+            if (u.id !== unitId) return u;
+            const currentVal = (u[errorField] as number) || 0;
+            return { ...u, [errorField]: Math.max(0, currentVal + delta) };
+        }));
+        updateUnitError(unitId, studentDocId, errorType, delta).then((result) => {
             if (result.success) router.refresh();
             else alert("수정 실패");
         });
     };
     const handleCompletionStatusChange = async (unitId: number, status: 'incomplete' | 'in-progress' | 'completed') => {
-        startTransition(async () => {
-            const result = await updateUnit(unitId, studentDocId, { completionStatus: status });
+        setUnits(prev => prev.map(u => u.id === unitId ? { ...u, completionStatus: status } : u));
+        updateUnit(unitId, studentDocId, { completionStatus: status }).then((result) => {
             if (result.success) router.refresh();
             else alert("수정 실패");
         });
     };
     const handleStatusChange = async (unitId: number, status: 'HIGH' | 'MID' | 'LOW') => {
-        const unit = initialUnits.find(u => u.id === unitId);
+        const unit = units.find(u => u.id === unitId);
         if (!unit) return;
-        startTransition(async () => {
-            await updateUnit(unitId, studentDocId, { ...unit, status: status });
+        setUnits(prev => prev.map(u => u.id === unitId ? { ...u, status: status } : u));
+        updateUnit(unitId, studentDocId, { ...unit, status: status }).then(() => {
             router.refresh();
         });
     };
 
-    const filteredUnits = initialUnits.filter(unit => {
+    const filteredUnits = units.filter(unit => {
         // Tab filter
         if (activeTab === "in-progress" && unit.completionStatus !== "in-progress") return false;
         if (activeTab === "completed" && unit.completionStatus !== "completed") return false;
@@ -282,12 +286,11 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
                                     className="w-full sm:w-32"
                                     onClick={handleAddUnit}
                                     disabled={
-                                        isPending ||
                                         !selectedUnit ||
                                         (!isMiddleSchool(selectedLevel || "") && !selectedDetail)
                                     }
                                 >
-                                    {isPending ? "추가 중..." : "추가하기"}
+                                    추가하기
                                 </Button>
                             </DialogFooter>
                         </DialogContent>
@@ -377,10 +380,10 @@ export default function AdminLearningClient({ initialUnits, studentDocId }: Admi
 
             <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
                 <TabsList>
-                    <TabsTrigger value="all">전체 ({initialUnits.length})</TabsTrigger>
-                    <TabsTrigger value="incomplete">미완료 ({initialUnits.filter(u => u.completionStatus === 'incomplete' || !u.completionStatus).length})</TabsTrigger>
-                    <TabsTrigger value="in-progress">진행 중 ({initialUnits.filter(u => u.completionStatus === 'in-progress').length})</TabsTrigger>
-                    <TabsTrigger value="completed">완료 ({initialUnits.filter(u => u.completionStatus === 'completed').length})</TabsTrigger>
+                    <TabsTrigger value="all">전체 ({units.length})</TabsTrigger>
+                    <TabsTrigger value="incomplete">미완료 ({units.filter(u => u.completionStatus === 'incomplete' || !u.completionStatus).length})</TabsTrigger>
+                    <TabsTrigger value="in-progress">진행 중 ({units.filter(u => u.completionStatus === 'in-progress').length})</TabsTrigger>
+                    <TabsTrigger value="completed">완료 ({units.filter(u => u.completionStatus === 'completed').length})</TabsTrigger>
                 </TabsList>
                 <TabsContent value={activeTab} className="mt-6">
                     {filteredUnits.length === 0 ? (

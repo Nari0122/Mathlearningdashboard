@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UnitCard } from "@/components/features/dashboard/UnitCard-v2";
 import {
@@ -16,7 +16,6 @@ import { isMiddleSchool } from "@/lib/curriculum-data";
 import { PageHeader } from "@/components/shared/PageHeader";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
 import { updateUnitError } from "@/actions/admin-actions";
 import { useReadOnly } from "@/contexts/ReadOnlyContext";
 
@@ -25,10 +24,11 @@ interface StudentLearningClientProps {
     studentDocId: string;
 }
 
-export default function StudentLearningClient({ units, studentDocId }: StudentLearningClientProps) {
+export default function StudentLearningClient({ units: initialUnits, studentDocId }: StudentLearningClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
-    const [isPending, startTransition] = useTransition();
+    const [units, setUnits] = useState(initialUnits);
+    useEffect(() => { setUnits(initialUnits); }, [initialUnits]);
     const [selectedLevel, setSelectedLevel] = useState<string>("all");
     const [selectedGrade, setSelectedGrade] = useState<string>("all");
     const [selectedSubject, setSelectedSubject] = useState<string>("all");
@@ -123,8 +123,13 @@ export default function StudentLearningClient({ units, studentDocId }: StudentLe
                             onDelete={() => { }}
                             onErrorChange={(unitId, errorType, delta) => {
                                 if (readOnly) return;
-                                startTransition(async () => {
-                                    await updateUnitError(unitId, studentDocId, errorType, delta);
+                                const errorField = `error${errorType}` as string;
+                                setUnits(prev => prev.map(u => {
+                                    if (u.id !== unitId) return u;
+                                    const currentVal = (u[errorField] as number) || 0;
+                                    return { ...u, [errorField]: Math.max(0, currentVal + delta) };
+                                }));
+                                updateUnitError(unitId, studentDocId, errorType, delta).then(() => {
                                     router.refresh();
                                 });
                             }}
