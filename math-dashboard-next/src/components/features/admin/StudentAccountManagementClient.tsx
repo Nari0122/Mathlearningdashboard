@@ -255,8 +255,14 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
                                 >
                                     <option value="일반고">일반고</option>
                                     <option value="자사고">자사고</option>
-                                    <option value="특목고">특목고</option>
+                                    <option value="외국어고">외국어고</option>
+                                    <option value="국제고">국제고</option>
+                                    <option value="과학고">과학고</option>
+                                    <option value="영재고">영재고</option>
+                                    <option value="예술고">예술고</option>
+                                    <option value="체육고">체육고</option>
                                     <option value="특성화고">특성화고</option>
+                                    <option value="마이스터고">마이스터고</option>
                                     <option value="기타">기타</option>
                                 </select>
                             </div>

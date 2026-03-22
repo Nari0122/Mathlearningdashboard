@@ -20,8 +20,14 @@ import {
 const SCHOOL_TYPES = [
     { value: "일반고", label: "일반고" },
     { value: "자사고", label: "자사고" },
-    { value: "특목고", label: "특목고" },
+    { value: "외국어고", label: "외국어고" },
+    { value: "국제고", label: "국제고" },
+    { value: "과학고", label: "과학고" },
+    { value: "영재고", label: "영재고" },
+    { value: "예술고", label: "예술고" },
+    { value: "체육고", label: "체육고" },
     { value: "특성화고", label: "특성화고" },
+    { value: "마이스터고", label: "마이스터고" },
     { value: "기타", label: "기타" },
 ];
 

@@ -433,8 +433,14 @@ export default function StudentsClient({ initialStudents }: StudentsClientProps)
                                     <SelectContent>
                                         <SelectItem value="일반고">일반고</SelectItem>
                                         <SelectItem value="자사고">자사고</SelectItem>
-                                        <SelectItem value="특목고">특목고</SelectItem>
+                                        <SelectItem value="외국어고">외국어고</SelectItem>
+                                        <SelectItem value="국제고">국제고</SelectItem>
+                                        <SelectItem value="과학고">과학고</SelectItem>
+                                        <SelectItem value="영재고">영재고</SelectItem>
+                                        <SelectItem value="예술고">예술고</SelectItem>
+                                        <SelectItem value="체육고">체육고</SelectItem>
                                         <SelectItem value="특성화고">특성화고</SelectItem>
+                                        <SelectItem value="마이스터고">마이스터고</SelectItem>
                                         <SelectItem value="기타">기타</SelectItem>
                                     </SelectContent>
                                 </Select>
