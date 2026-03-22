@@ -116,8 +116,29 @@ export const parentService = {
         }
     },
 
-    /** 해당 학생이 studentIds에 포함된 학부모 목록 (연동된 학부모. parents 컬렉션만 사용). 전화번호 포함. */
-    async getParentsLinkedToStudent(studentDocId: string): Promise<{ uid: string; name: string; phoneNumber?: string }[]> {
+    async recordParentLoginByUid(uid: string) {
+        if (!adminDb || !uid) return;
+        try {
+            const docRef = adminDb.collection(PARENTS_COLLECTION).doc(uid);
+            const snap = await docRef.get();
+            if (!snap.exists) return;
+
+            const nowKST = toKSTISOString();
+            const data = snap.data() || {};
+            const history: string[] = Array.isArray(data.loginHistory) ? data.loginHistory : [];
+            const updatedHistory = [...history, nowKST].slice(-50);
+
+            await docRef.update({
+                lastLogin: nowKST,
+                loginHistory: updatedHistory,
+            });
+        } catch (error) {
+            console.error("[parentService.recordParentLoginByUid]", error);
+        }
+    },
+
+    /** 해당 학생이 studentIds에 포함된 학부모 목록 (연동된 학부모. parents 컬렉션만 사용). 전화번호·로그인 기록 포함. */
+    async getParentsLinkedToStudent(studentDocId: string): Promise<{ uid: string; name: string; phoneNumber?: string; loginHistory?: string[] }[]> {
         if (!adminDb || !studentDocId) return [];
         try {
             const snapshot = await adminDb
@@ -130,6 +151,7 @@ export const parentService = {
                     uid: doc.id,
                     name: (d.name as string) || "학부모",
                     phoneNumber: (d.phoneNumber as string) || (d.phone as string) || undefined,
+                    loginHistory: Array.isArray(d.loginHistory) ? d.loginHistory : undefined,
                 };
             });
         } catch (error) {

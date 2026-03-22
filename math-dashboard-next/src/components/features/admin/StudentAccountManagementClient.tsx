@@ -31,7 +31,7 @@ interface StudentAccountManagementClientProps {
     student: any;
     /** Firestore 문서 ID (비활성화/활성화 토글용) */
     studentDocId?: string;
-    linkedParents?: { uid: string; name: string; phoneNumber?: string }[];
+    linkedParents?: { uid: string; name: string; phoneNumber?: string; loginHistory?: string[] }[];
 }
 
 export default function StudentAccountManagementClient({ student: rawStudent, studentDocId, linkedParents = [] }: StudentAccountManagementClientProps) {
@@ -377,6 +377,32 @@ export default function StudentAccountManagementClient({ student: rawStudent, st
                             <p className="text-xs text-gray-500">현재 이 학생과 연동된 학부모가 없습니다.</p>
                         )}
                     </div>
+
+                    {linkedParents.length > 0 && linkedParents.some((p) => p.loginHistory && p.loginHistory.length > 0) && (
+                        <div className="bg-white rounded-2xl shadow-sm p-6">
+                            <h3 className="font-semibold text-gray-900 mb-3">학부모 최근 접속 기록</h3>
+                            {linkedParents.map((p) => {
+                                const logs = p.loginHistory ?? [];
+                                if (logs.length === 0) return null;
+                                const recent = logs.slice(-5).reverse();
+                                return (
+                                    <div key={p.uid} className="mb-3 last:mb-0">
+                                        <p className="text-xs font-medium text-gray-700 mb-1.5">{p.name || "학부모"}</p>
+                                        <ul className="space-y-1 text-xs text-gray-700">
+                                            {recent.map((iso, idx) => (
+                                                <li key={`${iso}-${idx}`} className="flex items-center justify-between border-b last:border-b-0 py-1">
+                                                    <span>#{logs.length - idx}</span>
+                                                    <span className="font-mono text-[11px]">
+                                                        {new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* 최근 로그인 로그 */}
                     <div className="bg-white rounded-2xl shadow-sm p-6">

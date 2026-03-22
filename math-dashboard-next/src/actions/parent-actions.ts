@@ -62,8 +62,8 @@ export async function getSentPendingRequests(parentUid: string): Promise<
     return parentService.getPendingRequestsByParent(parentUid);
 }
 
-/** 학생 쪽: 나와 연동된 학부모 목록 (studentIds에 포함된 학부모 전체). 전화번호 포함. */
-export async function getConnectedParentsForStudent(studentDocId: string): Promise<{ uid: string; name: string; phoneNumber?: string }[]> {
+/** 학생 쪽: 나와 연동된 학부모 목록 (studentIds에 포함된 학부모 전체). 전화번호·로그인 기록 포함. */
+export async function getConnectedParentsForStudent(studentDocId: string): Promise<{ uid: string; name: string; phoneNumber?: string; loginHistory?: string[] }[]> {
     if (!studentDocId) return [];
     return parentService.getParentsLinkedToStudent(studentDocId);
 }

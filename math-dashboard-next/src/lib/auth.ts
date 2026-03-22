@@ -108,9 +108,9 @@ export function getAuthOptions(signupRoleCookie?: string, context?: AuthContext)
                             }
                             return true;
                         }
-                        // 로그인 페이지에서 카카오 로그인 시 학부모 문서 있으면 학부모 대시보드로 (URL에 uid 포함)
                         const existingParent = await parentService.getParentByUid(uid);
                         if (existingParent) {
+                            await parentService.recordParentLoginByUid(uid);
                             pendingSignInRedirectUrl = `/parent/${uid}/dashboard`;
                             return true;
                         }
