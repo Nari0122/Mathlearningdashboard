@@ -80,7 +80,7 @@ export default function AdminErrorAnalysisClient({ units }: AdminErrorAnalysisCl
 
       {hasData && (
         <>
-          <div className="grid grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-8">
             {errorTypes.map((error) => {
               const Icon = error.icon;
               const percentage =

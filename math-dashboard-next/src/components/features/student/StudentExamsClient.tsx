@@ -320,8 +320,8 @@ export default function StudentExamsClient({ exams: initialExams, studentDocId }
                 </div>
             )}
 
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                <table className="w-full text-left text-sm">
+            <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto shadow-sm">
+                <table className="w-full min-w-[500px] text-left text-sm">
                     <thead className="bg-gray-50 border-b">
                         <tr>
                             <th className="p-4 font-medium text-gray-500">유형</th>

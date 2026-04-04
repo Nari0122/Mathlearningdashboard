@@ -18,21 +18,19 @@ export default async function StudentLayout({
 }>) {
     const session = await getServerSession(getAuthOptions(undefined));
     const uid = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
-    let studentName: string | undefined;
-    if (uid) {
-        const student = await studentService.getStudentByUid(uid);
-        if (!student) {
-            redirect("/login");
-        }
-        const accountStatus = (student as { accountStatus?: string }).accountStatus ?? "ACTIVE";
-        if (accountStatus === "INACTIVE") {
-            redirect("/login?error=account_inactive");
-        }
-        if ((student as { approvalStatus?: string }).approvalStatus === "PENDING") {
-            redirect("/pending-approval");
-        }
-        if (student?.name) studentName = (student.name as string).trim() || undefined;
+    if (!session || !uid) redirect("/login");
+
+    const student = await studentService.getStudentByUid(uid);
+    if (!student) redirect("/login");
+
+    const accountStatus = (student as { accountStatus?: string }).accountStatus ?? "ACTIVE";
+    if (accountStatus === "INACTIVE") {
+        redirect("/login?error=account_inactive");
     }
+    if ((student as { approvalStatus?: string }).approvalStatus === "PENDING") {
+        redirect("/pending-approval");
+    }
+    const studentName = student?.name ? (student.name as string).trim() || undefined : undefined;
 
     return (
         <div className="flex h-screen bg-gray-50">

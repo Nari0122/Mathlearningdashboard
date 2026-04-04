@@ -37,22 +37,22 @@ export default function StudentDetailLayoutClient({
         <div className="space-y-4">
             {/* Header with Back Button and Student Info */}
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4 min-w-0">
                     <Link href="/admin/students">
-                        <Button variant="outline" size="icon">
+                        <Button variant="outline" size="icon" className="min-h-[44px] min-w-[44px] shrink-0">
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                     </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold tracking-tight">{studentName} 학생</h1>
-                        <p className="text-sm text-muted-foreground">학생 상세 정보 및 학습 관리</p>
+                    <div className="min-w-0">
+                        <h1 className="text-lg md:text-2xl font-bold tracking-tight truncate">{studentName} 학생</h1>
+                        <p className="text-xs md:text-sm text-muted-foreground">학생 상세 정보 및 학습 관리</p>
                     </div>
                 </div>
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200 overflow-x-auto scrollbar-hide">
-                <nav className="-mb-px flex space-x-8 min-w-max px-4" aria-label="Tabs">
+            <div className="border-b border-gray-200 overflow-x-auto scrollbar-hide -mx-4 md:mx-0 px-4 md:px-0">
+                <nav className="-mb-px flex space-x-4 md:space-x-8 min-w-max" aria-label="Tabs">
                     {tabs.map((tab) => {
                         const isActive = tab.exact
                             ? pathname === tab.href
@@ -63,7 +63,7 @@ export default function StudentDetailLayoutClient({
                                 key={tab.href}
                                 href={tab.href}
                                 className={cn(
-                                    "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors",
+                                    "whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors min-h-[44px] flex items-center",
                                     isActive
                                         ? "border-blue-500 text-blue-600"
                                         : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"

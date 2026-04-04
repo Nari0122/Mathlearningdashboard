@@ -77,7 +77,7 @@ export default function DashboardClient({ initialUnits, studentDocId }: Dashboar
     const learningRecordsCount = 3; // Mock count for now
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto space-y-8 text-sm leading-relaxed">
+        <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-6 md:space-y-8 text-sm leading-relaxed">
             <PageHeader
                 title="학습 대시보드"
                 description="최근 학습 현황과 단원 진행 상황을 한눈에 확인하세요."
@@ -103,11 +103,11 @@ export default function DashboardClient({ initialUnits, studentDocId }: Dashboar
                     </div>
                     <div className="flex items-end justify-between mb-4">
                         <div>
-                            <p className="text-5xl font-bold text-gray-900 mb-2">{completedUnits}</p>
+                            <p className="text-3xl md:text-5xl font-bold text-gray-900 mb-2">{completedUnits}</p>
                             <p className="text-gray-600">/ {totalUnits}개 단원 완료</p>
                         </div>
                         <div className="text-right">
-                            <p className="text-3xl font-bold text-gray-900">
+                            <p className="text-2xl md:text-3xl font-bold text-gray-900">
                                 {totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0}%
                             </p>
                             <p className="text-sm text-gray-500">완료율</p>
@@ -135,7 +135,7 @@ export default function DashboardClient({ initialUnits, studentDocId }: Dashboar
                     </div>
                     <div className="flex items-end justify-between">
                         <div>
-                            <p className="text-5xl font-bold text-gray-900">{learningRecordsCount}</p>
+                            <p className="text-3xl md:text-5xl font-bold text-gray-900">{learningRecordsCount}</p>
                             <p className="text-gray-600 mt-1">개의 기록</p>
                         </div>
                         <div className="text-sm text-gray-400 group-hover:text-blue-500 transition-colors">
@@ -149,7 +149,7 @@ export default function DashboardClient({ initialUnits, studentDocId }: Dashboar
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Active Units List */}
                 <div className="flex-1">
-                    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 min-h-[500px]">
+                        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-gray-100 min-h-[300px] md:min-h-[500px]">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-semibold text-gray-900">내 단원 학습 현황</h2>
                             <div className="bg-gray-50 px-4 py-2 rounded-lg border border-gray-200 hidden">

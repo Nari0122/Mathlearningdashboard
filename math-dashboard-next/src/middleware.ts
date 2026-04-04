@@ -1,35 +1,73 @@
-import { withAuth } from "next-auth/middleware";
-import { NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
+import { NextRequest, NextResponse } from "next/server";
 
-/**
- * /admin/* (대시보드) 접근: JWT에 role이 ADMIN 또는 SUPER_ADMIN일 때만 허용.
- * /admin/admins: SUPER_ADMIN만 접근 가능. ADMIN은 /access-denied로 리다이렉트.
- * 세션 없거나 다른 역할이면 /admin-login으로 리다이렉트.
- */
-export default withAuth(
-    function middleware(req) {
-        const path = req.nextUrl.pathname;
-        const role = req.nextauth.token?.role;
+function getSecret() {
+    return process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+}
 
-        // /admin/admins 경로는 SUPER_ADMIN만 접근
-        if (path.startsWith("/admin/admins")) {
-            if (role !== "SUPER_ADMIN") {
-                return NextResponse.redirect(new URL("/admin/students", req.url));
-            }
+export async function middleware(req: NextRequest) {
+    const path = req.nextUrl.pathname;
+    const token = await getToken({ req, secret: getSecret() });
+
+    const noCacheHeaders = {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    };
+
+    // ── 비로그인 → 로그인 페이지 ──
+    if (!token) {
+        if (path.startsWith("/admin/")) {
+            return NextResponse.redirect(new URL("/admin-login", req.url));
         }
-        return NextResponse.next();
-    },
-    {
-        callbacks: {
-            authorized: ({ token }) =>
-                token?.role === "ADMIN" || token?.role === "SUPER_ADMIN",
-        },
-        pages: {
-            signIn: "/admin-login",
-        },
+        return NextResponse.redirect(new URL("/login", req.url));
     }
-);
+
+    const role = token.role as string | undefined;
+
+    // ── /admin/* : ADMIN 또는 SUPER_ADMIN만 허용 ──
+    if (path.startsWith("/admin/")) {
+        if (role !== "ADMIN" && role !== "SUPER_ADMIN") {
+            return NextResponse.redirect(new URL("/access-denied", req.url));
+        }
+        if ((role === "ADMIN" || role === "SUPER_ADMIN") && token.status === "PENDING") {
+            return NextResponse.redirect(new URL("/admin-pending", req.url));
+        }
+        if (path.startsWith("/admin/admins") && role !== "SUPER_ADMIN") {
+            return NextResponse.redirect(new URL("/admin/students", req.url));
+        }
+    }
+
+    // ── /student/*, /dashboard/*, /homework, /exams, /schedule, /study/* : 관리자가 접근하면 관리자 대시보드로 ──
+    const studentPaths = ["/student/", "/dashboard", "/homework", "/exams", "/schedule", "/study/"];
+    const isStudentPath = studentPaths.some((p) => path.startsWith(p));
+    if (isStudentPath && (role === "ADMIN" || role === "SUPER_ADMIN")) {
+        return NextResponse.redirect(new URL("/admin/students", req.url));
+    }
+
+    // ── /parent/* : 관리자가 접근하면 관리자 대시보드로, 학생이 접근하면 차단 ──
+    if (path.startsWith("/parent/")) {
+        if (role === "ADMIN" || role === "SUPER_ADMIN") {
+            return NextResponse.redirect(new URL("/admin/students", req.url));
+        }
+    }
+
+    const response = NextResponse.next();
+    for (const [key, value] of Object.entries(noCacheHeaders)) {
+        response.headers.set(key, value);
+    }
+    return response;
+}
 
 export const config = {
-    matcher: ["/admin/students/:path*", "/admin/parents/:path*", "/admin/admins/:path*"],
+    matcher: [
+        "/admin/:path*",
+        "/student/:path*",
+        "/dashboard/:path*",
+        "/homework/:path*",
+        "/exams/:path*",
+        "/schedule/:path*",
+        "/study/:path*",
+        "/parent/:path*",
+    ],
 };

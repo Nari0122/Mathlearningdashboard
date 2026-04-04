@@ -134,21 +134,21 @@ export default function AdminHistoryClient({ records: initialRecords, studentDoc
                                 <DialogTitle className="text-base font-semibold">새 학습 기록 추가</DialogTitle>
                             </DialogHeader>
                         <div className="grid gap-3 py-3">
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="date" className="text-right">날짜</Label>
-                                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="col-span-3" />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="date" className="sm:text-right">날짜</Label>
+                                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="col-span-1 sm:col-span-3 min-h-[44px]" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="progress" className="text-right">진도/내용</Label>
-                                <Input id="progress" value={progress} onChange={(e) => setProgress(e.target.value)} className="col-span-3" placeholder="예: 미적분 p.30~40" />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="progress" className="sm:text-right">진도/내용</Label>
+                                <Input id="progress" value={progress} onChange={(e) => setProgress(e.target.value)} className="col-span-1 sm:col-span-3 min-h-[44px]" placeholder="예: 미적분 p.30~40" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="sessionNumber" className="text-right">수업 회차</Label>
-                                <Input id="sessionNumber" type="number" min="1" value={sessionNumber} onChange={(e) => setSessionNumber(e.target.value)} className="col-span-3" placeholder="예: 1, 2, 3..." />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="sessionNumber" className="sm:text-right">수업 회차</Label>
+                                <Input id="sessionNumber" type="number" min="1" value={sessionNumber} onChange={(e) => setSessionNumber(e.target.value)} className="col-span-1 sm:col-span-3 min-h-[44px]" placeholder="예: 1, 2, 3..." />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="comment" className="text-right">코멘트</Label>
-                                <Textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)} className="col-span-3" placeholder="학생 반응, 특이사항 등" />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="comment" className="sm:text-right">코멘트</Label>
+                                <Textarea id="comment" value={comment} onChange={(e) => setComment(e.target.value)} className="col-span-1 sm:col-span-3" placeholder="학생 반응, 특이사항 등" />
                             </div>
                         </div>
                         <DialogFooter>
@@ -168,21 +168,21 @@ export default function AdminHistoryClient({ records: initialRecords, studentDoc
                         <DialogTitle className="text-base font-semibold">학습 기록 수정</DialogTitle>
                     </DialogHeader>
                         <div className="grid gap-3 py-3">
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="edit-date" className="text-right">날짜</Label>
-                                <Input id="edit-date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="col-span-3" />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="edit-date" className="sm:text-right">날짜</Label>
+                                <Input id="edit-date" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="col-span-1 sm:col-span-3 min-h-[44px]" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="edit-progress" className="text-right">진도/내용</Label>
-                                <Input id="edit-progress" value={editProgress} onChange={(e) => setEditProgress(e.target.value)} className="col-span-3" />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="edit-progress" className="sm:text-right">진도/내용</Label>
+                                <Input id="edit-progress" value={editProgress} onChange={(e) => setEditProgress(e.target.value)} className="col-span-1 sm:col-span-3 min-h-[44px]" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="edit-sessionNumber" className="text-right">수업 회차</Label>
-                                <Input id="edit-sessionNumber" type="number" min="1" value={editSessionNumber} onChange={(e) => setEditSessionNumber(e.target.value)} className="col-span-3" />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="edit-sessionNumber" className="sm:text-right">수업 회차</Label>
+                                <Input id="edit-sessionNumber" type="number" min="1" value={editSessionNumber} onChange={(e) => setEditSessionNumber(e.target.value)} className="col-span-1 sm:col-span-3 min-h-[44px]" />
                             </div>
-                            <div className="grid grid-cols-4 items-center gap-3">
-                                <Label htmlFor="edit-comment" className="text-right">코멘트</Label>
-                                <Textarea id="edit-comment" value={editComment} onChange={(e) => setEditComment(e.target.value)} className="col-span-3" />
+                            <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-3">
+                                <Label htmlFor="edit-comment" className="sm:text-right">코멘트</Label>
+                                <Textarea id="edit-comment" value={editComment} onChange={(e) => setEditComment(e.target.value)} className="col-span-1 sm:col-span-3" />
                             </div>
                         </div>
                         <DialogFooter>

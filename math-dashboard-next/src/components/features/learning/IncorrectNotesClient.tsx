@@ -76,7 +76,7 @@ export default function IncorrectNotesClient({ notes, units, studentDocId }: { n
     };
 
     return (
-        <div className="p-8 max-w-5xl mx-auto space-y-8">
+        <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8">
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">오답노트</h1>
