@@ -34,7 +34,7 @@ const STATUS_LABEL: Record<ReviewFeedbackStatus, string> = {
 };
 
 function useTickingCountdown(deadlineIso: string) {
-    const [label, setLabel] = useState(() => formatReviewDeadlineCountdown(deadlineIso).label);
+    const [label, setLabel] = useState<string | null>(null);
     useEffect(() => {
         const tick = () => setLabel(formatReviewDeadlineCountdown(deadlineIso).label);
         tick();
@@ -78,27 +78,29 @@ export default function StudentReviewSubmissionClient({
 
             setUploadingId(problemId);
             try {
-                let blob: Blob = file;
-                if (file.type.startsWith("image/") && file.type !== "image/heic" && file.type !== "image/heif") {
+                // 오답 노트(StudentIncorrectNotesClient)와 동일: image/* 는 압축 시도 후 업로드
+                let uploadFile: File | Blob = file;
+                const isImage = file.type.startsWith("image/");
+
+                if (isImage) {
                     try {
-                        blob = await imageCompression(file, {
+                        const compressedFile = await imageCompression(file, {
                             maxSizeMB: 1,
                             maxWidthOrHeight: 1920,
                             useWebWorker: true,
-                            initialQuality: 0.75,
+                            initialQuality: 0.7,
                         });
-                    } catch {
-                        blob = file;
+                        uploadFile = compressedFile;
+                    } catch (err) {
+                        console.error("Compression failed, using original", err);
                     }
                 }
 
                 const fileId = uuidv4();
-                const safeName = file.name.replace(/[^\w.-]/g, "_") || "photo.jpg";
-                const storagePath = `students/${studentDocId}/reviewSubmissions/${problemId}/${fileId}_${safeName}`;
+                const storagePath = `students/${studentDocId}/reviewSubmissions/${problemId}/${fileId}_${file.name}`;
 
                 const formData = new FormData();
-                const uploadFile = blob instanceof File ? blob : new File([blob], safeName, { type: file.type || "image/jpeg" });
-                formData.append("file", uploadFile);
+                formData.append("file", uploadFile, file.name);
                 formData.append("storagePath", storagePath);
 
                 const res = await fetch("/api/storage/upload", { method: "POST", body: formData });
@@ -219,7 +221,13 @@ function ProblemCard({
             <div className="space-y-1">
                 <h3 className="font-semibold text-base">{p.bookAndProblem}</h3>
                 <p className="text-sm text-muted-foreground">단원: {p.unitName}</p>
-                <p className={`text-sm font-medium ${pastDeadline ? "text-gray-500" : "text-blue-600"}`}>{countdownLabel}</p>
+                <p
+                    className={`text-sm font-medium ${
+                        countdownLabel === null ? "text-muted-foreground" : pastDeadline ? "text-gray-500" : "text-blue-600"
+                    }`}
+                >
+                    {countdownLabel ?? "남은 시간 계산 중…"}
+                </p>
                 <p className="text-xs text-gray-500">마감: {formatDateTime(p.deadline)}</p>
             </div>
 

@@ -1,17 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Camera, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -26,13 +19,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { classEndAndReviewDeadline, formatReviewDeadlineCountdown } from "@/lib/reviewSubmissionDeadline";
+import { classEndAndReviewDeadline } from "@/lib/reviewSubmissionDeadline";
+import { ReviewDeadlineCountdownText } from "@/components/shared/ReviewDeadlineCountdownText";
 import {
     adminCreateReviewProblem,
     adminDeleteReviewProblem,
     adminUpdateReviewFeedback,
 } from "@/actions/review-submission-actions";
 import type { ReviewFeedbackStatus, ReviewProblem } from "@/types/review-submission";
+import { cn } from "@/lib/utils";
 
 function formatDateTime(dateString: string | Date | null) {
     if (!dateString) return "-";
@@ -84,6 +79,14 @@ export default function AdminReviewSubmissionClient({
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     const [feedbackDraft, setFeedbackDraft] = useState(() => buildFeedbackDraft(problems));
+    const feedbackDraftRef = useRef(feedbackDraft);
+    const [savingFeedbackId, setSavingFeedbackId] = useState<string | null>(null);
+    /** 저장 직후 버튼 문구용 (내용 수정 시 해제) */
+    const [feedbackSavedIds, setFeedbackSavedIds] = useState<Record<string, boolean>>({});
+
+    useLayoutEffect(() => {
+        feedbackDraftRef.current = feedbackDraft;
+    }, [feedbackDraft]);
 
     const previewTimes =
         linkedScheduleId && schedules.length > 0
@@ -107,14 +110,36 @@ export default function AdminReviewSubmissionClient({
     };
 
     const handleSaveFeedback = async (problemId: string) => {
-        const d = feedbackDraft[problemId];
-        if (!d) return;
-        const res = await adminUpdateReviewFeedback(studentDocId, problemId, {
-            feedback: d.feedback,
-            feedbackStatus: d.feedbackStatus === "" ? null : d.feedbackStatus,
+        const d = feedbackDraftRef.current[problemId];
+        if (!d) {
+            alert("저장할 피드백 정보를 찾을 수 없습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.");
+            return;
+        }
+        setSavingFeedbackId(problemId);
+        try {
+            const res = await adminUpdateReviewFeedback(studentDocId, problemId, {
+                feedback: d.feedback,
+                feedbackStatus: d.feedbackStatus === "" ? null : d.feedbackStatus,
+            });
+            if (res.success) {
+                setFeedbackSavedIds((prev) => ({ ...prev, [problemId]: true }));
+                router.refresh();
+            } else alert(res.message);
+        } catch (e) {
+            console.error("[AdminReviewSubmission] save feedback", e);
+            alert(e instanceof Error ? e.message : "저장 중 오류가 발생했습니다.");
+        } finally {
+            setSavingFeedbackId(null);
+        }
+    };
+
+    const clearFeedbackSaved = (problemId: string) => {
+        setFeedbackSavedIds((prev) => {
+            if (!prev[problemId]) return prev;
+            const next = { ...prev };
+            delete next[problemId];
+            return next;
         });
-        if (res.success) router.refresh();
-        else alert(res.message);
     };
 
     const handleDelete = async () => {
@@ -139,80 +164,79 @@ export default function AdminReviewSubmissionClient({
                     </div>
                 }
                 actions={
-                    <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" />
-                                문제 등록
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-lg">
-                            <DialogHeader>
-                                <DialogTitle>복습 문제 등록</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-2">
-                                <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-3">
-                                    <Label htmlFor="book" className="text-right whitespace-nowrap text-sm">
-                                        책·번호
-                                    </Label>
-                                    <Input
-                                        id="book"
-                                        value={bookAndProblem}
-                                        onChange={(e) => setBookAndProblem(e.target.value)}
-                                        placeholder="예: 수학의 정석 3단원 12번"
-                                    />
-                                    <Label htmlFor="unit" className="text-right whitespace-nowrap text-sm">
-                                        단원명
-                                    </Label>
-                                    <Input
-                                        id="unit"
-                                        value={unitName}
-                                        onChange={(e) => setUnitName(e.target.value)}
-                                        placeholder="예: 이차방정식"
-                                    />
-                                </div>
-                                {scheduledList.length > 0 ? (
-                                    <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
-                                        <Label htmlFor="linkedSchedule" className="text-right whitespace-nowrap text-sm">
-                                            연관 수업
-                                        </Label>
-                                        <select
-                                            id="linkedSchedule"
-                                            value={linkedScheduleId}
-                                            onChange={(e) => setLinkedScheduleId(e.target.value)}
-                                            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                                        >
-                                            <option value="">수업을 선택하세요</option>
-                                            {scheduledList.map((s) => (
-                                                <option key={s.id} value={s.id}>
-                                                    {s.date} {s.startTime} ~ {s.endTime} {s.topic ? `- ${s.topic}` : ""}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div />
-                                        <p className="text-xs text-muted-foreground">
-                                            숙제 마감 설정과 동일하게 예정된 수업만 표시됩니다. 마감은 수업 종료 시각 + 2시간입니다.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-amber-700">예정된 수업 일정이 없어 연결할 수 없습니다. 먼저 수업 일정을 등록해 주세요.</p>
-                                )}
-                                {previewTimes && (
-                                    <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground space-y-1">
-                                        <div>수업 종료(참고): {formatDateTime(previewTimes.classEndTime)}</div>
-                                        <div className="font-medium text-foreground">제출 마감: {formatDateTime(previewTimes.deadline)}</div>
-                                    </div>
-                                )}
-                            </div>
-                            <DialogFooter>
-                                <Button onClick={handleAdd} disabled={!scheduledList.length}>
-                                    등록하기
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button type="button" onClick={() => setIsAddOpen(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        문제 등록
+                    </Button>
                 }
             />
+
+            <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>복습 문제 등록</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-2">
+                        <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-3">
+                            <Label htmlFor="book" className="text-right whitespace-nowrap text-sm">
+                                책·번호
+                            </Label>
+                            <Input
+                                id="book"
+                                value={bookAndProblem}
+                                onChange={(e) => setBookAndProblem(e.target.value)}
+                                placeholder="예: 수학의 정석 3단원 12번"
+                            />
+                            <Label htmlFor="unit" className="text-right whitespace-nowrap text-sm">
+                                단원명
+                            </Label>
+                            <Input
+                                id="unit"
+                                value={unitName}
+                                onChange={(e) => setUnitName(e.target.value)}
+                                placeholder="예: 이차방정식"
+                            />
+                        </div>
+                        {scheduledList.length > 0 ? (
+                            <div className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
+                                <Label htmlFor="linkedSchedule" className="text-right whitespace-nowrap text-sm">
+                                    연관 수업
+                                </Label>
+                                <select
+                                    id="linkedSchedule"
+                                    value={linkedScheduleId}
+                                    onChange={(e) => setLinkedScheduleId(e.target.value)}
+                                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                                >
+                                    <option value="">수업을 선택하세요</option>
+                                    {scheduledList.map((s) => (
+                                        <option key={s.id} value={s.id}>
+                                            {s.date} {s.startTime} ~ {s.endTime} {s.topic ? `- ${s.topic}` : ""}
+                                        </option>
+                                    ))}
+                                </select>
+                                <div />
+                                <p className="text-xs text-muted-foreground">
+                                    숙제 마감 설정과 동일하게 예정된 수업만 표시됩니다. 마감은 수업 종료 시각 + 2시간입니다.
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-amber-700">예정된 수업 일정이 없어 연결할 수 없습니다. 먼저 수업 일정을 등록해 주세요.</p>
+                        )}
+                        {previewTimes && (
+                            <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground space-y-1">
+                                <div>수업 종료(참고): {formatDateTime(previewTimes.classEndTime)}</div>
+                                <div className="font-medium text-foreground">제출 마감: {formatDateTime(previewTimes.deadline)}</div>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" onClick={handleAdd} disabled={!scheduledList.length}>
+                            등록하기
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <div className="space-y-4">
                 {problems.length === 0 ? (
@@ -221,12 +245,14 @@ export default function AdminReviewSubmissionClient({
                     </div>
                 ) : (
                     problems.map((p) => {
-                        const cd = formatReviewDeadlineCountdown(p.deadline);
                         const draft = feedbackDraft[p.id] ?? { feedback: "", feedbackStatus: "" as const };
                         const linked = schedules.find((s) => s.id === p.linkedScheduleId);
 
                         return (
-                            <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-4 md:p-5 space-y-4 shadow-sm">
+                            <div
+                                key={p.id}
+                                className="bg-white rounded-xl border border-gray-200 p-4 md:p-5 space-y-4 shadow-sm relative z-0"
+                            >
                                 <div className="flex flex-wrap items-start justify-between gap-3">
                                     <div className="min-w-0 space-y-1">
                                         <h3 className="font-semibold text-base">{p.bookAndProblem}</h3>
@@ -237,7 +263,7 @@ export default function AdminReviewSubmissionClient({
                                                 ? `${linked.date} ${linked.startTime} ~ ${linked.endTime}${linked.topic ? ` · ${linked.topic}` : ""}`
                                                 : "(일정 없음 또는 변경됨)"}
                                         </p>
-                                        <p className={`text-xs font-medium ${cd.open ? "text-blue-600" : "text-gray-500"}`}>{cd.label}</p>
+                                        <ReviewDeadlineCountdownText deadlineIso={p.deadline} />
                                         <p className="text-xs text-gray-500">마감 시각: {formatDateTime(p.deadline)}</p>
                                     </div>
                                     <Button variant="ghost" size="sm" className="text-red-600 shrink-0" onClick={() => setDeleteTarget(p.id)}>
@@ -267,16 +293,20 @@ export default function AdminReviewSubmissionClient({
                                     )}
                                 </div>
 
-                                <div className="border-t pt-3 space-y-3">
+                                <div className="border-t pt-3 space-y-3 relative z-10 isolate">
                                     <Label className="text-xs text-gray-500">피드백</Label>
                                     <Textarea
                                         value={draft.feedback}
-                                        onChange={(e) =>
+                                        onChange={(e) => {
+                                            clearFeedbackSaved(p.id);
                                             setFeedbackDraft((prev) => ({
                                                 ...prev,
-                                                [p.id]: { ...draft, feedback: e.target.value },
-                                            }))
-                                        }
+                                                [p.id]: {
+                                                    ...(prev[p.id] ?? { feedback: "", feedbackStatus: "" as const }),
+                                                    feedback: e.target.value,
+                                                },
+                                            }));
+                                        }}
                                         placeholder="학생에게 전할 코멘트를 입력하세요."
                                         rows={3}
                                         className="text-sm"
@@ -284,15 +314,16 @@ export default function AdminReviewSubmissionClient({
                                     <div className="flex flex-wrap items-center gap-3">
                                         <select
                                             value={draft.feedbackStatus}
-                                            onChange={(e) =>
+                                            onChange={(e) => {
+                                                clearFeedbackSaved(p.id);
                                                 setFeedbackDraft((prev) => ({
                                                     ...prev,
                                                     [p.id]: {
-                                                        ...draft,
+                                                        ...(prev[p.id] ?? { feedback: "", feedbackStatus: "" as const }),
                                                         feedbackStatus: e.target.value as ReviewFeedbackStatus | "",
                                                     },
-                                                }))
-                                            }
+                                                }));
+                                            }}
                                             className="h-9 rounded-md border border-input bg-transparent px-3 text-sm"
                                         >
                                             <option value="">상태 태그 선택</option>
@@ -302,8 +333,21 @@ export default function AdminReviewSubmissionClient({
                                                 </option>
                                             ))}
                                         </select>
-                                        <Button type="button" size="sm" onClick={() => handleSaveFeedback(p.id)}>
-                                            피드백 저장
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            disabled={savingFeedbackId === p.id}
+                                            onClick={() => void handleSaveFeedback(p.id)}
+                                            className={cn(
+                                                feedbackSavedIds[p.id] &&
+                                                    "bg-green-600 text-white hover:bg-green-600/90 border-transparent"
+                                            )}
+                                        >
+                                            {savingFeedbackId === p.id
+                                                ? "저장 중…"
+                                                : feedbackSavedIds[p.id]
+                                                  ? "저장 완료"
+                                                  : "피드백 저장"}
                                         </Button>
                                     </div>
                                 </div>

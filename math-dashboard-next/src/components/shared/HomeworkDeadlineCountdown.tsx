@@ -12,9 +12,7 @@ type Props = {
 };
 
 export function HomeworkDeadlineCountdown({ dueDate, submissionDeadline, linkedScheduleId, className }: Props) {
-    const assignment: AssignmentDeadlineInfo = { dueDate, submissionDeadline, linkedScheduleId };
-
-    const [state, setState] = useState(() => formatSubmissionDeadlineCountdown(assignment));
+    const [state, setState] = useState<{ open: boolean; label: string } | null>(null);
 
     useEffect(() => {
         const a: AssignmentDeadlineInfo = { dueDate, submissionDeadline, linkedScheduleId };
@@ -28,11 +26,12 @@ export function HomeworkDeadlineCountdown({ dueDate, submissionDeadline, linkedS
         <span
             className={cn(
                 "tabular-nums",
-                state.open ? "text-blue-600 font-medium" : "text-gray-500",
+                state ? (state.open ? "text-blue-600 font-medium" : "text-gray-500") : "text-muted-foreground",
                 className
             )}
+            aria-busy={state === null}
         >
-            {state.label}
+            {state ? state.label : "남은 시간 계산 중…"}
         </span>
     );
 }
