@@ -33,8 +33,10 @@ export function StudentSidebar({ userName, className }: StudentSidebarProps) {
   const params = useParams();
   const router = useRouter();
   const { data: session } = useSession();
-  const studentId = params?.id as string;
-  const docId = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id ?? studentId;
+  const paramId = params?.id as string | undefined;
+  const docId = (session?.user as { sub?: string })?.sub ?? (session?.user as { id?: string })?.id;
+  /** URL 세그먼트가 늦게 잡히는 경우에도 세션 uid로 링크 유지 */
+  const studentId = paramId || docId || "";
   const [fallbackName, setFallbackName] = useState<string | null>(null);
   const [settings, setSettings] = useState({ supportEmail: 'support@mathclinic.com', supportPhone: '02-1234-5678' });
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);

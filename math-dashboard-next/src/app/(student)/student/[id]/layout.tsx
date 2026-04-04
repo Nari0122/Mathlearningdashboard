@@ -3,6 +3,7 @@ import { getStudentDetailByDocId } from "@/actions/student-actions";
 import { notFound, redirect } from "next/navigation";
 import { getAuthOptions } from "@/lib/auth";
 import { userService } from "@/services/userService";
+import StudentSectionTabsClient from "@/components/features/student/StudentSectionTabsClient";
 
 export default async function StudentIdLayout({
     children,
@@ -37,5 +38,5 @@ export default async function StudentIdLayout({
     if ((student as { approvalStatus?: string }).approvalStatus === "PENDING") {
         redirect("/pending-approval");
     }
-    return <>{children}</>;
+    return <StudentSectionTabsClient studentDocId={docId}>{children}</StudentSectionTabsClient>;
 }
