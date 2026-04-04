@@ -2,8 +2,8 @@ import { ReactNode } from 'react';
 import { StudentSidebar } from './StudentSidebar';
 
 interface StudentLayoutProps {
-  currentView: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory' | 'myLearning';
-  onNavigate: (view: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory' | 'myLearning') => void;
+  currentView: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory';
+  onNavigate: (view: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory') => void;
   onLogout: () => void;
   studentName: string;
   children: ReactNode;

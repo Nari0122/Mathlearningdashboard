@@ -112,16 +112,13 @@ export default function DashboardPage() {
             {/* Middle Section: Learning Progress & Records Shortcuts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Completion Progress */}
-                <Link
-                    href="/study/my-learning"
-                    className="bg-white border-2 border-gray-100 rounded-2xl shadow-sm p-6 hover:border-gray-300 hover:shadow transition-all text-left group"
-                >
+                <div className="bg-white border-2 border-gray-100 rounded-2xl shadow-sm p-6">
                     <div className="flex items-start justify-between mb-4">
                         <div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1 group-hover:text-blue-600 transition-colors">학습 완료 현황</h3>
-                            <p className="text-gray-500 text-sm">클릭하여 전체 단원 보기</p>
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">학습 완료 현황</h3>
+                            <p className="text-gray-500 text-sm">전체 단원 진행 상태</p>
                         </div>
-                        <BookOpen size={28} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
+                        <BookOpen size={28} className="text-gray-300" />
                     </div>
                     <div className="flex items-end justify-between mb-4">
                         <div>
@@ -141,7 +138,7 @@ export default function DashboardPage() {
                             style={{ width: `${totalUnits > 0 ? (completedUnits / totalUnits) * 100 : 0}%` }}
                         />
                     </div>
-                </Link>
+                </div>
 
                 {/* Learning Records Shortcut */}
                 <Link
