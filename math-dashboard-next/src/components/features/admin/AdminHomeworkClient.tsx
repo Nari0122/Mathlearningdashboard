@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { createHomework, updateHomework, deleteHomework, updateHomeworkProgress } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { HomeworkDeadlineCountdown } from "@/components/shared/HomeworkDeadlineCountdown";
 
 const PROGRESS_OPTIONS = [
     { value: "none", label: "안 함", textClass: "text-red-600" },
@@ -306,7 +307,13 @@ export default function AdminHomeworkClient({ homeworks: initialHomeworks, sched
                                         </td>
                                         <td className="p-4 text-gray-500 whitespace-nowrap">{hw.assignedDate || "-"}</td>
                                         <td className={`p-4 whitespace-nowrap ${pastDeadline ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                                            {hw.dueDate}
+                                            <div>{hw.dueDate}</div>
+                                            <HomeworkDeadlineCountdown
+                                                dueDate={hw.dueDate}
+                                                submissionDeadline={hw.submissionDeadline}
+                                                linkedScheduleId={hw.linkedScheduleId}
+                                                className="block text-[11px] font-normal mt-0.5"
+                                            />
                                         </td>
                                         <td className="p-4 text-gray-500 whitespace-nowrap">
                                             {hw.submittedDate ? formatDateTime(hw.submittedDate) : "-"}

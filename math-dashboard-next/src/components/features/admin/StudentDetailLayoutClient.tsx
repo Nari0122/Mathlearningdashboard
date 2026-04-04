@@ -28,6 +28,7 @@ export default function StudentDetailLayoutClient({
         { href: `/admin/students/${studentDocId}/history`, label: "학습 기록" },
         { href: `/admin/students/${studentDocId}/schedule`, label: "수업 일정" },
         { href: `/admin/students/${studentDocId}/homework`, label: "숙제 관리" },
+        { href: `/admin/students/${studentDocId}/review-submission`, label: "복습 제출" },
         { href: `/admin/students/${studentDocId}/exams`, label: "시험 성적" },
         { href: `/admin/students/${studentDocId}/incorrect-notes`, label: "오답 노트" },
         { href: `/admin/students/${studentDocId}/account`, label: "계정" },

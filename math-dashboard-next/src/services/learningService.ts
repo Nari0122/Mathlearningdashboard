@@ -636,6 +636,126 @@ export const learningService = {
         }
     },
 
+    // ========== Review submission (복습 제출) ==========
+    async getReviewProblems(docId: string) {
+        try {
+            const studentDocRef = await getStudentDocRef(docId);
+            if (!studentDocRef) return [];
+
+            const snapshot = await studentDocRef.collection("reviewProblems").orderBy("createdAt", "desc").get();
+            return snapshot.docs.map((doc) => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    bookAndProblem: data.bookAndProblem ?? "",
+                    unitName: data.unitName ?? "",
+                    linkedScheduleId: data.linkedScheduleId ?? "",
+                    classEndTime: data.classEndTime ?? "",
+                    deadline: data.deadline ?? "",
+                    createdAt: data.createdAt ?? "",
+                    submissions: Array.isArray(data.submissions) ? data.submissions : [],
+                    submittedAt: data.submittedAt ?? null,
+                    isLateSubmit: Boolean(data.isLateSubmit),
+                    feedback: data.feedback ?? "",
+                    feedbackStatus: data.feedbackStatus ?? null,
+                };
+            });
+        } catch (error) {
+            console.error("Firestore getReviewProblems error:", error);
+            return [];
+        }
+    },
+
+    async getReviewProblem(docId: string, problemId: string) {
+        try {
+            const studentDocRef = await getStudentDocRef(docId);
+            if (!studentDocRef) return null;
+
+            const doc = await studentDocRef.collection("reviewProblems").doc(problemId).get();
+            if (!doc.exists) return null;
+            const data = doc.data() || {};
+            return {
+                id: doc.id,
+                bookAndProblem: data.bookAndProblem ?? "",
+                unitName: data.unitName ?? "",
+                linkedScheduleId: data.linkedScheduleId ?? "",
+                classEndTime: data.classEndTime ?? "",
+                deadline: data.deadline ?? "",
+                createdAt: data.createdAt ?? "",
+                submissions: Array.isArray(data.submissions) ? data.submissions : [],
+                submittedAt: data.submittedAt ?? null,
+                isLateSubmit: Boolean(data.isLateSubmit),
+                feedback: data.feedback ?? "",
+                feedbackStatus: data.feedbackStatus ?? null,
+            };
+        } catch (error) {
+            console.error("Firestore getReviewProblem error:", error);
+            return null;
+        }
+    },
+
+    async createReviewProblem(
+        docId: string,
+        data: {
+            bookAndProblem: string;
+            unitName: string;
+            linkedScheduleId: string;
+            classEndTime: string;
+            deadline: string;
+        }
+    ) {
+        try {
+            const studentDocRef = await getStudentDocRef(docId);
+            if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
+
+            await studentDocRef.collection("reviewProblems").add({
+                ...data,
+                submissions: [],
+                submittedAt: null,
+                isLateSubmit: false,
+                feedback: "",
+                feedbackStatus: null,
+                createdAt: toKSTISOString(),
+            });
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore createReviewProblem error:", error);
+            return { success: false, message: "Failed to create review problem" };
+        }
+    },
+
+    async updateReviewProblem(docId: string, problemId: string, data: Record<string, unknown>) {
+        try {
+            const studentDocRef = await getStudentDocRef(docId);
+            if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
+
+            await studentDocRef.collection("reviewProblems").doc(problemId).update(data);
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore updateReviewProblem error:", error);
+            return { success: false, message: "Failed to update review problem" };
+        }
+    },
+
+    async deleteReviewProblem(docId: string, problemId: string) {
+        try {
+            const studentDocRef = await getStudentDocRef(docId);
+            if (!studentDocRef) return { success: false, message: "Student not found" };
+            const doc = await studentDocRef.get();
+            if (!doc.exists) return { success: false, message: "Student not found" };
+
+            await studentDocRef.collection("reviewProblems").doc(problemId).delete();
+            return { success: true };
+        } catch (error) {
+            console.error("Firestore deleteReviewProblem error:", error);
+            return { success: false, message: "Failed to delete review problem" };
+        }
+    },
+
     // ========== Advanced Search ==========
     async searchIncorrectNotes(docId: string, searchKeys: string[]) {
         try {

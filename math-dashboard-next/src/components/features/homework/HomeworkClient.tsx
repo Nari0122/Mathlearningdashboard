@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { updateHomeworkStatus } from "@/actions/homework-actions";
 import { useState } from "react";
+import { HomeworkDeadlineCountdown } from "@/components/shared/HomeworkDeadlineCountdown";
 
 // Define based on Firestore document structure
 type Homework = {
@@ -15,6 +16,8 @@ type Homework = {
     dueDate: string;
     status: string;
     feedback: string | null;
+    submissionDeadline?: string | null;
+    linkedScheduleId?: string | null;
 };
 
 interface HomeworkClientProps {
@@ -98,6 +101,14 @@ export default function HomeworkClient({ initialHomeworks, studentDocId }: Homew
                                         <div>
                                             <span className="text-gray-500 mr-2">마감일:</span>
                                             <span className="font-medium text-red-600">{hw.dueDate}</span>
+                                        </div>
+                                        <div className="w-full basis-full">
+                                            <HomeworkDeadlineCountdown
+                                                dueDate={hw.dueDate}
+                                                submissionDeadline={hw.submissionDeadline}
+                                                linkedScheduleId={hw.linkedScheduleId}
+                                                className="text-sm"
+                                            />
                                         </div>
                                     </div>
 

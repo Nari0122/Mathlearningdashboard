@@ -9,6 +9,7 @@ import {
     BarChart3,
     BookMarked,
     ArrowLeft,
+    Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export function ParentStudentSidebar({ studentName, parentUid, className }: Pare
         { icon: ClipboardList, label: "학습 기록", href: `${BASE}/${studentId}/history` },
         { icon: Calendar, label: "수업 일정", href: `${BASE}/${studentId}/schedule` },
         { icon: PenTool, label: "숙제 관리", href: `${BASE}/${studentId}/homework` },
+        { icon: Camera, label: "복습 제출", href: `${BASE}/${studentId}/review-submission` },
     ];
 
     return (

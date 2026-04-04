@@ -10,7 +10,8 @@ import {
   ClipboardList,
   BarChart3,
   BookMarked,
-  Link2
+  Link2,
+  Camera
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ export function StudentSidebar({ userName, className }: StudentSidebarProps) {
     { icon: ClipboardList, label: "학습 기록", href: `/student/${studentId}/history` },
     { icon: Calendar, label: "수업 일정", href: `/student/${studentId}/schedule` },
     { icon: PenTool, label: "숙제 관리", href: `/student/${studentId}/homework` },
+    { icon: Camera, label: "복습 제출", href: `/student/${studentId}/review-submission` },
     { icon: Link2, label: "연동 관리", href: `/student/${studentId}/links` },
   ];
 

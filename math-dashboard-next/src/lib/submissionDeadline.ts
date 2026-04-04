@@ -1,6 +1,6 @@
 import { toKSTISOString } from "@/lib/date-kst";
 
-interface AssignmentDeadlineInfo {
+export interface AssignmentDeadlineInfo {
     submissionDeadline?: string | null;
     linkedScheduleId?: string | null;
     dueDate: string;
@@ -22,6 +22,25 @@ export function getSubmissionDeadline(assignment: AssignmentDeadlineInfo): Date 
 /** 정규 마감 시각이 지났는지 (수업 1시간 전 또는 dueDate 23:59:59) */
 export function isSubmissionLocked(assignment: AssignmentDeadlineInfo): boolean {
     return new Date() >= getSubmissionDeadline(assignment);
+}
+
+/**
+ * UI용 남은 시간 문구 (정규 제출 마감 기준, `getSubmissionDeadline`과 동일)
+ */
+export function formatSubmissionDeadlineCountdown(assignment: AssignmentDeadlineInfo): { open: boolean; label: string } {
+    const deadline = getSubmissionDeadline(assignment);
+    const end = deadline.getTime();
+    const now = Date.now();
+    if (now >= end) {
+        return { open: false, label: "제출 마감" };
+    }
+    const ms = end - now;
+    const h = Math.floor(ms / 3600000);
+    const m = Math.floor((ms % 3600000) / 60000);
+    if (h <= 0 && m <= 0) {
+        return { open: true, label: "마감까지 1분 미만 남음" };
+    }
+    return { open: true, label: `마감까지 ${h}시간 ${m}분 남음` };
 }
 
 /**

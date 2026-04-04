@@ -13,6 +13,7 @@ const tabs = [
     { href: (base: string, id: string) => `${base}/${id}/history`, label: "학습 기록", exact: false },
     { href: (base: string, id: string) => `${base}/${id}/schedule`, label: "수업 일정", exact: false },
     { href: (base: string, id: string) => `${base}/${id}/homework`, label: "숙제 관리", exact: false },
+    { href: (base: string, id: string) => `${base}/${id}/review-submission`, label: "복습 제출", exact: false },
 ];
 
 interface ParentStudentLayoutClientProps {

@@ -5,6 +5,7 @@ import { Lock, PenTool } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useReadOnly } from "@/contexts/ReadOnlyContext";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { HomeworkDeadlineCountdown } from "@/components/shared/HomeworkDeadlineCountdown";
 
 const PROGRESS_OPTIONS = [
     { value: "none", label: "안 함", textClass: "text-red-600" },
@@ -115,18 +116,26 @@ export default function StudentHomeworkClient({ assignments: initialAssignments,
                                             <Lock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                                         )}
                                     </div>
-                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-500">
-                                        <span className={isOverdue ? "text-red-600 font-semibold" : ""}>
-                                            마감: {formatDate(assignment.dueDate)}
-                                        </span>
-                                        {assignment.assignedDate && (
-                                            <span>부여: {formatDate(assignment.assignedDate)}</span>
-                                        )}
-                                        {assignment.submittedDate && (
-                                            <span className="text-green-600">
-                                                제출: {formatDateTime(assignment.submittedDate)}
+                                    <div className="mt-1 space-y-0.5">
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-gray-500">
+                                            <span className={isOverdue ? "text-red-600 font-semibold" : ""}>
+                                                마감: {formatDate(assignment.dueDate)}
                                             </span>
-                                        )}
+                                            {assignment.assignedDate && (
+                                                <span>부여: {formatDate(assignment.assignedDate)}</span>
+                                            )}
+                                            {assignment.submittedDate && (
+                                                <span className="text-green-600">
+                                                    제출: {formatDateTime(assignment.submittedDate)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <HomeworkDeadlineCountdown
+                                            dueDate={assignment.dueDate}
+                                            submissionDeadline={assignment.submissionDeadline}
+                                            linkedScheduleId={assignment.linkedScheduleId}
+                                            className="text-[11px]"
+                                        />
                                     </div>
                                     {assignment.isLateUpdate && assignment.lastModifiedDate && (
                                         <div className="mt-1 text-[11px] text-amber-600">

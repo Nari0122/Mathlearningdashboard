@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { isSubmissionLocked } from "@/lib/submissionDeadline";
+import { HomeworkDeadlineCountdown } from "@/components/shared/HomeworkDeadlineCountdown";
 
 const PROGRESS_MAP: Record<string, { label: string; color: string }> = {
     none: { label: "안 함", color: "bg-red-100 text-red-700" },
@@ -64,6 +65,12 @@ export default function StudentDashboardClient({ stats, recentAssignments = [], 
                                             <div className="space-y-1">
                                                 <p className="text-sm font-medium leading-none">{a.title}</p>
                                                 <p className="text-xs text-muted-foreground">마감: {formatDate(a.dueDate)}</p>
+                                                <HomeworkDeadlineCountdown
+                                                    dueDate={a.dueDate}
+                                                    submissionDeadline={a.submissionDeadline}
+                                                    linkedScheduleId={a.linkedScheduleId}
+                                                    className="text-[11px] block mt-0.5"
+                                                />
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <Badge variant="outline" className={prog.color}>
