@@ -1,4 +1,5 @@
 import { toKSTISOString } from "@/lib/date-kst";
+import { formatRemainingKoreanDayHourMinute } from "@/lib/deadlineCountdownFormat";
 
 export interface AssignmentDeadlineInfo {
     submissionDeadline?: string | null;
@@ -35,12 +36,8 @@ export function formatSubmissionDeadlineCountdown(assignment: AssignmentDeadline
         return { open: false, label: "제출 마감" };
     }
     const ms = end - now;
-    const h = Math.floor(ms / 3600000);
-    const m = Math.floor((ms % 3600000) / 60000);
-    if (h <= 0 && m <= 0) {
-        return { open: true, label: "마감까지 1분 미만 남음" };
-    }
-    return { open: true, label: `마감까지 ${h}시간 ${m}분 남음` };
+    const inner = formatRemainingKoreanDayHourMinute(ms);
+    return { open: true, label: `마감까지 ${inner} 남음` };
 }
 
 /**

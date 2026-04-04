@@ -1,4 +1,5 @@
 import { toKSTISOString } from "@/lib/date-kst";
+import { formatRemainingKoreanDayHourMinute } from "@/lib/deadlineCountdownFormat";
 
 /**
  * 복습 제출 마감: 선택한 수업의 종료 시각 + 2시간 (KST date + endTime 기준)
@@ -24,7 +25,6 @@ export function formatReviewDeadlineCountdown(deadlineIso: string): { open: bool
     const now = Date.now();
     if (now >= d) return { open: false, label: "마감 종료" };
     const ms = d - now;
-    const h = Math.floor(ms / 3600000);
-    const m = Math.floor((ms % 3600000) / 60000);
-    return { open: true, label: `마감까지 ${h}시간 ${m}분 남음` };
+    const inner = formatRemainingKoreanDayHourMinute(ms);
+    return { open: true, label: `마감까지 ${inner} 남음` };
 }
