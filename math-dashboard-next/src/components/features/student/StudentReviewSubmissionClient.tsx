@@ -14,6 +14,13 @@ import type { ReviewFeedbackStatus, ReviewProblem } from "@/types/review-submiss
 
 const ACCEPT_IMAGES = "image/jpeg,image/png,image/heic,image/heif,.heic,.heif";
 
+/** 업로드 직후 압축·용량 표시용 (서버에서만 불러온 항목은 url만 있음) */
+type ReviewPhotoItem = {
+    url: string;
+    sizeKb?: number;
+    compressed?: boolean;
+};
+
 function formatDateTime(dateString: string | Date | null) {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleString("ko-KR", {
@@ -55,9 +62,14 @@ export default function StudentReviewSubmissionClient({
 }: StudentReviewSubmissionClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
-    /** problemId → 현재 제출 예정 URL 목록 (서버 submissions와 동기, key 리마운트로 갱신) */
-    const [photoUrlsByProblem, setPhotoUrlsByProblem] = useState<Record<string, string[]>>(() =>
-        Object.fromEntries(initialProblems.map((p) => [p.id, [...(p.submissions || [])]]))
+    /** problemId → 제출 예정 사진 (오답 노트와 같이 업로드 시 용량·압축 여부 표시) */
+    const [photosByProblem, setPhotosByProblem] = useState<Record<string, ReviewPhotoItem[]>>(() =>
+        Object.fromEntries(
+            initialProblems.map((p) => [
+                p.id,
+                (p.submissions || []).map((url) => ({ url })),
+            ])
+        )
     );
     const [uploadingId, setUploadingId] = useState<string | null>(null);
     const [submittingId, setSubmittingId] = useState<string | null>(null);
@@ -81,6 +93,7 @@ export default function StudentReviewSubmissionClient({
                 // 오답 노트(StudentIncorrectNotesClient)와 동일: image/* 는 압축 시도 후 업로드
                 let uploadFile: File | Blob = file;
                 const isImage = file.type.startsWith("image/");
+                let compressed = false;
 
                 if (isImage) {
                     try {
@@ -91,6 +104,7 @@ export default function StudentReviewSubmissionClient({
                             initialQuality: 0.7,
                         });
                         uploadFile = compressedFile;
+                        compressed = true;
                     } catch (err) {
                         console.error("Compression failed, using original", err);
                     }
@@ -107,9 +121,13 @@ export default function StudentReviewSubmissionClient({
                 const json = await res.json();
                 if (!res.ok || !json.success) throw new Error(json.message || "업로드 실패");
 
-                setPhotoUrlsByProblem((prev) => ({
+                const sizeKb = uploadFile.size / 1024;
+                setPhotosByProblem((prev) => ({
                     ...prev,
-                    [problemId]: [...(prev[problemId] || []), json.downloadUrl as string],
+                    [problemId]: [
+                        ...(prev[problemId] || []),
+                        { url: json.downloadUrl as string, sizeKb, compressed },
+                    ],
                 }));
             } catch (e) {
                 alert(e instanceof Error ? e.message : "업로드에 실패했습니다.");
@@ -131,8 +149,8 @@ export default function StudentReviewSubmissionClient({
         e.target.value = "";
     };
 
-    const removeUrl = (problemId: string, index: number) => {
-        setPhotoUrlsByProblem((prev) => {
+    const removePhoto = (problemId: string, index: number) => {
+        setPhotosByProblem((prev) => {
             const list = [...(prev[problemId] || [])];
             list.splice(index, 1);
             return { ...prev, [problemId]: list };
@@ -140,7 +158,8 @@ export default function StudentReviewSubmissionClient({
     };
 
     const handleSubmit = async (problemId: string) => {
-        const urls = photoUrlsByProblem[problemId] || [];
+        const items = photosByProblem[problemId] || [];
+        const urls = items.map((x) => x.url);
         if (urls.length === 0) {
             alert("사진을 한 장 이상 추가해 주세요.");
             return;
@@ -179,11 +198,11 @@ export default function StudentReviewSubmissionClient({
                             key={p.id}
                             problem={p}
                             readOnly={readOnly}
-                            urls={photoUrlsByProblem[p.id] || []}
+                            photos={photosByProblem[p.id] || []}
                             uploading={uploadingId === p.id}
                             submitting={submittingId === p.id}
                             onFileChange={(e) => onFileChange(p.id, e)}
-                            onRemoveUrl={(i) => removeUrl(p.id, i)}
+                            onRemovePhoto={(i) => removePhoto(p.id, i)}
                             onSubmit={() => handleSubmit(p.id)}
                         />
                     ))
@@ -196,20 +215,20 @@ export default function StudentReviewSubmissionClient({
 function ProblemCard({
     problem: p,
     readOnly,
-    urls,
+    photos,
     uploading,
     submitting,
     onFileChange,
-    onRemoveUrl,
+    onRemovePhoto,
     onSubmit,
 }: {
     problem: ReviewProblem;
     readOnly: boolean;
-    urls: string[];
+    photos: ReviewPhotoItem[];
     uploading: boolean;
     submitting: boolean;
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onRemoveUrl: (index: number) => void;
+    onRemovePhoto: (index: number) => void;
     onSubmit: () => void;
 }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -255,15 +274,27 @@ function ProblemCard({
                         </Button>
                         {uploading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                     </div>
-                    {urls.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            {urls.map((url, i) => (
-                                <div key={i} className="relative group">
-                                    <img src={url} alt="" className="h-28 w-auto max-w-[160px] object-cover rounded border" />
+                    {photos.length > 0 && (
+                        <div className="flex flex-wrap gap-3">
+                            {photos.map((item, i) => (
+                                <div key={i} className="relative group w-[min(160px,100%)]">
+                                    <img
+                                        src={item.url}
+                                        alt=""
+                                        className="h-28 w-auto max-w-[160px] object-cover rounded border mx-auto block"
+                                    />
+                                    {item.sizeKb != null && (
+                                        <p className="text-[11px] text-center text-muted-foreground mt-1 leading-tight">
+                                            {item.sizeKb.toFixed(1)} KB
+                                            {item.compressed && (
+                                                <span className="text-green-600 font-bold"> (압축됨)</span>
+                                            )}
+                                        </p>
+                                    )}
                                     <button
                                         type="button"
                                         className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => onRemoveUrl(i)}
+                                        onClick={() => onRemovePhoto(i)}
                                         aria-label="이 사진 제거"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -272,7 +303,7 @@ function ProblemCard({
                             ))}
                         </div>
                     )}
-                    <Button type="button" size="sm" onClick={onSubmit} disabled={submitting || urls.length === 0}>
+                    <Button type="button" size="sm" onClick={onSubmit} disabled={submitting || photos.length === 0}>
                         {submitting ? "제출 중…" : p.submittedAt ? "다시 제출" : "제출하기"}
                     </Button>
                     {p.submittedAt && (
@@ -291,11 +322,11 @@ function ProblemCard({
             {readOnly && (
                 <div className="space-y-2 border-t pt-3">
                     <p className="text-xs font-medium text-gray-500">제출 사진</p>
-                    {urls.length > 0 ? (
+                    {photos.length > 0 ? (
                         <div className="flex flex-wrap gap-2">
-                            {urls.map((url, i) => (
-                                <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                                    <img src={url} alt="" className="h-28 w-auto max-w-[160px] object-cover rounded border" />
+                            {photos.map((item, i) => (
+                                <a key={i} href={item.url} target="_blank" rel="noopener noreferrer">
+                                    <img src={item.url} alt="" className="h-28 w-auto max-w-[160px] object-cover rounded border" />
                                 </a>
                             ))}
                         </div>
