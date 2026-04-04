@@ -8,7 +8,6 @@ import { ArrowLeft } from "lucide-react";
 
 const tabs = [
     { href: (base: string, id: string) => `${base}/${id}`, label: "대시보드", exact: true },
-    { href: (base: string, id: string) => `${base}/${id}/learning`, label: "나의 학습", exact: false },
     { href: (base: string, id: string) => `${base}/${id}/incorrect-notes`, label: "오답 노트", exact: false },
     { href: (base: string, id: string) => `${base}/${id}/exams`, label: "시험 성적", exact: false },
     { href: (base: string, id: string) => `${base}/${id}/history`, label: "학습 기록", exact: false },

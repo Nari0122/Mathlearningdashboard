@@ -3,8 +3,6 @@
 import Link from "next/link";
 import {
   LayoutDashboard,
-  BookOpen,
-  GraduationCap,
   Calendar,
   PenTool,
   LogOut,
@@ -67,7 +65,6 @@ export function StudentSidebar({ userName, className }: StudentSidebarProps) {
 
   const sidebarItems = [
     { icon: LayoutDashboard, label: "대시보드", href: `/student/${studentId}` },
-    { icon: BookOpen, label: "나의 학습", href: `/student/${studentId}/learning` },
     { icon: BookMarked, label: "오답 노트", href: `/student/${studentId}/incorrect-notes` },
     { icon: BarChart3, label: "시험 성적", href: `/student/${studentId}/exams` },
     { icon: ClipboardList, label: "학습 기록", href: `/student/${studentId}/history` },

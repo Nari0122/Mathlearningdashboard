@@ -29,8 +29,6 @@ export async function createIncorrectNote(docId: string, data: CreateIncorrectNo
     if (result.success) {
         revalidatePath(`/student/${docId}/incorrect-notes`);
         revalidatePath(`/admin/students/${docId}/incorrect-notes`);
-        revalidatePath(`/student/${docId}/learning`);
-        revalidatePath(`/admin/students/${docId}/learning`);
     }
     return result;
 }
@@ -44,8 +42,6 @@ export async function updateIncorrectNote(docId: string, noteId: string, data: a
     if (result.success) {
         revalidatePath(`/student/${docId}/incorrect-notes`);
         revalidatePath(`/admin/students/${docId}/incorrect-notes`);
-        revalidatePath(`/student/${docId}/learning`);
-        revalidatePath(`/admin/students/${docId}/learning`);
     }
     return result;
 }
@@ -55,8 +51,6 @@ export async function deleteIncorrectNote(docId: string, noteId: string) {
     if (result.success) {
         revalidatePath(`/student/${docId}/incorrect-notes`);
         revalidatePath(`/admin/students/${docId}/incorrect-notes`);
-        revalidatePath(`/student/${docId}/learning`);
-        revalidatePath(`/admin/students/${docId}/learning`);
     }
     return result;
 }
@@ -76,7 +70,7 @@ export async function searchIncorrectNotes(docId: string, searchKeys: string[]) 
 }
 
 // Exam Actions
-export async function createExam(docId: string, data: { examType: string; subject: string; date: string; score: number }) {
+export async function createExam(docId: string, data: { examType: string; subject: string; date: string; score: number; type: "mock" | "school" }) {
     const result = await learningService.createExam(docId, data);
     if (result.success) {
         revalidatePath(`/admin/students/${docId}/exams`);
@@ -85,7 +79,7 @@ export async function createExam(docId: string, data: { examType: string; subjec
     return result;
 }
 
-export async function updateExam(examId: string, docId: string, data: { examType: string; subject: string; date: string; score: number }) {
+export async function updateExam(examId: string, docId: string, data: { examType: string; subject: string; date: string; score: number; type: "mock" | "school" }) {
     const result = await learningService.updateExam(docId, examId, data);
     if (result.success) {
         revalidatePath(`/admin/students/${docId}/exams`);

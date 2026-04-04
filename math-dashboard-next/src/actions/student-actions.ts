@@ -117,3 +117,24 @@ export async function submitHomework(homeworkId: string, studentDocId: string) {
         return { success: false, error: "숙제 제출 실패" };
     }
 }
+
+export async function updateStudentProgress(
+    homeworkId: string,
+    studentDocId: string,
+    progress: "none" | "little" | "half" | "almost" | "done"
+) {
+    try {
+        const { updateHomeworkProgress } = await import("@/actions/admin-actions");
+        const result = await updateHomeworkProgress(homeworkId, studentDocId, progress, false);
+
+        if (result.success) {
+            revalidatePath(`/student/${studentDocId}/homework`);
+            revalidatePath(`/student/${studentDocId}`);
+        }
+
+        return result;
+    } catch (error) {
+        console.error("updateStudentProgress error:", error);
+        return { success: false, error: "진척도 업데이트 실패" };
+    }
+}

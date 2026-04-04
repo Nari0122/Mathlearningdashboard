@@ -44,7 +44,6 @@ export async function addUnit(docId: string, name: string, grade: string) {
         });
 
         if (result.success) {
-            revalidatePath("/study/my-learning");
             revalidatePath("/dashboard");
             return { success: true };
         }
@@ -61,7 +60,7 @@ export async function updateUnitName(unitId: number, name: string) {
         if (!found) return { success: false };
 
         await found.unitRef.update({ name });
-        revalidatePath("/study/my-learning");
+        revalidatePath("/dashboard");
         return { success: true };
     } catch (error) {
         return { success: false };
@@ -74,7 +73,7 @@ export async function updateUnitDetails(unitId: number, name: string, grade: str
         if (!found) return { success: false };
 
         await found.unitRef.update({ name, grade });
-        revalidatePath("/study/my-learning");
+        revalidatePath("/dashboard");
         return { success: true };
     } catch (error) {
         return { success: false };
@@ -87,7 +86,6 @@ export async function updateUnitDifficulty(unitId: number, difficulty: string) {
         if (!found) return { success: false };
 
         await found.unitRef.update({ selectedDifficulty: difficulty });
-        revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error) {
@@ -101,7 +99,7 @@ export async function updateUnitStatus(unitId: number, status: string) {
         if (!found) return { success: false };
 
         await found.unitRef.update({ status });
-        revalidatePath("/study/my-learning");
+        revalidatePath("/dashboard");
         return { success: true };
     } catch (error) {
         return { success: false };
@@ -114,7 +112,6 @@ export async function updateCompletionStatus(unitId: number, status: string) {
         if (!found) return { success: false };
 
         await found.unitRef.update({ completionStatus: status });
-        revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error) {
@@ -128,7 +125,6 @@ export async function deleteUnit(unitId: number) {
         if (!found) return { success: false };
 
         await found.unitRef.delete();
-        revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error) {
@@ -148,7 +144,6 @@ export async function updateUnitError(unitId: number, type: 'C' | 'M' | 'R' | 'S
         const newVal = Math.min(99, Math.max(0, currentVal + delta));
 
         await found.unitRef.update({ [field]: newVal });
-        revalidatePath("/study/my-learning");
         revalidatePath("/dashboard");
         return { success: true };
     } catch (error) {

@@ -1,17 +1,27 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash, PenTool } from "lucide-react";
+import { Plus, PenTool, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createHomework, updateHomework, deleteHomework } from "@/actions/admin-actions";
+import { createHomework, updateHomework, deleteHomework, updateHomeworkProgress } from "@/actions/admin-actions";
 import { useRouter } from "next/navigation";
-import { isSubmissionLocked } from "@/lib/submissionDeadline";
 import { PageHeader } from "@/components/shared/PageHeader";
+
+const PROGRESS_OPTIONS = [
+    { value: "none", label: "안 함", textClass: "text-red-600" },
+    { value: "little", label: "조금", textClass: "text-orange-500" },
+    { value: "half", label: "절반", textClass: "text-yellow-600" },
+    { value: "almost", label: "거의 다", textClass: "text-lime-600" },
+    { value: "done", label: "완료", textClass: "text-green-600" },
+] as const;
+
+function getProgressTextClass(progress: string) {
+    return PROGRESS_OPTIONS.find(o => o.value === progress)?.textClass || "text-gray-500";
+}
 
 function formatDateTime(dateString: string | Date | null) {
     if (!dateString) return "-";
@@ -111,6 +121,25 @@ export default function AdminHomeworkClient({ homeworks: initialHomeworks, sched
         });
     };
 
+    const handleProgressChange = (hwId: string, newProgress: string) => {
+        setHomeworks(prev =>
+            prev.map(hw =>
+                hw.id === hwId
+                    ? { ...hw, progress: newProgress, progressChangedByAdmin: true }
+                    : hw
+            )
+        );
+
+        updateHomeworkProgress(hwId, studentDocId, newProgress as any, true).then(result => {
+            if (result.success) {
+                router.refresh();
+            } else {
+                alert("진척도 변경 실패");
+                router.refresh();
+            }
+        });
+    };
+
     const handleDeleteConfirm = async () => {
         if (!deleteTarget) return;
         const id = deleteTarget;
@@ -129,7 +158,7 @@ export default function AdminHomeworkClient({ homeworks: initialHomeworks, sched
         <div className="space-y-6 text-sm leading-relaxed">
             <PageHeader
                 title="숙제 관리"
-                description="학생에게 부여된 숙제를 관리하고 마감 상태를 확인할 수 있습니다."
+                description="학생에게 부여된 숙제를 관리하고 진척도를 확인할 수 있습니다."
                 icon={
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#F0F3FF]">
                         <PenTool className="w-6 h-6 text-[#5D00E2]" />
@@ -230,7 +259,7 @@ export default function AdminHomeworkClient({ homeworks: initialHomeworks, sched
                     <thead className="bg-gray-50 border-b">
                         <tr>
                             <th className="p-4 font-medium text-gray-500 whitespace-nowrap">숙제명</th>
-                            <th className="p-4 font-medium text-gray-500 whitespace-nowrap">상태</th>
+                            <th className="p-4 font-medium text-gray-500 whitespace-nowrap">진척도</th>
                             <th className="p-4 font-medium text-gray-500 whitespace-nowrap">부여일</th>
                             <th className="p-4 font-medium text-gray-500 whitespace-nowrap">마감일</th>
                             <th className="p-4 font-medium text-gray-500 whitespace-nowrap">제출일</th>
@@ -247,29 +276,31 @@ export default function AdminHomeworkClient({ homeworks: initialHomeworks, sched
                         ) : (
                             homeworks.map((hw: any) => {
                                 const today = todayKST();
-                                const notSubmitted = hw.status !== 'submitted' && hw.status !== 'late-submitted';
-                                const pastDeadline = notSubmitted && (today > hw.dueDate || isSubmissionLocked(hw));
-                                const statusLabel = hw.status === 'submitted' ? '제출 완료' : hw.status === 'late-submitted' ? '지각 제출' : hw.status === 'expired' ? '기한 만료' : hw.status === 'overdue' ? '미완료' : pastDeadline ? '미완료' : '미제출';
+                                const currentProgress = hw.progress || "none";
+                                const pastDeadline = currentProgress !== "done" && today > hw.dueDate;
 
                                 return (
                                     <tr key={hw.id} className="border-b last:border-0 hover:bg-gray-50">
-                                        <td className="p-4 font-medium whitespace-nowrap">{hw.title}</td>
+                                        <td className="p-4 font-medium whitespace-nowrap">
+                                            <span className={currentProgress === "done" ? "line-through text-gray-400" : ""}>
+                                                {hw.title}
+                                            </span>
+                                        </td>
                                         <td className="p-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant={
-                                                    hw.status === 'submitted' ? 'default' :
-                                                        hw.status === 'late-submitted' ? 'destructive' : 'outline'
-                                                } className={
-                                                    hw.status === 'submitted' ? 'bg-green-600 hover:bg-green-700' :
-                                                        hw.status === 'late-submitted' ? 'bg-yellow-500 hover:bg-yellow-600' :
-                                                        pastDeadline ? 'bg-red-600 hover:bg-red-700' : ''
-                                                }>
-                                                    {statusLabel}
-                                                </Badge>
-                                                {pastDeadline && (
-                                                    <Badge variant="destructive" className="bg-red-600 hover:bg-red-700">
-                                                        제출기한 지남
-                                                    </Badge>
+                                            <div className="flex items-center gap-1.5">
+                                                <select
+                                                    value={currentProgress}
+                                                    onChange={(e) => handleProgressChange(hw.id, e.target.value)}
+                                                    className={`h-8 rounded-md border border-gray-300 bg-white px-2 text-sm font-medium cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-400 ${getProgressTextClass(currentProgress)}`}
+                                                >
+                                                    {PROGRESS_OPTIONS.map(opt => (
+                                                        <option key={opt.value} value={opt.value}>
+                                                            {opt.label}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {hw.progressChangedByAdmin && (
+                                                    <Lock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                                                 )}
                                             </div>
                                         </td>

@@ -9,6 +9,14 @@ import { useParams } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { isSubmissionLocked } from "@/lib/submissionDeadline";
 
+const PROGRESS_MAP: Record<string, { label: string; color: string }> = {
+    none: { label: "안 함", color: "bg-red-100 text-red-700" },
+    little: { label: "조금", color: "bg-orange-100 text-orange-700" },
+    half: { label: "절반", color: "bg-yellow-100 text-yellow-700" },
+    almost: { label: "거의 다", color: "bg-lime-100 text-lime-700" },
+    done: { label: "완료", color: "bg-green-100 text-green-700" },
+};
+
 interface StudentDashboardClientProps {
     initialUnits?: any[];
     stats?: any | null;
@@ -49,16 +57,7 @@ export default function StudentDashboardClient({ stats, recentAssignments = [], 
                                         a.status === "expired" ||
                                         a.status === "overdue" ||
                                         (notSubmitted && (today > a.dueDate || isSubmissionLocked(a)));
-                                    const statusLabel =
-                                        a.status === 'submitted'
-                                            ? '제출 완료'
-                                            : a.status === 'late-submitted'
-                                                ? '지각 제출'
-                                                : a.status === 'expired'
-                                                    ? '기한 만료'
-                                                    : a.status === 'overdue' || pastDeadline
-                                                        ? '미완료'
-                                                        : '미제출';
+                                    const prog = PROGRESS_MAP[a.progress] || PROGRESS_MAP.none;
 
                                     return (
                                         <div key={a.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
@@ -67,29 +66,12 @@ export default function StudentDashboardClient({ stats, recentAssignments = [], 
                                                 <p className="text-xs text-muted-foreground">마감: {formatDate(a.dueDate)}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <Badge
-                                                    variant={
-                                                        a.status === 'submitted'
-                                                            ? "default"
-                                                            : a.status === 'late-submitted'
-                                                                ? "destructive"
-                                                                : "outline"
-                                                    }
-                                                    className={
-                                                        a.status === 'submitted'
-                                                            ? "bg-green-600"
-                                                            : a.status === 'late-submitted'
-                                                                ? "bg-yellow-500 hover:bg-yellow-600"
-                                                                : pastDeadline
-                                                                    ? "bg-red-600 hover:bg-red-700 text-white"
-                                                                    : ""
-                                                    }
-                                                >
-                                                    {statusLabel}
+                                                <Badge variant="outline" className={prog.color}>
+                                                    {prog.label}
                                                 </Badge>
                                                 {pastDeadline && (
                                                     <Badge variant="destructive" className="bg-red-600">
-                                                        제출기한 지남
+                                                        기한 초과
                                                     </Badge>
                                                 )}
                                             </div>

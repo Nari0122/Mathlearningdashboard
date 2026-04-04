@@ -10,7 +10,6 @@ export function StudentHeader({ studentName = "학생" }: { studentName?: string
 
     const menuItems = [
         { href: "/dashboard", label: "대시보드" },
-        { href: "/study/my-learning", label: "내 학습" },
         { href: "/schedule", label: "수업 일정" },
         { href: "/homework", label: "숙제" },
         { href: "/exams", label: "시험 성적" },

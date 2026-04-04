@@ -23,7 +23,6 @@ export default function StudentDetailLayoutClient({
 
     const tabs = [
         { href: `/admin/students/${studentDocId}`, label: "대시보드", exact: true },
-        { href: `/admin/students/${studentDocId}/learning`, label: "나의 학습" },
         { href: `/admin/students/${studentDocId}/analysis`, label: "오답 분석" },
         { href: `/admin/students/${studentDocId}/report`, label: "통계 리포트" },
         { href: `/admin/students/${studentDocId}/history`, label: "학습 기록" },

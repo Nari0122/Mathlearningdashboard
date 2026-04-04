@@ -335,7 +335,13 @@ export const learningService = {
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("assignments").orderBy("dueDate", "desc").get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as unknown as any[];
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                const progress = data.progress || (
+                    data.status === "submitted" || data.status === "late-submitted" ? "done" : "none"
+                );
+                return { id: doc.id, ...data, progress };
+            }) as unknown as any[];
         } catch (error) {
             console.error("Firestore getAssignments error:", error);
             return [];
@@ -396,7 +402,10 @@ export const learningService = {
             if (!studentDocRef) return [];
 
             const snapshot = await studentDocRef.collection("exams").orderBy("date", "desc").get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return snapshot.docs.map(doc => {
+                const data = doc.data();
+                return { id: doc.id, ...data, type: data.type || "school" };
+            });
         } catch (error) {
             console.error("Firestore getExams error:", error);
             return [];

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import {
     LayoutDashboard,
-    BookOpen,
     Calendar,
     PenTool,
     ClipboardList,
@@ -33,7 +32,6 @@ export function ParentStudentSidebar({ studentName, parentUid, className }: Pare
 
     const sidebarItems = [
         { icon: LayoutDashboard, label: "대시보드", href: `${BASE}/${studentId}` },
-        { icon: BookOpen, label: "나의 학습", href: `${BASE}/${studentId}/learning` },
         { icon: BookMarked, label: "오답 노트", href: `${BASE}/${studentId}/incorrect-notes` },
         { icon: BarChart3, label: "시험 성적", href: `${BASE}/${studentId}/exams` },
         { icon: ClipboardList, label: "학습 기록", href: `${BASE}/${studentId}/history` },

@@ -16,8 +16,6 @@ export async function createUnit(docId: string, data: {
 }) {
     const result = await learningService.createUnit(docId, data);
     if (result.success) {
-        revalidatePath(`/admin/students/${docId}/learning`);
-        revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }
     return result;
@@ -159,6 +157,7 @@ export async function createHomework(
     const payload = {
         ...data,
         status: "pending",
+        progress: "none" as const,
         submissionDeadline,
         ...(data.linkedScheduleId && { linkedScheduleId: data.linkedScheduleId }),
     };
@@ -177,6 +176,43 @@ export async function updateHomework(id: number | string, docId: string, data: {
     return result;
 }
 
+export async function updateHomeworkProgress(
+    id: string,
+    docId: string,
+    progress: "none" | "little" | "half" | "almost" | "done",
+    changedByAdmin: boolean = false
+) {
+    const { toKSTISOString } = await import("@/lib/date-kst");
+    const { todayKSTString } = await import("@/lib/date-kst");
+
+    const updateData: Record<string, any> = {
+        progress,
+        progressChangedByAdmin: changedByAdmin,
+    };
+
+    if (progress === "done") {
+        const homeworks = await learningService.getAssignments(docId);
+        const hw = homeworks.find((h: any) => h.id === id) as any;
+        const today = todayKSTString();
+        const isLate = hw && (today > hw.dueDate);
+        updateData.status = isLate ? "late-submitted" : "submitted";
+        updateData.submittedDate = toKSTISOString();
+    } else {
+        updateData.status = "pending";
+        updateData.submittedDate = null;
+    }
+
+    const result = await learningService.updateAssignment(docId, id, updateData);
+    if (result.success) {
+        revalidatePath(`/admin/students/${docId}/homework`);
+        revalidatePath(`/admin/students/${docId}`);
+        revalidatePath(`/student/${docId}/homework`);
+        revalidatePath(`/student/${docId}`);
+        revalidatePath(`/parent`, 'layout');
+    }
+    return result;
+}
+
 export async function deleteHomework(id: string, docId: string) {
     const result = await learningService.deleteAssignment(docId, id);
     if (result.success) {
@@ -188,8 +224,6 @@ export async function deleteHomework(id: string, docId: string) {
 export async function updateUnit(id: number, docId: string, data: any) {
     const result = await learningService.updateUnit(docId, id, data);
     if (result.success) {
-        revalidatePath(`/admin/students/${docId}/learning`);
-        revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }
     return result;
@@ -198,8 +232,6 @@ export async function updateUnit(id: number, docId: string, data: any) {
 export async function deleteUnit(id: number, docId: string) {
     const result = await learningService.deleteUnit(docId, id);
     if (result.success) {
-        revalidatePath(`/admin/students/${docId}/learning`);
-        revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }
     return result;
@@ -208,8 +240,6 @@ export async function deleteUnit(id: number, docId: string) {
 export async function updateUnitError(unitId: number, docId: string, errorType: 'C' | 'M' | 'R' | 'S', delta: number) {
     const result = await learningService.updateUnitError(docId, unitId, errorType, delta);
     if (result.success) {
-        revalidatePath(`/admin/students/${docId}/learning`);
-        revalidatePath(`/study/my-learning`);
         revalidatePath(`/dashboard`);
     }
     return result;

@@ -1,8 +1,8 @@
 import { Home, Calendar, BookCheck, FileText, ClipboardList, LogOut } from 'lucide-react';
 
 interface StudentSidebarProps {
-  currentView: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory' | 'myLearning';
-  onNavigate: (view: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory' | 'myLearning') => void;
+  currentView: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory';
+  onNavigate: (view: 'dashboard' | 'classSchedule' | 'homework' | 'examRecords' | 'learningHistory') => void;
   onLogout: () => void;
   studentName: string;
 }
@@ -14,7 +14,6 @@ export function StudentSidebar({ currentView, onNavigate, onLogout, studentName 
     { id: 'homework', label: '숙제', icon: BookCheck },
     { id: 'examRecords', label: '시험기록', icon: FileText },
     { id: 'learningHistory', label: '학습기록', icon: ClipboardList },
-    { id: 'myLearning', label: '나의학습', icon: BookCheck }
   ];
 
   return (
