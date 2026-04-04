@@ -6,20 +6,15 @@ import { Camera, Loader2, X } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { useReadOnly } from "@/contexts/ReadOnlyContext";
 import { formatReviewDeadlineCountdown, isPastReviewDeadline } from "@/lib/reviewSubmissionDeadline";
 import { studentSubmitReviewPhotos } from "@/actions/review-submission-actions";
-import type { ReviewFeedbackStatus, ReviewProblem } from "@/types/review-submission";
+import type { ReviewFeedbackStatus, ReviewProblem, ReviewSubmissionPhoto } from "@/types/review-submission";
+import { PhotoUploadMetaCaption } from "@/components/shared/PhotoUploadMetaCaption";
 
 const ACCEPT_IMAGES = "image/jpeg,image/png,image/heic,image/heif,.heic,.heif";
-
-/** 업로드 직후 압축·용량 표시용 (서버에서만 불러온 항목은 url만 있음) */
-type ReviewPhotoItem = {
-    url: string;
-    sizeKb?: number;
-    compressed?: boolean;
-};
 
 function formatDateTime(dateString: string | Date | null) {
     if (!dateString) return "-";
@@ -62,17 +57,23 @@ export default function StudentReviewSubmissionClient({
 }: StudentReviewSubmissionClientProps) {
     const router = useRouter();
     const readOnly = useReadOnly();
-    /** problemId → 제출 예정 사진 (오답 노트와 같이 업로드 시 용량·압축 여부 표시) */
-    const [photosByProblem, setPhotosByProblem] = useState<Record<string, ReviewPhotoItem[]>>(() =>
+    /** problemId → 제출 예정 사진 (오답 노트와 동일: 용량·압축됨·압축 실패 안내) */
+    const [photosByProblem, setPhotosByProblem] = useState<Record<string, ReviewSubmissionPhoto[]>>(() =>
         Object.fromEntries(
             initialProblems.map((p) => [
                 p.id,
-                (p.submissions || []).map((url) => ({ url })),
+                (p.submissions || []).map((s) => ({
+                    url: s.url,
+                    sizeKb: s.sizeKb,
+                    compressed: s.compressed,
+                    compressionFailed: s.compressionFailed,
+                })),
             ])
         )
     );
     const [uploadingId, setUploadingId] = useState<string | null>(null);
     const [submittingId, setSubmittingId] = useState<string | null>(null);
+    const [selectedZoomImg, setSelectedZoomImg] = useState<string | null>(null);
 
     const uploadOne = useCallback(
         async (problemId: string, file: File) => {
@@ -90,10 +91,14 @@ export default function StudentReviewSubmissionClient({
 
             setUploadingId(problemId);
             try {
-                // 오답 노트(StudentIncorrectNotesClient)와 동일: image/* 는 압축 시도 후 업로드
                 let uploadFile: File | Blob = file;
-                const isImage = file.type.startsWith("image/");
+                const isImage =
+                    file.type.startsWith("image/") ||
+                    file.type === "image/heic" ||
+                    file.type === "image/heif" ||
+                    okExt;
                 let compressed = false;
+                let compressionFailed = false;
 
                 if (isImage) {
                     try {
@@ -107,6 +112,7 @@ export default function StudentReviewSubmissionClient({
                         compressed = true;
                     } catch (err) {
                         console.error("Compression failed, using original", err);
+                        compressionFailed = true;
                     }
                 }
 
@@ -126,7 +132,7 @@ export default function StudentReviewSubmissionClient({
                     ...prev,
                     [problemId]: [
                         ...(prev[problemId] || []),
-                        { url: json.downloadUrl as string, sizeKb, compressed },
+                        { url: json.downloadUrl as string, sizeKb, compressed, compressionFailed },
                     ],
                 }));
             } catch (e) {
@@ -159,13 +165,12 @@ export default function StudentReviewSubmissionClient({
 
     const handleSubmit = async (problemId: string) => {
         const items = photosByProblem[problemId] || [];
-        const urls = items.map((x) => x.url);
-        if (urls.length === 0) {
+        if (items.length === 0) {
             alert("사진을 한 장 이상 추가해 주세요.");
             return;
         }
         setSubmittingId(problemId);
-        const res = await studentSubmitReviewPhotos(studentDocId, problemId, urls);
+        const res = await studentSubmitReviewPhotos(studentDocId, problemId, items);
         setSubmittingId(null);
         if (res.success) router.refresh();
         else alert(res.message);
@@ -204,10 +209,35 @@ export default function StudentReviewSubmissionClient({
                             onFileChange={(e) => onFileChange(p.id, e)}
                             onRemovePhoto={(i) => removePhoto(p.id, i)}
                             onSubmit={() => handleSubmit(p.id)}
+                            onOpenZoom={setSelectedZoomImg}
                         />
                     ))
                 )}
             </div>
+
+            <Dialog open={!!selectedZoomImg} onOpenChange={(open) => !open && setSelectedZoomImg(null)}>
+                <DialogContent showCloseButton={false} className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
+                    <DialogTitle className="sr-only">이미지 확대</DialogTitle>
+                    {selectedZoomImg && (
+                        <div className="relative flex items-center justify-center min-h-[50vh]">
+                            <img
+                                src={selectedZoomImg}
+                                alt="제출 사진 확대"
+                                className="max-h-[85vh] max-w-full object-contain"
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute -top-1 -right-1 text-white hover:bg-white/20 rounded-full"
+                                onClick={() => setSelectedZoomImg(null)}
+                            >
+                                <X className="h-6 w-6" />
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
@@ -221,15 +251,17 @@ function ProblemCard({
     onFileChange,
     onRemovePhoto,
     onSubmit,
+    onOpenZoom,
 }: {
     problem: ReviewProblem;
     readOnly: boolean;
-    photos: ReviewPhotoItem[];
+    photos: ReviewSubmissionPhoto[];
     uploading: boolean;
     submitting: boolean;
     onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onRemovePhoto: (index: number) => void;
     onSubmit: () => void;
+    onOpenZoom: (url: string) => void;
 }) {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const countdownLabel = useTickingCountdown(p.deadline);
@@ -253,6 +285,10 @@ function ProblemCard({
             {!readOnly && (
                 <div className="space-y-2 border-t pt-3">
                     <p className="text-xs font-medium text-gray-500">사진 업로드 (여러 장 가능 · JPG, PNG, HEIC)</p>
+                    <p className="text-[11px] text-muted-foreground">
+                        이미지는 자동 압축을 시도합니다. 성공 시 썸네일 아래에 용량과 <span className="text-green-600 font-bold">(압축됨)</span>이 표시되고, 실패 시 원본으로 올리며{" "}
+                        <span className="text-amber-600 font-semibold">압축 실패 · 다시 시도</span> 안내가 보입니다.
+                    </p>
                     <div className="flex flex-wrap items-center gap-2">
                         <input
                             ref={fileInputRef}
@@ -278,23 +314,42 @@ function ProblemCard({
                         <div className="flex flex-wrap gap-3">
                             {photos.map((item, i) => (
                                 <div key={i} className="relative group w-[min(160px,100%)]">
-                                    <img
-                                        src={item.url}
-                                        alt=""
-                                        className="h-28 w-auto max-w-[160px] object-cover rounded border mx-auto block"
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-zoom-in"
+                                        onClick={() => onOpenZoom(item.url)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                onOpenZoom(item.url);
+                                            }
+                                        }}
+                                    >
+                                        <img
+                                            src={item.url}
+                                            alt=""
+                                            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                            <span className="text-[10px] font-medium bg-white/90 text-gray-900 px-2 py-1 rounded shadow">
+                                                클릭하여 확대
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <PhotoUploadMetaCaption
+                                        sizeKb={item.sizeKb}
+                                        compressed={item.compressed}
+                                        compressionFailed={item.compressionFailed}
+                                        className="text-[11px]"
                                     />
-                                    {item.sizeKb != null && (
-                                        <p className="text-[11px] text-center text-muted-foreground mt-1 leading-tight">
-                                            {item.sizeKb.toFixed(1)} KB
-                                            {item.compressed && (
-                                                <span className="text-green-600 font-bold"> (압축됨)</span>
-                                            )}
-                                        </p>
-                                    )}
                                     <button
                                         type="button"
-                                        className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onClick={() => onRemovePhoto(i)}
+                                        className="absolute top-1 right-1 rounded-full bg-black/60 p-1 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onRemovePhoto(i);
+                                        }}
                                         aria-label="이 사진 제거"
                                     >
                                         <X className="w-3.5 h-3.5" />
@@ -323,11 +378,39 @@ function ProblemCard({
                 <div className="space-y-2 border-t pt-3">
                     <p className="text-xs font-medium text-gray-500">제출 사진</p>
                     {photos.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-3">
                             {photos.map((item, i) => (
-                                <a key={i} href={item.url} target="_blank" rel="noopener noreferrer">
-                                    <img src={item.url} alt="" className="h-28 w-auto max-w-[160px] object-cover rounded border" />
-                                </a>
+                                <div key={i} className="flex flex-col w-[min(160px,100%)]">
+                                    <div
+                                        role="button"
+                                        tabIndex={0}
+                                        className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-zoom-in group"
+                                        onClick={() => onOpenZoom(item.url)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                onOpenZoom(item.url);
+                                            }
+                                        }}
+                                    >
+                                        <img
+                                            src={item.url}
+                                            alt=""
+                                            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                            <span className="text-[10px] font-medium bg-white/90 text-gray-900 px-2 py-1 rounded shadow">
+                                                클릭하여 확대
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <PhotoUploadMetaCaption
+                                        sizeKb={item.sizeKb}
+                                        compressed={item.compressed}
+                                        compressionFailed={item.compressionFailed}
+                                        className="text-[11px]"
+                                    />
+                                </div>
                             ))}
                         </div>
                     ) : (

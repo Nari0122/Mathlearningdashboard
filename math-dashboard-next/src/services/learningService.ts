@@ -1,5 +1,6 @@
 import { adminDb, getAdminBucket } from "@/lib/firebase-admin";
 import { toKSTISOString } from "@/lib/date-kst";
+import type { ReviewSubmissionPhoto } from "@/types/review-submission";
 
 async function getStudentDocRef(docId: string) {
     if (!adminDb || !docId) return null;
@@ -67,6 +68,34 @@ async function syncUnitErrorCount(
     } catch (err) {
         console.error("syncUnitErrorCount error (non-fatal):", err);
     }
+}
+
+function parseReviewSubmissionEntry(raw: unknown): ReviewSubmissionPhoto | null {
+    if (typeof raw === "string" && raw.trim()) {
+        return { url: raw };
+    }
+    if (raw && typeof raw === "object" && typeof (raw as { url?: unknown }).url === "string") {
+        const o = raw as Record<string, unknown>;
+        const url = String(o.url).trim();
+        if (!url) return null;
+        return {
+            url,
+            sizeKb: typeof o.sizeKb === "number" ? o.sizeKb : undefined,
+            compressed: o.compressed === true,
+            compressionFailed: o.compressionFailed === true,
+        };
+    }
+    return null;
+}
+
+function normalizeReviewSubmissions(raw: unknown): ReviewSubmissionPhoto[] {
+    if (!Array.isArray(raw)) return [];
+    const out: ReviewSubmissionPhoto[] = [];
+    for (const item of raw) {
+        const n = parseReviewSubmissionEntry(item);
+        if (n) out.push(n);
+    }
+    return out;
 }
 
 export const learningService = {
@@ -653,7 +682,7 @@ export const learningService = {
                     classEndTime: data.classEndTime ?? "",
                     deadline: data.deadline ?? "",
                     createdAt: data.createdAt ?? "",
-                    submissions: Array.isArray(data.submissions) ? data.submissions : [],
+                    submissions: normalizeReviewSubmissions(data.submissions),
                     submittedAt: data.submittedAt ?? null,
                     isLateSubmit: Boolean(data.isLateSubmit),
                     feedback: data.feedback ?? "",
@@ -682,7 +711,7 @@ export const learningService = {
                 classEndTime: data.classEndTime ?? "",
                 deadline: data.deadline ?? "",
                 createdAt: data.createdAt ?? "",
-                submissions: Array.isArray(data.submissions) ? data.submissions : [],
+                submissions: normalizeReviewSubmissions(data.submissions),
                 submittedAt: data.submittedAt ?? null,
                 isLateSubmit: Boolean(data.isLateSubmit),
                 feedback: data.feedback ?? "",

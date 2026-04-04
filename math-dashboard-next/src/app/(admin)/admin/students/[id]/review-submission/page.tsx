@@ -1,7 +1,7 @@
 import { getStudentDetailByDocId } from "@/actions/student-actions";
 import { notFound } from "next/navigation";
 import AdminReviewSubmissionClient from "@/components/features/admin/AdminReviewSubmissionClient";
-import type { ReviewProblem } from "@/types/review-submission";
+import { reviewSubmissionsFingerprint, type ReviewProblem } from "@/types/review-submission";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export default async function AdminReviewSubmissionPage({
     const typed = problems as ReviewProblem[];
     /** 피드백만 바뀌어도 리마운트되면 저장 완료 UI가 사라지므로 제외 */
     const clientKey = typed
-        .map((p) => `${p.id}:${p.submittedAt ?? ""}:${(p.submissions || []).join(",")}:${p.deadline}`)
+        .map((p) => `${p.id}:${p.submittedAt ?? ""}:${reviewSubmissionsFingerprint(p.submissions || [])}:${p.deadline}`)
         .join("|");
 
     return (

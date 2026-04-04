@@ -19,6 +19,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Progress } from "@/components/ui/progress"; // Assuming shadcn Progress component exists, or I will use simple div
 import { FileText, Loader2 } from "lucide-react";
 import { useReadOnly } from "@/contexts/ReadOnlyContext";
+import { PhotoUploadMetaCaption } from "@/components/shared/PhotoUploadMetaCaption";
 
 interface Attachment {
     id: string;
@@ -31,6 +32,7 @@ interface Attachment {
     width?: number;
     height?: number;
     compressed?: boolean;
+    compressionFailed?: boolean;
 }
 
 interface StudentIncorrectNotesClientProps {
@@ -425,6 +427,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes: initi
             try {
                 let uploadFile: File | Blob = file;
                 let compressed = false;
+                let compressionFailed = false;
 
                 if (isImage) {
                     try {
@@ -438,6 +441,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes: initi
                         compressed = true;
                     } catch (err) {
                         console.error("Compression failed, using original", err);
+                        compressionFailed = true;
                     }
                 }
 
@@ -465,7 +469,8 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes: initi
                     type: isImage ? "image" : "file",
                     sizeBytes: uploadFile.size,
                     contentType: uploadFile instanceof File ? uploadFile.type : file.type,
-                    compressed: compressed,
+                    compressed,
+                    compressionFailed,
                 };
 
                 setAttachments(prev => [...prev, attachment]);
@@ -726,7 +731,10 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes: initi
                                             {isUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-6 w-6" />}
                                         </div>
                                         <p className="text-sm font-medium text-gray-700">클릭하여 파일 업로드</p>
-                                        <p className="text-xs text-gray-400 mt-1">이미지는 자동 압축됩니다. (최대 10장)</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            이미지는 자동 압축을 시도합니다. 성공 시 <span className="text-green-600 font-bold">(압축됨)</span>, 실패 시 원본 저장 및{" "}
+                                            <span className="text-amber-600 font-semibold">압축 실패 · 다시 시도</span> 안내가 붙습니다. (최대 10장)
+                                        </p>
                                         <Input
                                             id="file-upload"
                                             type="file"
@@ -753,9 +761,12 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes: initi
                                                         )}
                                                         <div className="min-w-0">
                                                             <p className="text-sm font-medium text-gray-700 truncate">{file.originalName}</p>
-                                                            <p className="text-xs text-gray-400">
-                                                                {(file.sizeBytes / 1024).toFixed(1)} KB {file.compressed && <span className="text-green-600 font-bold">(압축됨)</span>}
-                                                            </p>
+                                                            <PhotoUploadMetaCaption
+                                                                sizeKb={file.sizeBytes / 1024}
+                                                                compressed={file.compressed}
+                                                                compressionFailed={file.compressionFailed}
+                                                                className="text-xs text-gray-600 text-left"
+                                                            />
                                                         </div>
                                                     </div>
                                                     <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); removeAttachment(file.id); }}>
@@ -1096,7 +1107,7 @@ export default function StudentIncorrectNotesClient({ studentDocId, notes: initi
 
             {/* Image Zoom Modal */}
             <Dialog open={!!selectedZoomImg} onOpenChange={(open) => !open && setSelectedZoomImg(null)}>
-                <DialogContent className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
+                <DialogContent showCloseButton={false} className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
                     <DialogTitle className="sr-only">이미지 확대</DialogTitle>
                     {selectedZoomImg && (
                         <div className="relative flex items-center justify-center min-h-[50vh]">

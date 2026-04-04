@@ -16,6 +16,7 @@ import { SCHOOL_LEVELS, GRADES, SUBJECTS, getUnits, getDetails, isMiddleSchool }
 import { getBookTags, createBookTag, updateIncorrectNote, createIncorrectNote, deleteIncorrectNote } from "@/actions/learning-actions";
 import imageCompression from "browser-image-compression";
 import { v4 as uuidv4 } from "uuid";
+import { PhotoUploadMetaCaption } from "@/components/shared/PhotoUploadMetaCaption";
 
 interface Attachment {
     id: string;
@@ -26,6 +27,7 @@ interface Attachment {
     sizeBytes: number;
     contentType: string;
     compressed?: boolean;
+    compressionFailed?: boolean;
 }
 
 interface AdminIncorrectNotesClientProps {
@@ -242,12 +244,14 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
             try {
                 let uploadFile: File | Blob = file;
                 let compressed = false;
+                let compressionFailed = false;
                 if (isImage) {
                     try {
                         uploadFile = await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 1920, useWebWorker: true, initialQuality: 0.7 });
                         compressed = true;
                     } catch (err) {
                         console.error("Compression failed", err);
+                        compressionFailed = true;
                     }
                 }
                 const storagePath = `students/${studentDocId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
@@ -262,7 +266,20 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
                 if (!res.ok || !result.success) throw new Error(result.message || "Upload failed");
 
                 setEditUploadProgress((prev) => ({ ...prev, [fileId]: 100 }));
-                setEditAttachments((prev) => [...prev, { id: fileId, originalName: file.name, storagePath, downloadUrl: result.downloadUrl, type: isImage ? "image" : "file", sizeBytes: uploadFile.size, contentType: uploadFile instanceof File ? uploadFile.type : file.type, compressed }]);
+                setEditAttachments((prev) => [
+                    ...prev,
+                    {
+                        id: fileId,
+                        originalName: file.name,
+                        storagePath,
+                        downloadUrl: result.downloadUrl,
+                        type: isImage ? "image" : "file",
+                        sizeBytes: uploadFile.size,
+                        contentType: uploadFile instanceof File ? uploadFile.type : file.type,
+                        compressed,
+                        compressionFailed,
+                    },
+                ]);
             } catch (error) {
                 console.error(`Upload failed ${file.name}`, error);
                 alert(`${file.name} 업로드 실패: ${error instanceof Error ? error.message : "알 수 없는 오류"}`);
@@ -392,6 +409,7 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
             try {
                 let uploadFile: File | Blob = file;
                 let compressed = false;
+                let compressionFailed = false;
                 if (isImage) {
                     try {
                         uploadFile = await imageCompression(file, {
@@ -403,6 +421,7 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
                         compressed = true;
                     } catch (err) {
                         console.error("Compression failed, using original", err);
+                        compressionFailed = true;
                     }
                 }
                 const storagePath = `students/${studentDocId}/wrongNotes/${wrongNoteId}/attachments/${fileId}_${file.name}`;
@@ -426,6 +445,7 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
                     sizeBytes: uploadFile.size,
                     contentType: uploadFile instanceof File ? uploadFile.type : file.type,
                     compressed,
+                    compressionFailed,
                 };
                 setNewAttachments((prev) => [...prev, attachment]);
             } catch (error) {
@@ -991,7 +1011,10 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
                                         {newIsUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-6 w-6" />}
                                     </div>
                                     <p className="text-sm font-medium text-gray-700">클릭하여 파일 업로드</p>
-                                    <p className="text-xs text-gray-400 mt-1">이미지는 자동 압축됩니다.</p>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        이미지는 자동 압축을 시도합니다. 성공 시 <span className="text-green-600 font-bold">(압축됨)</span>, 실패 시{" "}
+                                        <span className="text-amber-600 font-semibold">압축 실패 · 다시 시도</span> 안내가 붙습니다.
+                                    </p>
                                     <Input id="admin-file-upload" type="file" className="hidden" multiple accept="image/*,.pdf,.hwp,.docx" onChange={handleNewFileUpload} disabled={newIsUploading} />
                                 </div>
                                 {newAttachments.length > 0 && (
@@ -1010,7 +1033,12 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
                                                     )}
                                                     <div className="min-w-0">
                                                         <p className="text-sm font-medium text-gray-700 truncate">{file.originalName}</p>
-                                                        <p className="text-xs text-gray-400">{(file.sizeBytes / 1024).toFixed(1)} KB {file.compressed && <span className="text-green-600 font-bold">(압축됨)</span>}</p>
+                                                        <PhotoUploadMetaCaption
+                                                            sizeKb={file.sizeBytes / 1024}
+                                                            compressed={file.compressed}
+                                                            compressionFailed={file.compressionFailed}
+                                                            className="text-xs text-gray-600 text-left"
+                                                        />
                                                     </div>
                                                 </div>
                                                 <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); removeNewAttachment(file.id); }}><X className="h-4 w-4" /></Button>
@@ -1178,7 +1206,10 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
                                             {editIsUploading ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-6 w-6" />}
                                         </div>
                                         <p className="text-sm font-medium text-gray-700">클릭하여 파일 업로드</p>
-                                        <p className="text-xs text-gray-400 mt-1">이미지는 자동 압축됩니다.</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                        이미지는 자동 압축을 시도합니다. 성공 시 <span className="text-green-600 font-bold">(압축됨)</span>, 실패 시{" "}
+                                        <span className="text-amber-600 font-semibold">압축 실패 · 다시 시도</span> 안내가 붙습니다.
+                                    </p>
                                         <Input id="edit-file-upload" type="file" className="hidden" multiple accept="image/*,.pdf,.hwp,.docx" onChange={handleEditFileUpload} disabled={editIsUploading} />
                                     </div>
                                     {editAttachments.length > 0 && (
@@ -1197,7 +1228,12 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
                                                         )}
                                                         <div className="min-w-0">
                                                             <p className="text-sm font-medium text-gray-700 truncate">{file.originalName}</p>
-                                                            <p className="text-xs text-gray-400">{(file.sizeBytes / 1024).toFixed(1)} KB {file.compressed && <span className="text-green-600 font-bold">(압축됨)</span>}</p>
+                                                            <PhotoUploadMetaCaption
+                                                            sizeKb={file.sizeBytes / 1024}
+                                                            compressed={file.compressed}
+                                                            compressionFailed={file.compressionFailed}
+                                                            className="text-xs text-gray-600 text-left"
+                                                        />
                                                         </div>
                                                     </div>
                                                     <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); removeEditAttachment(file.id); }}><X className="h-4 w-4" /></Button>
@@ -1224,7 +1260,7 @@ export default function AdminIncorrectNotesClient({ notes: initialNotes, units =
 
             {/* Image Zoom Modal */}
             <Dialog open={!!selectedZoomImg} onOpenChange={(open) => !open && setSelectedZoomImg(null)}>
-                <DialogContent className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
+                <DialogContent showCloseButton={false} className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
                     <DialogTitle className="sr-only">이미지 확대</DialogTitle>
                     <DialogDescription className="sr-only">선택한 오답노트 이미지를 크게 봅니다.</DialogDescription>
                     {selectedZoomImg && (

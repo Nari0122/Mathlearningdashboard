@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Camera, Trash2 } from "lucide-react";
+import { Plus, Camera, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { classEndAndReviewDeadline } from "@/lib/reviewSubmissionDeadline";
 import { ReviewDeadlineCountdownText } from "@/components/shared/ReviewDeadlineCountdownText";
+import { PhotoUploadMetaCaption } from "@/components/shared/PhotoUploadMetaCaption";
 import {
     adminCreateReviewProblem,
     adminDeleteReviewProblem,
@@ -77,6 +78,7 @@ export default function AdminReviewSubmissionClient({
     const [unitName, setUnitName] = useState("");
     const [linkedScheduleId, setLinkedScheduleId] = useState("");
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+    const [selectedZoomImg, setSelectedZoomImg] = useState<string | null>(null);
 
     const [feedbackDraft, setFeedbackDraft] = useState(() => buildFeedbackDraft(problems));
     const feedbackDraftRef = useRef(feedbackDraft);
@@ -274,12 +276,43 @@ export default function AdminReviewSubmissionClient({
 
                                 <div className="border-t pt-3 space-y-2">
                                     <p className="text-xs font-medium text-gray-500">학생 제출</p>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        제출 시점의 용량·압축 여부가 저장된 사진은 썸네일 아래에 표시됩니다. (구버전 제출은 URL만 있습니다.)
+                                    </p>
                                     {p.submissions?.length ? (
-                                        <div className="flex flex-wrap gap-2">
-                                            {p.submissions.map((url, i) => (
-                                                <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
-                                                    <img src={url} alt="" className="h-24 w-auto max-w-[140px] object-cover rounded border" />
-                                                </a>
+                                        <div className="flex flex-wrap gap-3">
+                                            {p.submissions.map((ph, i) => (
+                                                <div key={i} className="flex flex-col w-[min(140px,100%)]">
+                                                    <div
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-zoom-in group"
+                                                        onClick={() => setSelectedZoomImg(ph.url)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter" || e.key === " ") {
+                                                                e.preventDefault();
+                                                                setSelectedZoomImg(ph.url);
+                                                            }
+                                                        }}
+                                                    >
+                                                        <img
+                                                            src={ph.url}
+                                                            alt=""
+                                                            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                            <span className="text-[10px] font-medium bg-white/90 text-gray-900 px-2 py-1 rounded shadow">
+                                                                클릭하여 확대
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <PhotoUploadMetaCaption
+                                                        sizeKb={ph.sizeKb}
+                                                        compressed={ph.compressed}
+                                                        compressionFailed={ph.compressionFailed}
+                                                        className="text-[11px]"
+                                                    />
+                                                </div>
                                             ))}
                                         </div>
                                     ) : (
@@ -356,6 +389,30 @@ export default function AdminReviewSubmissionClient({
                     })
                 )}
             </div>
+
+            <Dialog open={!!selectedZoomImg} onOpenChange={(open) => !open && setSelectedZoomImg(null)}>
+                <DialogContent showCloseButton={false} className="max-w-[95vw] w-fit p-1 bg-black/90 border-none">
+                    <DialogTitle className="sr-only">이미지 확대</DialogTitle>
+                    {selectedZoomImg && (
+                        <div className="relative flex items-center justify-center min-h-[50vh]">
+                            <img
+                                src={selectedZoomImg}
+                                alt="학생 제출 사진 확대"
+                                className="max-h-[85vh] max-w-full object-contain"
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute -top-1 -right-1 text-white hover:bg-white/20 rounded-full"
+                                onClick={() => setSelectedZoomImg(null)}
+                            >
+                                <X className="h-6 w-6" />
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
                 <AlertDialogContent>

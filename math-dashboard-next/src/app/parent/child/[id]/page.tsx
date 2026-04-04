@@ -16,6 +16,9 @@ export default async function ParentChildPage({ params }: PageProps) {
         return notFound();
     }
 
+    const { learningService } = await import("@/services/learningService");
+    const reviewProblems = await learningService.getReviewProblems(docId);
+
     return (
         <div className="bg-gray-50 min-h-screen">
             <div className="mb-6">
@@ -32,6 +35,7 @@ export default async function ParentChildPage({ params }: PageProps) {
                 stats={null}
                 recentAssignments={[]}
                 recentRecords={[]}
+                recentReviewProblems={reviewProblems.slice(0, 5)}
                 basePath="/parent/child"
             />
         </div>

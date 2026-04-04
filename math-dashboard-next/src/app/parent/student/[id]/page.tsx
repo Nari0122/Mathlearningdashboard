@@ -16,10 +16,11 @@ export default async function ParentStudentDashboardPage({
     const { studentService } = await import("@/services/studentService");
     const { learningService } = await import("@/services/learningService");
 
-    const [stats, assignments, records] = await Promise.all([
+    const [stats, assignments, records, reviewProblems] = await Promise.all([
         studentService.getDashboardStatsByDocId(docId),
         learningService.getAssignments(docId),
         learningService.getLearningRecords(docId),
+        learningService.getReviewProblems(docId),
     ]);
 
     return (
@@ -28,6 +29,7 @@ export default async function ParentStudentDashboardPage({
                 stats={stats}
                 recentAssignments={assignments.slice(0, 5)}
                 recentRecords={records.slice(0, 5)}
+                recentReviewProblems={reviewProblems.slice(0, 5)}
                 basePath="/parent/student"
             />
         </div>

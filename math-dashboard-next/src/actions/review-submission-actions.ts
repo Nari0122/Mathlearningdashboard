@@ -7,7 +7,15 @@ import { learningService } from "@/services/learningService";
 import { userService } from "@/services/userService";
 import { classEndAndReviewDeadline, isPastReviewDeadline } from "@/lib/reviewSubmissionDeadline";
 import { toKSTISOString } from "@/lib/date-kst";
-import type { ReviewFeedbackStatus } from "@/types/review-submission";
+import type { ReviewFeedbackStatus, ReviewSubmissionPhoto } from "@/types/review-submission";
+
+function reviewPhotoToFirestore(s: ReviewSubmissionPhoto): Record<string, unknown> {
+    const row: Record<string, unknown> = { url: s.url.trim() };
+    if (s.sizeKb != null && Number.isFinite(s.sizeKb)) row.sizeKb = s.sizeKb;
+    if (s.compressed) row.compressed = true;
+    if (s.compressionFailed) row.compressionFailed = true;
+    return row;
+}
 
 function getSessionUid(): Promise<string | null> {
     return getServerSession(getAuthOptions(undefined)).then(
@@ -116,13 +124,18 @@ export async function adminDeleteReviewProblem(
 export async function studentSubmitReviewPhotos(
     studentDocId: string,
     problemId: string,
-    photoUrls: string[]
+    photos: ReviewSubmissionPhoto[]
 ): Promise<{ success: true } | { success: false; message: string }> {
     const auth = await assertStudent(studentDocId);
     if (!auth.ok) return { success: false, message: auth.message };
 
-    if (!Array.isArray(photoUrls) || photoUrls.length === 0) {
+    if (!Array.isArray(photos) || photos.length === 0) {
         return { success: false, message: "제출할 사진을 한 장 이상 선택해 주세요." };
+    }
+    for (const p of photos) {
+        if (!p?.url?.trim()) {
+            return { success: false, message: "유효하지 않은 사진 항목이 있습니다." };
+        }
     }
 
     const problem = await learningService.getReviewProblem(studentDocId, problemId);
@@ -131,7 +144,7 @@ export async function studentSubmitReviewPhotos(
     const late = isPastReviewDeadline(problem.deadline);
 
     const result = await learningService.updateReviewProblem(studentDocId, problemId, {
-        submissions: photoUrls,
+        submissions: photos.map(reviewPhotoToFirestore),
         submittedAt: toKSTISOString(),
         isLateSubmit: late,
     });
