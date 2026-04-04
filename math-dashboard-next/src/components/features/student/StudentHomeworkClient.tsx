@@ -115,7 +115,7 @@ export default function StudentHomeworkClient({ assignments: initialAssignments,
                                             <Lock className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs text-gray-500">
                                         <span className={isOverdue ? "text-red-600 font-semibold" : ""}>
                                             마감: {formatDate(assignment.dueDate)}
                                         </span>
@@ -128,6 +128,11 @@ export default function StudentHomeworkClient({ assignments: initialAssignments,
                                             </span>
                                         )}
                                     </div>
+                                    {assignment.isLateUpdate && assignment.lastModifiedDate && (
+                                        <div className="mt-1 text-[11px] text-amber-600">
+                                            ⚠️ 마감 후 수정됨 · 마지막 수정: {formatDateTime(assignment.lastModifiedDate)}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="shrink-0">

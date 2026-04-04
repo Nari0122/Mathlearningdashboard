@@ -90,7 +90,7 @@ export default function HomeworkClient({ initialHomeworks, studentDocId }: Homew
                                 </div>
 
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-4 border-t border-gray-100 gap-4">
-                                    <div className="flex items-center gap-6 text-sm">
+                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
                                         <div>
                                             <span className="text-gray-500 mr-2">부여일:</span>
                                             <span className="font-medium text-gray-900">{hw.assignedDate}</span>
@@ -111,6 +111,11 @@ export default function HomeworkClient({ initialHomeworks, studentDocId }: Homew
                                         </div>
                                     )}
                                 </div>
+                                {(hw as any).isLateUpdate && (hw as any).lastModifiedDate && (
+                                    <div className="mt-2 text-xs text-amber-600">
+                                        ⚠️ 마감 후 수정됨 · 마지막 수정: {new Date((hw as any).lastModifiedDate).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })}
+                                    </div>
+                                )}
                             </div>
                             {/* Progress Bar for visual flair */}
                             <div className={`h-1.5 w-full ${hw.status === 'submitted' ? 'bg-green-500' : 'bg-orange-300'}`} />

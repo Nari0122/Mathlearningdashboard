@@ -308,7 +308,14 @@ export default function AdminHomeworkClient({ homeworks: initialHomeworks, sched
                                         <td className={`p-4 whitespace-nowrap ${pastDeadline ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
                                             {hw.dueDate}
                                         </td>
-                                        <td className="p-4 text-gray-500 whitespace-nowrap">{hw.submittedDate ? formatDateTime(hw.submittedDate) : "-"}</td>
+                                        <td className="p-4 text-gray-500 whitespace-nowrap">
+                                            {hw.submittedDate ? formatDateTime(hw.submittedDate) : "-"}
+                                            {hw.isLateUpdate && hw.lastModifiedDate && (
+                                                <div className="text-[11px] text-amber-600 mt-0.5">
+                                                    ⚠️ 마감 후 수정됨 ({formatDateTime(hw.lastModifiedDate)})
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="p-4 text-right whitespace-nowrap">
                                             <Button variant="ghost" size="sm" onClick={() => handleEditClick(hw)}>
                                                 수정

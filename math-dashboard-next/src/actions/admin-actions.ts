@@ -184,15 +184,24 @@ export async function updateHomeworkProgress(
 ) {
     const { toKSTISOString } = await import("@/lib/date-kst");
     const { todayKSTString } = await import("@/lib/date-kst");
+    const { getSubmissionDeadline } = await import("@/lib/submissionDeadline");
+
+    const homeworks = await learningService.getAssignments(docId);
+    const hw = homeworks.find((h: any) => h.id === id) as any;
 
     const updateData: Record<string, any> = {
         progress,
         progressChangedByAdmin: changedByAdmin,
+        lastModifiedDate: toKSTISOString(),
     };
 
+    // 마감 후 수정 여부 판별
+    if (hw) {
+        const deadline = getSubmissionDeadline(hw);
+        updateData.isLateUpdate = new Date() >= deadline;
+    }
+
     if (progress === "done") {
-        const homeworks = await learningService.getAssignments(docId);
-        const hw = homeworks.find((h: any) => h.id === id) as any;
         const today = todayKSTString();
         const isLate = hw && (today > hw.dueDate);
         updateData.status = isLate ? "late-submitted" : "submitted";
