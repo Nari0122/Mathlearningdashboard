@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { getStudentDetailByDocId } from "@/actions/student-actions";
 import { notFound, redirect } from "next/navigation";
 import { getAuthOptions } from "@/lib/auth";
+import { userService } from "@/services/userService";
 
 export default async function StudentIdLayout({
     children,
@@ -16,8 +17,13 @@ export default async function StudentIdLayout({
 
     if (!session || !uid) redirect("/login");
 
-    // 본인 데이터만 접근 허용 — 다른 학생의 URL로 접근 시 본인 페이지로 리다이렉트
-    if (uid !== docId) {
+    // 관리자는 모든 학생 페이지 미리보기 가능
+    const admin = await userService.getAdmin(uid);
+    const adminRole = admin && (admin as { role?: string }).role;
+    const isAdmin = adminRole === "ADMIN" || adminRole === "SUPER_ADMIN";
+
+    // 학생은 본인 데이터만 접근 허용
+    if (!isAdmin && uid !== docId) {
         redirect(`/student/${uid}`);
     }
 

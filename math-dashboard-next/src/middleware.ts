@@ -38,10 +38,11 @@ export async function middleware(req: NextRequest) {
         }
     }
 
-    // ── /student/*, /dashboard/*, /homework, /exams, /schedule, /study/* : 관리자가 접근하면 관리자 대시보드로 ──
-    const studentPaths = ["/student/", "/dashboard", "/homework", "/exams", "/schedule", "/study/"];
-    const isStudentPath = studentPaths.some((p) => path.startsWith(p));
-    if (isStudentPath && (role === "ADMIN" || role === "SUPER_ADMIN")) {
+    // ── /student/* : 관리자도 미리보기 가능 (학생 페이지 확인용) ──
+    // ── /dashboard/*, /homework, /exams, /schedule, /study/* : 관리자가 접근하면 관리자 대시보드로 ──
+    const dashboardPaths = ["/dashboard", "/homework", "/exams", "/schedule", "/study/"];
+    const isDashboardPath = dashboardPaths.some((p) => path.startsWith(p));
+    if (isDashboardPath && (role === "ADMIN" || role === "SUPER_ADMIN")) {
         return NextResponse.redirect(new URL("/admin/students", req.url));
     }
 
