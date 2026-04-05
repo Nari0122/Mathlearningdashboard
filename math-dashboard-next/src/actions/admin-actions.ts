@@ -183,7 +183,6 @@ export async function updateHomeworkProgress(
     changedByAdmin: boolean = false
 ) {
     const { toKSTISOString } = await import("@/lib/date-kst");
-    const { todayKSTString } = await import("@/lib/date-kst");
     const { getSubmissionDeadline } = await import("@/lib/submissionDeadline");
 
     const homeworks = await learningService.getAssignments(docId);
@@ -201,15 +200,8 @@ export async function updateHomeworkProgress(
         updateData.isLateUpdate = new Date() >= deadline;
     }
 
-    if (progress === "done") {
-        const today = todayKSTString();
-        const isLate = hw && (today > hw.dueDate);
-        updateData.status = isLate ? "late-submitted" : "submitted";
-        updateData.submittedDate = toKSTISOString();
-    } else {
-        updateData.status = "pending";
-        updateData.submittedDate = null;
-    }
+    // 진척도(안 함~완료)는 제출 상태·제출 시각과 분리: 어떤 진척도를 골라도 마감·제출 마감 시각은 그대로 두고,
+    // formal 제출은 submitHomework / 관리자 제출 처리 등 별도 경로에서만 갱신합니다.
 
     const result = await learningService.updateAssignment(docId, id, updateData);
     if (result.success) {
